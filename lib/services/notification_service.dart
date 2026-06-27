@@ -222,7 +222,15 @@ class NotificationService {
           importance: Importance.high,
           priority: Priority.high,
         ),
-        iOS: DarwinNotificationDetails(),
+        // Present alert/sound even while the app is in the foreground (iOS does
+        // not show a banner for in-app notifications unless asked to).
+        iOS: DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+          presentBanner: true,
+          presentList: true,
+        ),
       );
 }
 
