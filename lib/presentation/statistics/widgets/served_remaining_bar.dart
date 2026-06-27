@@ -48,10 +48,11 @@ class ServedRemainingBar extends StatelessWidget {
           ),
         ),
         const SizedBox(height: AppSizes.md),
-        Row(
+        Wrap(
+          spacing: AppSizes.lg,
+          runSpacing: AppSizes.xs,
           children: [
             _LegendDot(color: accent, label: AppStrings.statsDaysServed, count: daysServed),
-            const SizedBox(width: AppSizes.lg),
             _LegendDot(color: track, label: AppStrings.statsDaysRemaining, count: daysRemaining),
           ],
         ),

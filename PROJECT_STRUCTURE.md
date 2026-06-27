@@ -43,6 +43,7 @@
   - theme: `lightThemeProvider`, `darkThemeProvider`, `themeModeProvider`, `accentColorProvider`, `fontScaleProvider`
 - **Home** — `presentation/home/home_controller.dart`
   - `clockProvider` (1s ticker), **`serviceProgressProvider`** (live ServiceProgress for active soldier), `quotesProvider` (FutureProvider<List<String>>)
+  - `epochDayProvider` (day ordinal, re-emits at local midnight), **`quoteOfTheDayProvider`** (deterministic quote-of-the-day; advances at 00:00) — used by `QuoteBanner`
 - **Milestones** — `presentation/milestones/milestones_controller.dart`
   - `milestonesProvider` (list), `pendingCelebrationProvider` (int? threshold to celebrate)
 - **Services** — `notificationServiceProvider` (overridden in main with initialized instance), `imageStorageServiceProvider`
@@ -82,7 +83,7 @@ lib/
 │   ├── share/                  # share_card (fixed-size shareable card visuals) + share_card_screen (preview + system share); reached from home top-row share button
 │   ├── soldiers/soldier_switcher_sheet.dart  # bottom sheet: list/switch/edit/delete + add; showSoldierSwitcher()
 │   ├── soldier_form/
-│   │   ├── soldier_form_screen.dart          # create/edit: photo + start date + end date (auto-fills +18mo on start pick); no name/unit/presets
+│   │   ├── soldier_form_screen.dart          # create/edit: photo + required name + start date + end date (auto-fills +18mo on start pick); no unit/presets
 │   │   └── widgets/photo_picker_tile.dart
 │   ├── statistics/               # statistics_screen + widgets/ (stat_tile, served_remaining_bar)
 │   ├── milestones/               # milestones_screen, milestones_controller, milestone_celebration (confetti+haptics), widgets/milestone_card
@@ -101,7 +102,7 @@ lib/
     ├── image_storage_service.dart # copy picked images into app docs dir
     └── widget_to_image.dart      # captureBoundaryToPng(): RepaintBoundary -> PNG in temp dir (for share card)
 
-android/app/src/main/kotlin/com/example/depitun/DepitunWidgetProvider.kt  # native widget (RemoteViews) + tap-to-open
+android/app/src/main/kotlin/com/virabyan/mnac/DepitunWidgetProvider.kt  # native widget (RemoteViews) + tap-to-open  (app id: com.virabyan.mnac)
 android/app/src/main/res/{layout/depitun_widget.xml, xml/depitun_widget_info.xml, drawable/widget_background.xml}
 
 test/

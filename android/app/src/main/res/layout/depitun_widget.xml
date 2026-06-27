@@ -12,7 +12,7 @@
         android:id="@+id/widget_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Դեպի Տուն"
+        android:text="Մնաց"
         android:textColor="#8A8276"
         android:textSize="12sp"
         android:maxLines="1"

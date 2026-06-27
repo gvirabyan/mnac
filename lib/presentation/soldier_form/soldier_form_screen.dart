@@ -33,6 +33,7 @@ class SoldierFormScreen extends ConsumerStatefulWidget {
 class _SoldierFormScreenState extends ConsumerState<SoldierFormScreen> {
   static const _uuid = Uuid();
 
+  final TextEditingController _nameController = TextEditingController();
   late DateTime _startDate;
   late DateTime _endDate;
   late String? _photoPath;
@@ -44,6 +45,7 @@ class _SoldierFormScreenState extends ConsumerState<SoldierFormScreen> {
     super.initState();
     final existing = widget.existing;
     if (existing != null) {
+      _nameController.text = existing.name ?? '';
       _startDate = existing.serviceStart;
       _endDate = existing.dischargeDate;
       _photoPath = existing.photoPath;
@@ -55,6 +57,12 @@ class _SoldierFormScreenState extends ConsumerState<SoldierFormScreen> {
       );
       _photoPath = null;
     }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
   }
 
   Future<void> _pickStartDate() async {
@@ -94,6 +102,13 @@ class _SoldierFormScreenState extends ConsumerState<SoldierFormScreen> {
   }
 
   Future<void> _save() async {
+    final name = _nameController.text.trim();
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text(AppStrings.errNameRequired)),
+      );
+      return;
+    }
     if (!_endDate.isAfter(_startDate)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text(AppStrings.errEndBeforeStart)),
@@ -105,6 +120,7 @@ class _SoldierFormScreenState extends ConsumerState<SoldierFormScreen> {
     final SoldierProfile profile;
     if (_isEdit) {
       profile = widget.existing!.copyWith(
+        name: name,
         serviceStart: _startDate,
         serviceDurationDays: durationDays,
         photoPath: _photoPath,
@@ -113,6 +129,7 @@ class _SoldierFormScreenState extends ConsumerState<SoldierFormScreen> {
     } else {
       profile = SoldierProfile(
         id: _uuid.v4(),
+        name: name,
         serviceStart: _startDate,
         serviceDurationDays: durationDays,
         photoPath: _photoPath,
@@ -147,6 +164,10 @@ class _SoldierFormScreenState extends ConsumerState<SoldierFormScreen> {
             ),
           ),
           const SizedBox(height: AppSizes.xl),
+          const SectionHeader(title: AppStrings.formNameTitle),
+          const SizedBox(height: AppSizes.md),
+          _NameField(controller: _nameController, onSubmitted: (_) => _save()),
+          const SizedBox(height: AppSizes.xl),
           const SectionHeader(title: AppStrings.formStartTitle),
           const SizedBox(height: AppSizes.md),
           _DateField(date: _startDate, onTap: _pickStartDate),
@@ -160,6 +181,40 @@ class _SoldierFormScreenState extends ConsumerState<SoldierFormScreen> {
           ),
           const SizedBox(height: AppSizes.xxl),
           PrimaryButton(label: AppStrings.save, onPressed: _save),
+        ],
+      ),
+    );
+  }
+}
+
+class _NameField extends StatelessWidget {
+  const _NameField({required this.controller, this.onSubmitted});
+
+  final TextEditingController controller;
+  final ValueChanged<String>? onSubmitted;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return GlassCard(
+      child: Row(
+        children: [
+          Icon(Icons.person_rounded, color: theme.colorScheme.primary),
+          const SizedBox(width: AppSizes.sm),
+          Expanded(
+            child: TextField(
+              controller: controller,
+              textCapitalization: TextCapitalization.words,
+              textInputAction: TextInputAction.done,
+              onSubmitted: onSubmitted,
+              style: theme.textTheme.titleMedium,
+              decoration: const InputDecoration(
+                isCollapsed: true,
+                border: InputBorder.none,
+                hintText: AppStrings.formNameHint,
+              ),
+            ),
+          ),
         ],
       ),
     );

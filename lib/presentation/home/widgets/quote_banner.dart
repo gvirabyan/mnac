@@ -1,55 +1,29 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/constants/app_durations.dart';
 import '../home_controller.dart';
 
-/// Shows a rotating motivational Armenian quote with a gentle fade transition.
-class QuoteBanner extends ConsumerStatefulWidget {
+/// Shows the motivational Armenian "quote of the day".
+///
+/// The quote is chosen deterministically from the calendar day, so it stays the
+/// same all day and gently fades to the next one at midnight (see
+/// [quoteOfTheDayProvider]).
+class QuoteBanner extends ConsumerWidget {
   const QuoteBanner({super.key, this.animate = true});
 
   final bool animate;
 
   @override
-  ConsumerState<QuoteBanner> createState() => _QuoteBannerState();
-}
-
-class _QuoteBannerState extends ConsumerState<QuoteBanner> {
-  Timer? _timer;
-  int _index = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.animate) {
-      _timer = Timer.periodic(AppDurations.quoteRotation, (_) {
-        if (!mounted) return;
-        final quotes = ref.read(quotesProvider).value;
-        if (quotes == null || quotes.isEmpty) return;
-        setState(() => _index = (_index + 1) % quotes.length);
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final quotes = ref.watch(quotesProvider).value;
-    if (quotes == null || quotes.isEmpty) {
+    final quote = ref.watch(quoteOfTheDayProvider);
+    if (quote == null) {
       return const SizedBox.shrink();
     }
-    final quote = quotes[_index % quotes.length];
 
     return AnimatedSwitcher(
-      duration: AppDurations.medium,
+      duration: animate ? AppDurations.medium : Duration.zero,
       transitionBuilder: (child, animation) =>
           FadeTransition(opacity: animation, child: child),
       child: Text(

@@ -32,3 +32,34 @@ final quotesProvider = FutureProvider<List<String>>((ref) async {
   final raw = await rootBundle.loadString('assets/quotes/quotes_hy.json');
   return (jsonDecode(raw) as List).cast<String>();
 });
+
+/// Ordinal of the current local day. Emits immediately, then re-emits just
+/// after each local midnight so date-derived UI (the daily quote) advances at
+/// 00:00 without needing an app restart.
+final epochDayProvider = StreamProvider.autoDispose<int>((ref) async* {
+  yield _dayOrdinal(DateTime.now());
+  while (true) {
+    final now = DateTime.now();
+    final nextMidnight =
+        DateTime(now.year, now.month, now.day).add(const Duration(days: 1));
+    // Small cushion past midnight to avoid landing on 23:59:59 due to drift.
+    await Future<void>.delayed(
+      nextMidnight.difference(now) + const Duration(seconds: 1),
+    );
+    yield _dayOrdinal(DateTime.now());
+  }
+});
+
+/// Whole local days since a fixed reference; increments by one each day.
+int _dayOrdinal(DateTime t) =>
+    DateTime(t.year, t.month, t.day).difference(DateTime(2000)).inDays;
+
+/// The motivational quote for today. Picked deterministically from the day
+/// ordinal so it is stable within a day and advances to the next quote at each
+/// midnight, cycling through the list.
+final quoteOfTheDayProvider = Provider.autoDispose<String?>((ref) {
+  final quotes = ref.watch(quotesProvider).value;
+  if (quotes == null || quotes.isEmpty) return null;
+  final day = ref.watch(epochDayProvider).value ?? _dayOrdinal(DateTime.now());
+  return quotes[day % quotes.length];
+});

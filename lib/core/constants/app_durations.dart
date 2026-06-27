@@ -13,7 +13,4 @@ abstract final class AppDurations {
 
   /// Live countdown tick interval.
   static const Duration tick = Duration(seconds: 1);
-
-  /// How often a new motivational quote rotates in.
-  static const Duration quoteRotation = Duration(seconds: 12);
 }

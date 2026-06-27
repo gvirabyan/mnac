@@ -31,7 +31,7 @@ class NotificationService {
 
   static const String _channelId = 'depitun_reminders';
   static const String _channelName = 'Հիշեցումներ';
-  static const String _channelDesc = 'Դեպի Տուն հիշեցումներ';
+  static const String _channelDesc = 'Մնաց հիշեցումներ';
 
   static const int _dailyBase = 1000;
   static const int _dailyWindow = 60; // reserved id range to cancel

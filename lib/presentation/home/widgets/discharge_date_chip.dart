@@ -31,10 +31,12 @@ class DischargeDateChip extends StatelessWidget {
             color: theme.colorScheme.primary,
           ),
           const SizedBox(width: AppSizes.xs),
-          Text(
-            '${AppStrings.homeDischargeDate}՝ ${AppDateUtils.formatLong(dischargeDate)}',
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: theme.colorScheme.primary,
+          Flexible(
+            child: Text(
+              '${AppStrings.homeDischargeDate}՝ ${AppDateUtils.formatLong(dischargeDate)}',
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.primary,
+              ),
             ),
           ),
         ],

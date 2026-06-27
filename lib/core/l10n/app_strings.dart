@@ -6,7 +6,7 @@ abstract final class AppStrings {
   AppStrings._();
 
   // App identity.
-  static const String appName = 'Դեպի Տուն';
+  static const String appName = 'Մնաց';
   static const String appTagline = 'Հաշված օրեր մինչև տուն';
 
   // Bottom navigation.
@@ -72,8 +72,11 @@ abstract final class AppStrings {
 
   // Soldier form (add / edit).
   static const String formAddTitle = 'Ավելացնել տվյալները';
+  static const String formNameTitle = 'Անուն';
+  static const String formNameHint = 'Մուտքագրիր անունը';
   static const String formStartTitle = 'Մեկնարկի ամսաթիվ';
   static const String formEndTitle = 'Զորացրման ամսաթիվ';
+  static const String errNameRequired = 'Մուտքագրիր անունը';
   static const String errEndBeforeStart =
       'Զորացրման ամսաթիվը պետք է լինի մեկնարկից հետո';
 
@@ -201,7 +204,7 @@ abstract final class AppStrings {
 
   // About / privacy.
   static const String aboutBody =
-      'Դեպի Տուն — հավելված հայ զինվորների համար։ Քո ճանապարհը՝ դեպի տուն, '
+      'Մնաց — հավելված հայ զինվորների համար։ Քո ճանապարհը՝ դեպի տուն, '
       'գեղեցիկ ու ոգևորող ձևով։';
   static const String privacyBody =
       'Բոլոր տվյալները պահվում են միայն քո սարքում։ Հավելվածը չունի սերվեր, '

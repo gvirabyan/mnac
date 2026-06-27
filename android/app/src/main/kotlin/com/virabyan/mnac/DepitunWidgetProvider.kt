@@ -1,4 +1,4 @@
-package com.example.depitun
+package com.virabyan.mnac
 
 import android.appwidget.AppWidgetManager
 import android.content.Context
@@ -22,8 +22,8 @@ class DepitunWidgetProvider : HomeWidgetProvider() {
     ) {
         appWidgetIds.forEach { widgetId ->
             val views = RemoteViews(context.packageName, R.layout.depitun_widget).apply {
-                val title = widgetData.getString("widget_title", "Դեպի Տուն")
-                    ?: "Դեպի Տուն"
+                val title = widgetData.getString("widget_title", "Մնաց")
+                    ?: "Մնաց"
                 val days = widgetData.getString("widget_days", "—") ?: "—"
                 val discharge = widgetData.getString("widget_discharge", "") ?: ""
 

@@ -63,7 +63,9 @@ class HomeScreen extends ConsumerWidget {
         onLongPressCancel: () => setImmersive(false),
         child: Stack(
           children: [
-            Positioned.fill(child: HomeBackground(customImagePath: bgPath)),
+            Positioned.fill(
+              child: HomeBackground(customImagePath: bgPath, animate: animate),
+            ),
             Positioned.fill(
               child: IgnorePointer(
                 ignoring: immersive,

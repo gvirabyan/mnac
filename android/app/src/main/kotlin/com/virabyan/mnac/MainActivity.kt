@@ -1,4 +1,4 @@
-package com.example.depitun
+package com.virabyan.mnac
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -9,9 +9,16 @@ import 'package:flutter/material.dart';
 /// a premium, distinctly Armenian backdrop reminiscent of a hero photo, with
 /// no bundled asset required.
 class HomeBackground extends StatelessWidget {
-  const HomeBackground({super.key, this.customImagePath});
+  const HomeBackground({
+    super.key,
+    this.customImagePath,
+    this.animate = true,
+  });
 
   final String? customImagePath;
+
+  /// When true, a custom background image slowly pans and zooms (Ken Burns).
+  final bool animate;
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +31,9 @@ class HomeBackground extends StatelessWidget {
       return Stack(
         fit: StackFit.expand,
         children: [
-          Image.file(File(customImagePath!), fit: BoxFit.cover),
+          animate
+              ? _KenBurnsImage(path: customImagePath!)
+              : Image.file(File(customImagePath!), fit: BoxFit.cover),
           // Scrim to keep foreground text readable over any photo.
           DecoratedBox(
             decoration: BoxDecoration(
@@ -47,18 +56,126 @@ class HomeBackground extends StatelessWidget {
       );
     }
 
-    return CustomPaint(
-      painter: _AraratPainter(isDark: isDark, accent: accent),
-      size: Size.infinite,
+    return animate
+        ? _AnimatedArarat(isDark: isDark, accent: accent)
+        : CustomPaint(
+            painter: _AraratPainter(isDark: isDark, accent: accent, t: 0),
+            size: Size.infinite,
+          );
+  }
+}
+
+/// Drives a slow, looping value to give the painted Ararat scene a gentle
+/// "breathing" sun glow so the static backdrop feels alive.
+class _AnimatedArarat extends StatefulWidget {
+  const _AnimatedArarat({required this.isDark, required this.accent});
+
+  final bool isDark;
+  final Color accent;
+
+  @override
+  State<_AnimatedArarat> createState() => _AnimatedAraratState();
+}
+
+class _AnimatedAraratState extends State<_AnimatedArarat>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(seconds: 22),
+  )..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) {
+        final t = Curves.easeInOut.transform(_controller.value);
+        return CustomPaint(
+          painter: _AraratPainter(
+            isDark: widget.isDark,
+            accent: widget.accent,
+            t: t,
+          ),
+          size: Size.infinite,
+        );
+      },
+    );
+  }
+}
+
+/// A full-bleed image that slowly zooms and pans in a gentle, looping
+/// "Ken Burns" motion to make the home backdrop feel alive.
+class _KenBurnsImage extends StatefulWidget {
+  const _KenBurnsImage({required this.path});
+
+  final String path;
+
+  @override
+  State<_KenBurnsImage> createState() => _KenBurnsImageState();
+}
+
+class _KenBurnsImageState extends State<_KenBurnsImage>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(seconds: 28),
+  )..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final image = Image.file(
+      File(widget.path),
+      fit: BoxFit.cover,
+      width: double.infinity,
+      height: double.infinity,
+      gaplessPlayback: true,
+    );
+
+    return ClipRect(
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          final t = Curves.easeInOut.transform(_controller.value);
+          // Zoom 1.08x -> 1.22x while drifting the focal point diagonally so
+          // the scaled-up (overflowing) image pans across the screen.
+          final scale = 1.08 + 0.14 * t;
+          final alignment = Alignment.lerp(
+            const Alignment(-0.5, -0.35),
+            const Alignment(0.5, 0.35),
+            t,
+          )!;
+          return Transform.scale(
+            scale: scale,
+            alignment: alignment,
+            child: child,
+          );
+        },
+        child: image,
+      ),
     );
   }
 }
 
 class _AraratPainter extends CustomPainter {
-  _AraratPainter({required this.isDark, required this.accent});
+  _AraratPainter({required this.isDark, required this.accent, this.t = 0});
 
   final bool isDark;
   final Color accent;
+
+  /// Eased animation phase in 0..1 driving the breathing sun glow.
+  final double t;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -79,18 +196,22 @@ class _AraratPainter extends CustomPainter {
         ).createShader(Offset.zero & size),
     );
 
-    // Sun / moon glow.
-    final glowCenter = Offset(w * 0.72, h * 0.20);
+    // Sun / moon glow — slowly drifts and breathes with the animation phase.
+    final glowCenter = Offset(w * (0.70 + 0.05 * t), h * (0.18 + 0.04 * t));
+    final glowRadius = h * (0.155 + 0.025 * t);
+    final glowAlpha = (isDark ? 0.42 : 0.50) + 0.12 * t;
     canvas.drawCircle(
       glowCenter,
-      h * 0.16,
+      glowRadius,
       Paint()
         ..shader = RadialGradient(
           colors: [
-            accent.withValues(alpha: isDark ? 0.45 : 0.55),
+            accent.withValues(alpha: glowAlpha),
             accent.withValues(alpha: 0.0),
           ],
-        ).createShader(Rect.fromCircle(center: glowCenter, radius: h * 0.16)),
+        ).createShader(
+          Rect.fromCircle(center: glowCenter, radius: glowRadius),
+        ),
     );
 
     // Far mountain range.
@@ -168,5 +289,5 @@ class _AraratPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_AraratPainter old) =>
-      old.isDark != isDark || old.accent != accent;
+      old.isDark != isDark || old.accent != accent || old.t != t;
 }

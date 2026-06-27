@@ -64,6 +64,23 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+
+# Launcher icon generation. Sources are 1024x1024 PNGs; run
+# `dart run flutter_launcher_icons` to regenerate native icons after changes.
+flutter_launcher_icons:
+  android: "ic_launcher"
+  ios: true
+  # iOS + legacy Android: transparent artwork flattened onto the beige bg below.
+  image_path: "assets/icon/icon_foreground.png"
+  # Android 8+ adaptive icon: transparent artwork on a beige background, inset
+  # into the safe zone so round/teardrop masks don't clip the rifle/cross/text.
+  adaptive_icon_background: "#F4ECE1"
+  adaptive_icon_foreground: "assets/icon/icon_foreground.png"
+  adaptive_icon_foreground_inset: 18
+  # iOS forbids alpha; flatten the transparent areas onto beige.
+  remove_alpha_ios: true
+  background_color_ios: "#F4ECE1"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

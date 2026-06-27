@@ -305,7 +305,7 @@ Add per phase (not all at once) to keep the build green.
 - [x] 12.1 Shared-axis page transitions (`appPageRoute`); decorative entrance (`FadeSlideIn`) gated to the "full" animation level; `none` disables all motion; counters/rings/bars/quote honor the flag
 - [x] 12.2 Performance pass: only the ticking countdown/breakdown watch the 1s provider (each in a `RepaintBoundary`); Calendar & Statistics no longer rebuild every second (compute via `read` / `select` on day granularity)
 - [x] 12.3 Empty states (home/stats/calendar) + edge cases: service-complete card, future start date prevented in form
-- [~] 12.4 Final naming → **app name set to «Դեպի Տուն»** (Android label + iOS CFBundleDisplayName). Launcher icon artwork + native splash image deferred (need real image assets)
+- [~] 12.4 Final naming → **app renamed to «Մնաց»** everywhere (Android label, iOS CFBundleDisplayName, in-app `AppStrings.appName` + about, notif channel desc, home-widget title). **Launcher icon DONE** via `flutter_launcher_icons`: legacy/iOS from `assets/icon/icon.png` (white bg) + Android 8+ **adaptive icon** (transparent `assets/icon/icon_foreground.png`, white background `#FFFFFF`, `adaptive_icon_foreground_inset: 18` for safe zone). Run `dart run flutter_launcher_icons` to regenerate. Native splash image still deferred.
 - [x] 12.5 `flutter analyze` clean + 16 tests green + debug APK builds
 
 ---
