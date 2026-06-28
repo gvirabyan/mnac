@@ -13,12 +13,17 @@ class HomeBackground extends StatelessWidget {
     super.key,
     this.customImagePath,
     this.animate = true,
+    this.scrimVisible = true,
   });
 
   final String? customImagePath;
 
   /// When true, a custom background image slowly pans and zooms (Ken Burns).
   final bool animate;
+
+  /// When false, the readability scrim over the photo fades out so the clean
+  /// image shows through (used by the immersive press-and-hold mode).
+  final bool scrimVisible;
 
   @override
   Widget build(BuildContext context) {
@@ -34,21 +39,27 @@ class HomeBackground extends StatelessWidget {
           animate
               ? _KenBurnsImage(path: customImagePath!)
               : Image.file(File(customImagePath!), fit: BoxFit.cover),
-          // Scrim to keep foreground text readable over any photo.
-          DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: isDark
-                    ? [
-                        Colors.black.withValues(alpha: 0.35),
-                        Colors.black.withValues(alpha: 0.70),
-                      ]
-                    : [
-                        Colors.white.withValues(alpha: 0.30),
-                        Colors.white.withValues(alpha: 0.75),
-                      ],
+          // Scrim to keep foreground text readable over any photo. It fades
+          // away in immersive mode to reveal the clean image.
+          AnimatedOpacity(
+            opacity: scrimVisible ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 280),
+            curve: Curves.easeOut,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: isDark
+                      ? [
+                          Colors.black.withValues(alpha: 0.20),
+                          Colors.black.withValues(alpha: 0.48),
+                        ]
+                      : [
+                          Colors.white.withValues(alpha: 0.12),
+                          Colors.white.withValues(alpha: 0.45),
+                        ],
+                ),
               ),
             ),
           ),

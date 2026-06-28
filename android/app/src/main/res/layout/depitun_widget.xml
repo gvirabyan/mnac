@@ -15,15 +15,6 @@
         android:visibility="gone"
         android:contentDescription="@null" />
 
-    <!-- Readability scrim, shown only together with the photo.
-         A FrameLayout is used because RemoteViews does not support a plain View. -->
-    <FrameLayout
-        android:id="@+id/widget_scrim"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@drawable/widget_scrim"
-        android:visibility="gone" />
-
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -73,6 +64,18 @@
             android:text="մինչև տուն"
             android:textColor="#1E1B16"
             android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/widget_percent"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text=""
+            android:textColor="#1E1B16"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:ellipsize="end" />
 
         <TextView
             android:id="@+id/widget_discharge"

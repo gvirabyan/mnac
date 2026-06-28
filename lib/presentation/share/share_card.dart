@@ -45,17 +45,35 @@ class ShareCard extends StatelessWidget {
     return SizedBox(
       width: size.width,
       height: size.height,
-      child: DecoratedBox(
-        decoration: const BoxDecoration(
-          borderRadius: BorderRadius.all(Radius.circular(AppSizes.radiusLg)),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [AppColors.charcoal, AppColors.charcoalDeep],
-          ),
-        ),
+      child: ClipRRect(
+        borderRadius:
+            const BorderRadius.all(Radius.circular(AppSizes.radiusLg)),
         child: Stack(
+          fit: StackFit.expand,
           children: [
+            // Background: the soldier's photo (with a dark scrim so the light
+            // text stays legible) when set, otherwise the branded gradient.
+            if (hasPhoto) ...[
+              Image.file(File(profile.photoPath!), fit: BoxFit.cover),
+              const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Color(0x59000000), Color(0xD9000000)],
+                  ),
+                ),
+              ),
+            ] else
+              const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [AppColors.charcoal, AppColors.charcoalDeep],
+                  ),
+                ),
+              ),
             // Soft apricot glow in the top-right for a premium feel.
             Positioned(
               top: -90,

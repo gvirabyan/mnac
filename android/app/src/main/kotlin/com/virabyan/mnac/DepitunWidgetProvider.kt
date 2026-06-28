@@ -81,24 +81,23 @@ class DepitunWidgetProvider : HomeWidgetProvider() {
             if (count == 0) {
                 setTextViewText(R.id.widget_title, "Մնաց")
                 setTextViewText(R.id.widget_days, "—")
+                setTextViewText(R.id.widget_percent, "")
                 setTextViewText(R.id.widget_discharge, "")
                 setViewVisibility(R.id.widget_bg, View.GONE)
-                setViewVisibility(R.id.widget_scrim, View.GONE)
                 setViewVisibility(R.id.widget_next, View.GONE)
             } else {
                 val s = soldiers.getJSONObject(index)
                 setTextViewText(R.id.widget_title, s.optString("title", "Մնաց"))
                 setTextViewText(R.id.widget_days, s.optString("days", "—"))
+                setTextViewText(R.id.widget_percent, s.optString("percent", ""))
                 setTextViewText(R.id.widget_discharge, s.optString("discharge", ""))
 
                 val bitmap = decodeBackground(s.optString("photoPath", ""))
                 if (bitmap != null) {
                     setImageViewBitmap(R.id.widget_bg, bitmap)
                     setViewVisibility(R.id.widget_bg, View.VISIBLE)
-                    setViewVisibility(R.id.widget_scrim, View.VISIBLE)
                 } else {
                     setViewVisibility(R.id.widget_bg, View.GONE)
-                    setViewVisibility(R.id.widget_scrim, View.GONE)
                 }
 
                 if (count > 1) {

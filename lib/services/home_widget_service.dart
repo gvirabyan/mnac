@@ -30,7 +30,8 @@ class HomeWidgetService {
         items.add({
           'title': soldier.name ?? AppStrings.appName,
           'days': '${progress.daysRemaining}',
-          'discharge': '${progress.percentInt}% · ${AppStrings.homeDischargeDate}՝ '
+          'percent': '${AppStrings.homeServedSoFar}՝ ${progress.percentInt}%',
+          'discharge': '${AppStrings.homeDischargeDate}՝ '
               '${AppDateUtils.formatLong(progress.end)}',
           'photoPath': soldier.photoPath ?? '',
         });

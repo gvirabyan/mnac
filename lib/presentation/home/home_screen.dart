@@ -64,7 +64,11 @@ class HomeScreen extends ConsumerWidget {
         child: Stack(
           children: [
             Positioned.fill(
-              child: HomeBackground(customImagePath: bgPath, animate: animate),
+              child: HomeBackground(
+                customImagePath: bgPath,
+                animate: animate,
+                scrimVisible: !immersive,
+              ),
             ),
             Positioned.fill(
               child: IgnorePointer(
@@ -107,8 +111,8 @@ class HomeScreen extends ConsumerWidget {
                                       onTap: () => showSoldierSwitcher(context),
                                     ),
                                   ),
-                                  const _ShareButton(),
                                   const _BackgroundButton(),
+                                  const _ShareButton(),
                                 ],
                               ),
                               const SizedBox(height: AppSizes.xl),
@@ -159,7 +163,7 @@ class _ShareButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return IconButton(
       tooltip: AppStrings.shareTitle,
-      icon: const Icon(Icons.ios_share_rounded),
+      icon: const Icon(Icons.send_rounded),
       onPressed: () {
         final soldier = ref.read(activeSoldierProvider);
         final progress = ref.read(serviceProgressProvider);
