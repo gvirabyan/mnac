@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Readability scrim drawn over the user's background photo, mirroring the
+     in-app light-mode scrim so the existing dark widget text stays legible. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <corners android:radius="24dp" />
+    <gradient
+        android:angle="270"
+        android:startColor="#4DFFFFFF"
+        android:endColor="#BFFFFFFF" />
+</shape>

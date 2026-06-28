@@ -69,7 +69,8 @@ class _MainShellState extends ConsumerState<MainShell>
           settings: settings,
           quotes: quotes,
         );
-    await ref.read(homeWidgetServiceProvider).sync(soldier);
+    final soldiers = ref.read(soldiersControllerProvider).soldiers;
+    await ref.read(homeWidgetServiceProvider).sync(soldiers);
   }
 
   Future<void> _celebrate(int threshold) async {
