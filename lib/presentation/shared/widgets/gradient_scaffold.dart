@@ -33,7 +33,10 @@ class GradientScaffold extends StatelessWidget {
         backgroundImagePath != null && File(backgroundImagePath!).existsSync();
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      // Match the gradient's top colour (instead of transparent) so the strip
+      // behind the transparent AppBar isn't the route's black backdrop — which
+      // made the dark back button / title invisible in light mode.
+      backgroundColor: gradient.colors.first,
       extendBodyBehindAppBar: extendBodyBehindAppBar,
       appBar: appBar,
       bottomNavigationBar: bottomNavigationBar,
