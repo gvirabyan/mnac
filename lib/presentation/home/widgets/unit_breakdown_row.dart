@@ -5,38 +5,62 @@ import '../../../core/l10n/app_strings.dart';
 import '../../../core/utils/duration_breakdown.dart';
 import '../../shared/widgets/animated_counter.dart';
 
-/// Displays the remaining time broken into Y / M / W / D and H / Min / Sec,
-/// each as an animated number above its Armenian label.
+/// A single value+label unit cell in a breakdown page.
+class UnitValue {
+  const UnitValue(this.value, this.label, {this.pad = false});
+
+  final int value;
+  final String label;
+
+  /// When true the number is zero-padded to two digits (used for H/Min/Sec).
+  final bool pad;
+}
+
+/// Displays time units as animated numbers above their Armenian labels,
+/// laid out in one or more rows.
 class UnitBreakdownRow extends StatelessWidget {
   const UnitBreakdownRow({
     super.key,
-    required this.breakdown,
+    required this.rows,
     this.animate = true,
   });
 
-  final DurationBreakdown breakdown;
+  /// Builds the classic hierarchical layout: Y / M / W / D over H / Min / Sec.
+  static List<List<UnitValue>> hierarchicalRows(DurationBreakdown b) => [
+        [
+          UnitValue(b.years, AppStrings.years),
+          UnitValue(b.months, AppStrings.months),
+          UnitValue(b.weeks, AppStrings.weeks),
+          UnitValue(b.days, AppStrings.days),
+        ],
+        [
+          UnitValue(b.hours, AppStrings.hours, pad: true),
+          UnitValue(b.minutes, AppStrings.minutes, pad: true),
+          UnitValue(b.seconds, AppStrings.seconds, pad: true),
+        ],
+      ];
+
+  final List<List<UnitValue>> rows;
   final bool animate;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Row(
-          children: [
-            _Cell(value: breakdown.years, label: AppStrings.years, animate: animate),
-            _Cell(value: breakdown.months, label: AppStrings.months, animate: animate),
-            _Cell(value: breakdown.weeks, label: AppStrings.weeks, animate: animate),
-            _Cell(value: breakdown.days, label: AppStrings.days, animate: animate),
-          ],
-        ),
-        const SizedBox(height: AppSizes.md),
-        Row(
-          children: [
-            _Cell(value: breakdown.hours, label: AppStrings.hours, animate: animate, pad: true),
-            _Cell(value: breakdown.minutes, label: AppStrings.minutes, animate: animate, pad: true),
-            _Cell(value: breakdown.seconds, label: AppStrings.seconds, animate: animate, pad: true),
-          ],
-        ),
+        for (var i = 0; i < rows.length; i++) ...[
+          if (i > 0) const SizedBox(height: AppSizes.md),
+          Row(
+            children: [
+              for (final unit in rows[i])
+                _Cell(
+                  value: unit.value,
+                  label: unit.label,
+                  animate: animate,
+                  pad: unit.pad,
+                ),
+            ],
+          ),
+        ],
       ],
     );
   }

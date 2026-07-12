@@ -96,6 +96,7 @@ flutter:
   assets:
     - assets/quotes/
     - assets/lottie/
+    - assets/images/
     - assets/images/textures/
 
   # To add assets to your application, add an assets section, like this:

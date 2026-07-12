@@ -57,6 +57,13 @@ abstract final class AppStrings {
   static const String homeUntilHome = 'Մինչև տուն';
   static const String homeRemainingTitle = 'ՄՆԱՑ';
   static const String homeElapsedTitle = 'ԱՆՑԱՎ';
+  static const String homeRemainingDaysTitle = 'ՄՆԱՑ · ՕՐԵՐՈՎ';
+  static const String homeRemainingWeeksTitle = 'ՄՆԱՑ · ՇԱԲԱԹՆԵՐՈՎ';
+  static const String homeRemainingMonthsTitle = 'ՄՆԱՑ · ԱՄԻՍՆԵՐՈՎ';
+  static const String homeElapsedDaysTitle = 'ԱՆՑԱՎ · ՕՐԵՐՈՎ';
+  static const String homeElapsedWeeksTitle = 'ԱՆՑԱՎ · ՇԱԲԱԹՆԵՐՈՎ';
+  static const String homeElapsedMonthsTitle = 'ԱՆՑԱՎ · ԱՄԻՍՆԵՐՈՎ';
+  static String homeDaysPassed(int days) => 'Անցել է $days օր';
   static const String homeCompleted = 'Ավարտված է';
   static const String homeProgress = 'Առաջընթաց';
   static const String homeDischargeDate = 'Զորացրման ամսաթիվ';
@@ -97,13 +104,13 @@ abstract final class AppStrings {
   static const String statsMonthsServed = 'Անցած ամիսներ';
   static const String statsProgress = 'Ընթացքը';
   static const String statsServedVsRemaining = 'Անցած / Մնացած';
-  static const String statsMilestonesPeek = 'Հանգրվաններ';
+  static const String statsMilestonesPeek = 'Նվաճումներ';
 
   // Milestones.
-  static const String milestonesTitle = 'Հանգրվաններ';
+  static const String milestonesTitle = 'Նվաճումներ';
   static const String milestoneLocked = 'Փակ է';
   static const String milestoneUnlocked = 'Հասանելի է';
-  static const String milestoneReached = 'Շնորհավո՛ր նոր հանգրվանը';
+  static const String milestoneReached = 'Շնորհավո՛ր նոր նվաճումը';
   static const String milestoneCelebrate = 'Նշել';
   static const String milestoneClose = 'Փակել';
 
@@ -135,7 +142,7 @@ abstract final class AppStrings {
   static const String calendarStart = 'Մեկնարկ';
   static const String calendarToday = 'Այսօր';
   static const String calendarDischarge = 'Զորացրում';
-  static const String calendarMilestone = 'Հանգրվան';
+  static const String calendarMilestone = 'Նվաճում';
   static const String calendarLegend = 'Նշանակումներ';
 
   // Settings.
@@ -176,7 +183,7 @@ abstract final class AppStrings {
   static const String notifDailyReminderDesc =
       'Եթե այդ օրը չես մտնում հավելված, նշված ժամին կհիշեցնենք';
   static const String notifReminderTime = 'Հիշեցման ժամը';
-  static const String notifMilestones = 'Հանգրվանների ծանուցումներ';
+  static const String notifMilestones = 'Նվաճումների ծանուցումներ';
   static const String notifTest = 'Փորձնական ծանուցում';
   static const String notifTestBody = 'Ծանուցումներն աշխատում են ✓';
   static const String notifPermissionDenied =

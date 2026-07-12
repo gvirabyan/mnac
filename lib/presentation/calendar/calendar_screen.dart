@@ -52,11 +52,13 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               subtitle: AppStrings.homeNoSoldierSubtitle,
             )
           : ListView(
-              padding: const EdgeInsets.fromLTRB(
+              // Extra bottom inset so the last card scrolls clear of the
+              // floating glass nav bar (the shell uses extendBody: true).
+              padding: EdgeInsets.fromLTRB(
                 AppSizes.screenPadding,
                 AppSizes.md,
                 AppSizes.screenPadding,
-                AppSizes.xxl,
+                AppSizes.xxl + MediaQuery.paddingOf(context).bottom,
               ),
               children: [
                 _MonthHeader(

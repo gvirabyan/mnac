@@ -101,11 +101,13 @@ class SettingsScreen extends ConsumerWidget {
     return GradientScaffold(
       appBar: AppBar(title: const Text(AppStrings.settingsTitle)),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(
+        // Extra bottom inset so the last tile scrolls clear of the floating
+        // glass nav bar (the shell uses extendBody: true).
+        padding: EdgeInsets.fromLTRB(
           AppSizes.screenPadding,
           AppSizes.md,
           AppSizes.screenPadding,
-          AppSizes.xxl,
+          AppSizes.xxl + MediaQuery.paddingOf(context).bottom,
         ),
         children: [
           _Group(children: [

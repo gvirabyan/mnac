@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../app/router/app_router.dart';
 import '../../core/constants/app_sizes.dart';
 import '../../core/l10n/app_strings.dart';
+import '../../core/utils/duration_breakdown.dart';
 import '../../domain/entities/app_settings.dart';
 import '../../domain/entities/soldier_profile.dart';
 import '../../services/image_storage_service.dart';
@@ -23,6 +24,7 @@ import '../soldiers/soldier_switcher_sheet.dart';
 import 'home_controller.dart';
 import 'widgets/breakdown_carousel.dart';
 import 'widgets/circular_countdown.dart';
+import 'widgets/unit_breakdown_row.dart';
 import 'widgets/discharge_date_chip.dart';
 import 'widgets/home_background.dart';
 import 'widgets/quote_banner.dart';
@@ -328,6 +330,16 @@ class _CountdownHero extends ConsumerWidget {
                     : AppStrings.homeUntilHome,
                 style: theme.textTheme.labelMedium,
               ),
+              if (!progress.isComplete && progress.hasStarted) ...[
+                const SizedBox(height: AppSizes.xxs),
+                Text(
+                  AppStrings.homeDaysPassed(progress.daysServed),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.8),
+                    fontFeatures: tabular,
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -369,17 +381,83 @@ class _BreakdownCard extends ConsumerWidget {
           animateCounters: animate,
           autoScroll: animate,
           pages: [
-            BreakdownPage(
-              title: AppStrings.homeRemainingTitle,
-              breakdown: progress.remaining,
-            ),
-            BreakdownPage(
-              title: AppStrings.homeElapsedTitle,
-              breakdown: progress.elapsed,
-            ),
+            // Remaining time; tap cycles hierarchical → days → months.
+            BreakdownPage(views: [
+              BreakdownView.hierarchical(
+                title: AppStrings.homeRemainingTitle,
+                breakdown: progress.remaining,
+              ),
+              BreakdownView(
+                title: AppStrings.homeRemainingDaysTitle,
+                rows: _totalDaysRows(progress.end.difference(progress.now)),
+              ),
+              BreakdownView(
+                title: AppStrings.homeRemainingWeeksTitle,
+                rows: _totalWeeksRows(progress.end.difference(progress.now)),
+              ),
+              BreakdownView(
+                title: AppStrings.homeRemainingMonthsTitle,
+                rows: _totalMonthsRows(progress.remaining),
+              ),
+            ]),
+            // Elapsed time; same tap cycle.
+            BreakdownPage(views: [
+              BreakdownView.hierarchical(
+                title: AppStrings.homeElapsedTitle,
+                breakdown: progress.elapsed,
+              ),
+              BreakdownView(
+                title: AppStrings.homeElapsedDaysTitle,
+                rows: _totalDaysRows(progress.now.difference(progress.start)),
+              ),
+              BreakdownView(
+                title: AppStrings.homeElapsedWeeksTitle,
+                rows: _totalWeeksRows(progress.now.difference(progress.start)),
+              ),
+              BreakdownView(
+                title: AppStrings.homeElapsedMonthsTitle,
+                rows: _totalMonthsRows(progress.elapsed),
+              ),
+            ]),
           ],
         ),
       ),
     );
   }
+
+  /// The whole span as total days ("525 days") over H / Min / Sec.
+  static List<List<UnitValue>> _totalDaysRows(Duration d) => [
+        [UnitValue(d.inDays, AppStrings.days)],
+        [
+          UnitValue(d.inHours % 24, AppStrings.hours, pad: true),
+          UnitValue(d.inMinutes % 60, AppStrings.minutes, pad: true),
+          UnitValue(d.inSeconds % 60, AppStrings.seconds, pad: true),
+        ],
+      ];
+
+  /// The whole span as total weeks ("75 weeks 3 days") over H / Min / Sec.
+  static List<List<UnitValue>> _totalWeeksRows(Duration d) => [
+        [
+          UnitValue(d.inDays ~/ 7, AppStrings.weeks),
+          UnitValue(d.inDays % 7, AppStrings.days),
+        ],
+        [
+          UnitValue(d.inHours % 24, AppStrings.hours, pad: true),
+          UnitValue(d.inMinutes % 60, AppStrings.minutes, pad: true),
+          UnitValue(d.inSeconds % 60, AppStrings.seconds, pad: true),
+        ],
+      ];
+
+  /// The whole span as total months ("17 months 5 days") over H / Min / Sec.
+  static List<List<UnitValue>> _totalMonthsRows(DurationBreakdown b) => [
+        [
+          UnitValue(b.years * 12 + b.months, AppStrings.months),
+          UnitValue(b.weeks * 7 + b.days, AppStrings.days),
+        ],
+        [
+          UnitValue(b.hours, AppStrings.hours, pad: true),
+          UnitValue(b.minutes, AppStrings.minutes, pad: true),
+          UnitValue(b.seconds, AppStrings.seconds, pad: true),
+        ],
+      ];
 }
