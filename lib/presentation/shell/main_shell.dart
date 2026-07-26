@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/di/providers.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../services/home_widget_service.dart';
+import '../../services/interstitial_ad_service.dart';
 import '../../services/notification_service.dart';
 import '../calendar/calendar_screen.dart';
 import '../home/home_controller.dart';
@@ -45,7 +46,12 @@ class _MainShellState extends ConsumerState<MainShell>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _syncBackground());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _syncBackground();
+      // Cold-start only — deliberately not repeated on resume, so the ad
+      // cadence tracks app opens rather than every foreground/background flip.
+      ref.read(interstitialAdServiceProvider).maybeShowOnLaunch();
+    });
   }
 
   @override
