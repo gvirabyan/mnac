@@ -64,13 +64,20 @@ class _MainShellState extends ConsumerState<MainShell>
     final soldier = ref.read(activeSoldierProvider);
     final settings = ref.read(settingsControllerProvider);
     final quotes = ref.read(quotesProvider).value ?? const <String>[];
-    await ref.read(notificationServiceProvider).sync(
-          soldier: soldier,
-          settings: settings,
-          quotes: quotes,
-        );
+    await ref
+        .read(notificationServiceProvider)
+        .sync(soldier: soldier, settings: settings, quotes: quotes);
     final soldiers = ref.read(soldiersControllerProvider).soldiers;
-    await ref.read(homeWidgetServiceProvider).sync(soldiers);
+    // The widget always shows list index 0 (Android's "next" button pages
+    // from there); reorder so the active soldier — the one whose photo is
+    // shown as the app's home background — leads, regardless of storage order.
+    final ordered = soldier == null
+        ? soldiers
+        : [
+            ...soldiers.where((s) => s.id == soldier.id),
+            ...soldiers.where((s) => s.id != soldier.id),
+          ];
+    await ref.read(homeWidgetServiceProvider).sync(ordered);
   }
 
   Future<void> _celebrate(int threshold) async {
@@ -80,8 +87,9 @@ class _MainShellState extends ConsumerState<MainShell>
     // Persist all currently-unlocked thresholds so this fires only once.
     final progress = ref.read(serviceProgressProvider);
     if (progress != null) {
-      final unlocked =
-          ref.read(computeMilestonesProvider).unlockedThresholds(progress);
+      final unlocked = ref
+          .read(computeMilestonesProvider)
+          .unlockedThresholds(progress);
       await ref
           .read(settingsControllerProvider.notifier)
           .markMilestonesUnlocked(unlocked);

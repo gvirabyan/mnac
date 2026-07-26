@@ -1,11 +1,16 @@
+import AppIntents
 import SwiftUI
 import WidgetKit
 
-/// Mirrors `HomeWidgetService` / `DepitunWidgetProvider.kt` on Android: shows
-/// the first soldier's countdown, written by the app into the shared App
-/// Group container as a JSON blob under the key below.
+/// Mirrors `HomeWidgetService` / `DepitunWidgetProvider.kt` on Android: the
+/// app writes every soldier as a JSON blob under `widgetDataKey`. Which one
+/// is shown is tracked by `widgetIndexKey`, advanced by `NextSoldierIntent`
+/// (iOS 17+) — the closest counterpart to Android's "next" button, which
+/// pages via a broadcast receiver instead.
 private let appGroupId = "group.com.virabyan.mnac.widget"
 private let widgetDataKey = "widget_soldiers"
+private let widgetIndexKey = "widget_soldier_index"
+private let widgetKind = "DepitunWidgetExtension"
 
 struct DepitunEntry: TimelineEntry {
   let date: Date
@@ -14,38 +19,76 @@ struct DepitunEntry: TimelineEntry {
   let percent: String
   let discharge: String
   let photoPath: String?
+  let soldierCount: Int
 }
 
-/// Reads the first soldier's data written by the app. Only the first soldier
-/// is shown — the extension's sandbox can't page through soldiers the way
-/// the Android widget's "next" button does.
-private func loadEntry() -> DepitunEntry {
-  let placeholder = DepitunEntry(
-    date: Date(), title: "Մնաց", days: "—", percent: "", discharge: "", photoPath: nil)
-
+private func loadSoldiers() -> [[String: String]] {
   guard
     let raw = UserDefaults(suiteName: appGroupId)?.string(forKey: widgetDataKey),
     let data = raw.data(using: .utf8),
-    let items = try? JSONSerialization.jsonObject(with: data) as? [[String: String]],
-    let first = items.first
+    let items = try? JSONSerialization.jsonObject(with: data) as? [[String: String]]
   else {
-    return placeholder
+    return []
+  }
+  return items
+}
+
+/// Reads the soldier at the currently-selected index (clamped in case the
+/// list shrank since the index was last advanced).
+private func loadEntry() -> DepitunEntry {
+  let placeholder = DepitunEntry(
+    date: Date(), title: "Մնաց", days: "—", percent: "", discharge: "", photoPath: nil,
+    soldierCount: 0)
+
+  let items = loadSoldiers()
+  guard !items.isEmpty else { return placeholder }
+
+  let defaults = UserDefaults(suiteName: appGroupId)
+  var index = defaults?.integer(forKey: widgetIndexKey) ?? 0
+  if index < 0 || index >= items.count {
+    index = 0
+    defaults?.set(0, forKey: widgetIndexKey)
   }
 
-  let photoPath = first["photoPath"]
+  let soldier = items[index]
+  let photoPath = soldier["photoPath"]
   return DepitunEntry(
     date: Date(),
-    title: first["title"] ?? placeholder.title,
-    days: first["days"] ?? placeholder.days,
-    percent: first["percent"] ?? "",
-    discharge: first["discharge"] ?? "",
-    photoPath: (photoPath?.isEmpty ?? true) ? nil : photoPath
+    title: soldier["title"] ?? placeholder.title,
+    days: soldier["days"] ?? placeholder.days,
+    percent: soldier["percent"] ?? "",
+    discharge: soldier["discharge"] ?? "",
+    photoPath: (photoPath?.isEmpty ?? true) ? nil : photoPath,
+    soldierCount: items.count
   )
+}
+
+/// Advances the shown soldier, wrapping around. Runs in-process in the
+/// widget extension (no app launch), like Android's broadcast receiver.
+/// Interactive widget buttons need iOS 17+; below that the button that
+/// would invoke this simply isn't shown (see `nextButton` in the view).
+@available(iOS 17.0, *)
+struct NextSoldierIntent: AppIntent {
+  static var title: LocalizedStringResource = "Հաջորդ զինվոր"
+  static var description = IntentDescription("Ցուցադրել հաջորդ զինվորի հաշվիչը վիջեթում։")
+
+  func perform() async throws -> some IntentResult {
+    let defaults = UserDefaults(suiteName: appGroupId)
+    let count = loadSoldiers().count
+    if count > 1 {
+      let current = defaults?.integer(forKey: widgetIndexKey) ?? 0
+      defaults?.set((current + 1) % count, forKey: widgetIndexKey)
+    }
+    WidgetCenter.shared.reloadTimelines(ofKind: widgetKind)
+    return .result()
+  }
 }
 
 struct Provider: TimelineProvider {
   func placeholder(in context: Context) -> DepitunEntry {
-    DepitunEntry(date: Date(), title: "Մնաց", days: "—", percent: "", discharge: "", photoPath: nil)
+    DepitunEntry(
+      date: Date(), title: "Մնաց", days: "—", percent: "", discharge: "", photoPath: nil,
+      soldierCount: 0)
   }
 
   func getSnapshot(in context: Context, completion: @escaping (DepitunEntry) -> Void) {
@@ -76,6 +119,32 @@ struct DepitunWidgetEntryView: View {
       background
       content
         .padding(16)
+      if entry.soldierCount > 1 {
+        nextButton
+      }
+    }
+  }
+
+  /// Bottom-trailing "next soldier" button, mirroring the Android widget's
+  /// paging control. Hidden below iOS 17 (no interactive widget support) and
+  /// when there's only one soldier (mirrors Android's visibility rule).
+  @ViewBuilder
+  private var nextButton: some View {
+    if #available(iOS 17.0, *) {
+      VStack {
+        Spacer()
+        HStack {
+          Spacer()
+          Button(intent: NextSoldierIntent()) {
+            Image(systemName: "chevron.right.circle.fill")
+              .font(.system(size: 20))
+              .foregroundColor(hasPhoto ? .white : Self.ink)
+              .opacity(0.85)
+          }
+          .buttonStyle(.plain)
+        }
+      }
+      .padding(10)
     }
   }
 
@@ -139,7 +208,7 @@ struct DepitunWidgetEntryView: View {
 
 @main
 struct DepitunWidget: Widget {
-  let kind: String = "DepitunWidgetExtension"
+  let kind: String = widgetKind
 
   var body: some WidgetConfiguration {
     StaticConfiguration(kind: kind, provider: Provider()) { entry in
