@@ -57,11 +57,10 @@
                 android:resource="@xml/depitun_widget_info" />
         </receiver>
 
-        <!-- AdMob. TODO: replace with the real Android App ID once created —
-             this is Google's shared test ID, safe to ship but earns nothing. -->
+        <!-- AdMob. -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-3940256099942544~3347511713" />
+            android:value="ca-app-pub-9425467580147795~9734171743" />
 
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

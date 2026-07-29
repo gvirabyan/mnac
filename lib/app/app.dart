@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/debug/debug_toast.dart';
 import '../core/l10n/app_strings.dart';
 import '../presentation/shared/state/theme_providers.dart';
 import 'router/app_router.dart';
@@ -15,6 +16,7 @@ class DepiTunApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp(
       title: AppStrings.appName,
+      scaffoldMessengerKey: debugMessengerKey,
       debugShowCheckedModeBanner: false,
       theme: ref.watch(lightThemeProvider),
       darkTheme: ref.watch(darkThemeProvider),
