@@ -23,7 +23,7 @@ class InterstitialAdService {
   static const _showDelay = Duration(seconds: 15);
 
   static const String _androidAdUnitId =
-      'ca-app-pub-9425467580147795/3080033406';
+      'ca-app-pub-9425467580147795/9664465505';
   static const String _iosAdUnitId =
       'ca-app-pub-9425467580147795/1307056819';
 
