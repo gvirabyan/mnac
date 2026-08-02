@@ -70,20 +70,25 @@ dev_dependencies:
   flutter_native_splash: ^2.4.7
 
 # Launcher icon generation. Sources are 1024x1024 PNGs; run
-# `dart run flutter_launcher_icons` to regenerate native icons after changes.
+# `dart run flutter_launcher_icons` to regenerate the native icons after
+# changing one.
 flutter_launcher_icons:
   android: "ic_launcher"
   ios: true
-  # iOS + legacy Android: transparent artwork flattened onto the beige bg below.
-  image_path: "assets/icon/icon_foreground.png"
-  # Android 8+ adaptive icon: transparent artwork on a beige background, inset
-  # into the safe zone so round/teardrop masks don't clip the rifle/cross/text.
-  adaptive_icon_background: "#F4ECE1"
+  # iOS + legacy Android: artwork already flattened onto the dark background
+  # (iOS forbids alpha). iOS masks with a squircle, which only shaves the
+  # corners, so the artwork needs no shrinking here.
+  image_path: "assets/icon/icon.png"
+  adaptive_icon_background: "#14110D"
   adaptive_icon_foreground: "assets/icon/icon_foreground.png"
-  adaptive_icon_foreground_inset: 18
-  # iOS forbids alpha; flatten the transparent areas onto beige.
+  # Android 8+ shows only the central 72dp of the 108dp layer, and a circular
+  # mask cuts that down to a circle. The source artwork reaches 0.91 of the
+  # half-canvas radius, well past the 0.667 the circle leaves visible, so it
+  # has to be inset: 16% shrinks the drawable to 0.68 and lands the far tip at
+  # 0.62 — clear of the circle and level with the 66dp safe zone.
+  adaptive_icon_foreground_inset: 16
   remove_alpha_ios: true
-  background_color_ios: "#F4ECE1"
+  background_color_ios: "#14110D"
 
 # Native launch screen. Deliberately a bare background with no artwork: the
 # OS screen exists only to hand off invisibly to the animated Flutter splash,
