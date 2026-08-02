@@ -40,13 +40,21 @@ const _vignetteGradient = RadialGradient(
   stops: [0.55, 1],
 );
 
-/// Animated startup splash: the "Մնաց" wordmark gradually brightens out of
-/// black, then the tagline fades in below it. Calls [onFinished] once the
-/// sequence has fully played so the caller can swap in the real app.
+/// The logo, drawn above the wordmark. This is deliberately the same file the
+/// launcher icon is generated from (see the `flutter_launcher_icons` block in
+/// pubspec), not a separate copy: replacing the logo there and re-running the
+/// generator updates the splash too, with nothing to keep in sync by hand.
+const _logoAsset = 'assets/icon/icon_foreground.png';
+
+/// Animated startup splash: the logo appears first, the "Մնաց" wordmark
+/// brightens out of black beneath it, then the tagline fades in below that.
+/// Calls [onFinished] once the sequence has fully played so the caller can
+/// swap in the real app.
 ///
-/// Both lines are vector artwork rather than live text: the glyphs are baked
-/// to outlines so the gold gradient on the wordmark and the divider above the
-/// tagline render identically everywhere, with no webfont fetch on first run.
+/// Both lines of type are vector artwork rather than live text: the glyphs are
+/// baked to outlines so the gold gradient on the wordmark and the divider above
+/// the tagline render identically everywhere, with no webfont fetch on first
+/// run.
 ///
 /// The OS launch screen (see the `flutter_native_splash` block in pubspec) is
 /// a bare charcoalDeep fill with no artwork on either platform, and this
@@ -62,16 +70,22 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-  // Title appears first, on its own. Then a full beat after it has finished,
-  // the tagline rises in. Milliseconds (not Duration) so the delay below can
-  // be summed as a const expression.
-  static const _titleDelayMs = 150;
+  // The logo leads, the title overlaps its tail so the two read as one move,
+  // and a full beat after the title settles the tagline rises in. Milliseconds
+  // (not Duration) so the delays below can be summed as const expressions.
+  // The shortened pause keeps the whole sequence the same length it was before
+  // the logo was added.
+  static const _logoDelayMs = 100;
+  static const _logoDurationMs = 800;
+  static const _titleDelayMs = 500;
   static const _titleDurationMs = 900;
-  static const _pauseAfterTitleMs = 1000;
+  static const _pauseAfterTitleMs = 650;
   static const _taglineDelayMs =
       _titleDelayMs + _titleDurationMs + _pauseAfterTitleMs;
   static const _taglineDurationMs = 800;
 
+  static const _logoDelay = Duration(milliseconds: _logoDelayMs);
+  static const _logoDuration = Duration(milliseconds: _logoDurationMs);
   static const _titleDelay = Duration(milliseconds: _titleDelayMs);
   static const _titleDuration = Duration(milliseconds: _titleDurationMs);
   static const _taglineDelay = Duration(milliseconds: _taglineDelayMs);
@@ -90,7 +104,11 @@ class _SplashScreenState extends State<SplashScreen> {
   static const _backdropDuration = Duration(milliseconds: 700);
 
   // Artwork widths, as a fraction of the screen capped for tablets. Heights
-  // follow from each SVG's own aspect ratio.
+  // follow from each SVG's own aspect ratio; the logo is square, and its
+  // source carries its own padding, so the drawn bird fills less than the box.
+  static const _logoWidthFactor = 0.38;
+  static const _logoMaxWidth = 168.0;
+  static const _logoGap = 12.0;
   static const _wordmarkWidthFactor = 0.52;
   static const _wordmarkMaxWidth = 230.0;
   static const _taglineWidthFactor = 0.72;
@@ -116,6 +134,10 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.sizeOf(context).width;
+    final logoWidth = (screenWidth * _logoWidthFactor).clamp(
+      0.0,
+      _logoMaxWidth,
+    );
     final wordmarkWidth = (screenWidth * _wordmarkWidthFactor).clamp(
       0.0,
       _wordmarkMaxWidth,
@@ -146,6 +168,31 @@ class _SplashScreenState extends State<SplashScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // The wordmark right below already carries the app name for
+                // screen readers, so the logo stays out of the semantics tree
+                // rather than announcing it twice.
+                Image.asset(
+                      _logoAsset,
+                      width: logoWidth,
+                      height: logoWidth,
+                      fit: BoxFit.contain,
+                      filterQuality: FilterQuality.medium,
+                      excludeFromSemantics: true,
+                    )
+                    .animate()
+                    .fadeIn(
+                      delay: _logoDelay,
+                      duration: _logoDuration,
+                      curve: Curves.easeOut,
+                    )
+                    .scale(
+                      begin: const Offset(0.9, 0.9),
+                      end: const Offset(1, 1),
+                      delay: _logoDelay,
+                      duration: _logoDuration,
+                      curve: Curves.easeOutBack,
+                    ),
+                const SizedBox(height: _logoGap),
                 SvgPicture.asset(
                       'assets/svg/splash_wordmark.svg',
                       width: wordmarkWidth,

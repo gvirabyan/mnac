@@ -135,6 +135,9 @@ flutter:
     - assets/images/
     - assets/images/textures/
     - assets/svg/
+    # Bundled so the splash can draw the very same file the launcher icon is
+    # generated from — replace the logo once and both follow.
+    - assets/icon/
 
   # To add assets to your application, add an assets section, like this:
   # assets:
