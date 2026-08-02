@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../core/constants/app_sizes.dart';
 import '../../core/l10n/app_strings.dart';
@@ -9,12 +10,14 @@ import '../../core/utils/date_utils.dart';
 import '../../domain/entities/service_progress.dart';
 import '../../domain/entities/soldier_profile.dart';
 
-/// A fixed-size, visually rich card summarizing a soldier's countdown, designed
-/// to be captured to an image and shared.
+/// A full-bleed 9:16 story canvas summarizing a soldier's countdown, designed
+/// to be captured to an image and posted straight to Instagram/WhatsApp
+/// stories.
 ///
-/// Renders at a fixed logical size (a 4:5 portrait) so it can be captured at a
-/// predictable resolution regardless of the device; the preview screen scales
-/// it down with a [FittedBox].
+/// Renders at a fixed logical size so the capture resolution is predictable
+/// regardless of device; the preview screen scales it down with a [FittedBox].
+/// Deliberately full-bleed with no rounded corners — a story fills the screen,
+/// so any card framing would just read as a letterboxed screenshot.
 class ShareCard extends StatelessWidget {
   const ShareCard({
     super.key,
@@ -26,7 +29,13 @@ class ShareCard extends StatelessWidget {
   final ServiceProgress progress;
 
   /// Natural size used both for capture and for the preview's aspect ratio.
-  static const Size size = Size(360, 450);
+  /// 9:16, so the default 3.0 capture ratio lands on exactly 1080x1920 — the
+  /// native story resolution, with no upscaling or letterboxing.
+  static const Size size = Size(360, 640);
+
+  /// Story apps overlay their own chrome (avatar and caption at the top, the
+  /// reply bar at the bottom). Everything meaningful stays inside these insets.
+  static const EdgeInsets _safeArea = EdgeInsets.fromLTRB(36, 92, 36, 116);
 
   @override
   Widget build(BuildContext context) {
@@ -39,194 +48,316 @@ class ShareCard extends StatelessWidget {
 
     const gold = AppColors.apricot;
     final onDark = AppColors.offWhite;
-    final muted = AppColors.mutedDark;
     const tabular = [FontFeature.tabularFigures()];
 
     return SizedBox(
       width: size.width,
       height: size.height,
-      child: ClipRRect(
-        borderRadius:
-            const BorderRadius.all(Radius.circular(AppSizes.radiusLg)),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            // Background: the soldier's photo (with a dark scrim so the light
-            // text stays legible) when set, otherwise the branded gradient.
-            if (hasPhoto) ...[
-              Image.file(File(profile.photoPath!), fit: BoxFit.cover),
-              const DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Color(0x59000000), Color(0xD9000000)],
-                  ),
-                ),
-              ),
-            ] else
-              const DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [AppColors.charcoal, AppColors.charcoalDeep],
-                  ),
-                ),
-              ),
-            // Soft apricot glow in the top-right for a premium feel.
-            Positioned(
-              top: -90,
-              right: -90,
-              child: Container(
-                width: 220,
-                height: 220,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      gold.withValues(alpha: 0.30),
-                      gold.withValues(alpha: 0.0),
-                    ],
-                  ),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Background: the soldier's photo (with a scrim heavy enough at both
+          // ends to keep the header and footer legible over any photo) when
+          // set, otherwise the branded gradient.
+          if (hasPhoto) ...[
+            Image.file(File(profile.photoPath!), fit: BoxFit.cover),
+            const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Color(0xCC000000),
+                    Color(0x73000000),
+                    Color(0xE6000000),
+                  ],
+                  stops: [0, 0.42, 1],
                 ),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(AppSizes.lg),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header: avatar (or icon) + app name + percent chip.
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 18,
-                        backgroundColor: AppColors.cardDark,
-                        backgroundImage: hasPhoto
-                            ? FileImage(File(profile.photoPath!))
-                            : null,
-                        child: hasPhoto
-                            ? null
-                            : const Icon(Icons.military_tech_rounded,
-                                color: gold, size: AppSizes.iconSm),
-                      ),
-                      const SizedBox(width: AppSizes.sm),
-                      Expanded(
-                        child: Text(
-                          profile.name ?? AppStrings.appName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            color: onDark,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSizes.sm,
-                          vertical: AppSizes.xxs,
-                        ),
-                        decoration: BoxDecoration(
-                          color: gold.withValues(alpha: 0.18),
-                          borderRadius:
-                              BorderRadius.circular(AppSizes.radiusPill),
-                        ),
-                        child: Text(
-                          '$pct%',
-                          style: theme.textTheme.labelLarge?.copyWith(
-                            color: gold,
-                            fontFeatures: tabular,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ],
+          ] else
+            const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Color(0xFF241F17),
+                    AppColors.charcoal,
+                    AppColors.charcoalDeep,
+                  ],
+                  stops: [0, 0.45, 1],
+                ),
+              ),
+            ),
+          // Apricot bloom behind the hero number, echoing the splash screen.
+          const _Glow(
+            alignment: Alignment(0.85, -0.55),
+            diameter: 420,
+            opacity: 0.28,
+          ),
+          const _Glow(
+            alignment: Alignment(-0.9, 0.35),
+            diameter: 320,
+            opacity: 0.12,
+          ),
+          Padding(
+            padding: _safeArea,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _Header(
+                  name: profile.name ?? AppStrings.appName,
+                  photoPath: hasPhoto ? profile.photoPath : null,
+                  percent: pct,
+                ),
+                const Spacer(flex: 3),
+                // Hero: the number is the whole point, so it gets the room.
+                if (isDone)
+                  Text(
+                    AppStrings.shareCompletedTitle,
+                    style: theme.textTheme.displayLarge?.copyWith(
+                      fontSize: 58,
+                      color: gold,
+                      fontWeight: FontWeight.w700,
+                      height: 1.08,
+                    ),
+                  )
+                else ...[
+                  Text(
+                    AppStrings.homeRemainingTitle,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      fontSize: 15,
+                      color: gold,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 5,
+                    ),
                   ),
-                  const Spacer(),
-                  // Hero: big remaining-days number, or a completion title.
-                  if (isDone)
-                    Text(
-                      AppStrings.shareCompletedTitle,
-                      style: theme.textTheme.displaySmall?.copyWith(
-                        color: gold,
-                        fontWeight: FontWeight.w700,
-                        height: 1.1,
-                      ),
-                    )
-                  else ...[
-                    Text(
+                  const SizedBox(height: AppSizes.xs),
+                  // Scales down rather than overflowing: a custom service
+                  // length can push the count past three digits.
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
                       '$days',
                       style: theme.textTheme.displayLarge?.copyWith(
+                        fontSize: 46,
                         color: onDark,
                         fontWeight: FontWeight.w800,
                         fontFeatures: tabular,
-                        height: 1.0,
+                        height: 0.92,
+                        letterSpacing: 1,
                       ),
                     ),
-                    const SizedBox(height: AppSizes.xxs),
+                  ),
+                  const SizedBox(height: AppSizes.xs),
+                  Text(
+                    AppStrings.shareDaysSuffix,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontSize: 24,
+                      color: onDark.withValues(alpha: 0.85),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+                const Spacer(flex: 2),
+                _ProgressBar(value: progress.percent),
+                const SizedBox(height: AppSizes.md),
+                Row(
+                  children: [
+                    const Icon(Icons.flag_rounded,
+                        color: gold, size: AppSizes.iconSm),
+                    const SizedBox(width: AppSizes.xs),
                     Text(
-                      AppStrings.shareDaysSuffix,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: muted,
+                      '${AppStrings.shareDischargeLabel}՝ '
+                      '${AppDateUtils.formatLong(profile.dischargeDate)}',
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        fontSize: 15,
+                        color: onDark.withValues(alpha: 0.9),
                       ),
                     ),
                   ],
-                  const SizedBox(height: AppSizes.lg),
-                  // Progress bar.
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(AppSizes.radiusPill),
-                    child: LinearProgressIndicator(
-                      value: progress.percent.clamp(0.0, 1.0),
-                      minHeight: 8,
-                      backgroundColor: AppColors.cardDark,
-                      valueColor: const AlwaysStoppedAnimation<Color>(gold),
-                    ),
+                ),
+                const Spacer(),
+                // Footer branding: the same wordmark the splash uses, so a
+                // reshared story is recognisably from this app.
+                const _Footer(),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Soft radial apricot bloom used to give the flat background some depth.
+class _Glow extends StatelessWidget {
+  const _Glow({
+    required this.alignment,
+    required this.diameter,
+    required this.opacity,
+  });
+
+  final Alignment alignment;
+  final double diameter;
+  final double opacity;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: alignment,
+      child: SizedBox(
+        width: diameter,
+        height: diameter,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: RadialGradient(
+              colors: [
+                AppColors.apricot.withValues(alpha: opacity),
+                AppColors.apricot.withValues(alpha: 0),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Header extends StatelessWidget {
+  const _Header({
+    required this.name,
+    required this.photoPath,
+    required this.percent,
+  });
+
+  final String name;
+  final String? photoPath;
+  final int percent;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Row(
+      children: [
+        CircleAvatar(
+          radius: 22,
+          backgroundColor: AppColors.cardDark,
+          backgroundImage: photoPath != null ? FileImage(File(photoPath!)) : null,
+          child: photoPath != null
+              ? null
+              : const Icon(Icons.military_tech_rounded,
+                  color: AppColors.apricot, size: AppSizes.iconMd),
+        ),
+        const SizedBox(width: AppSizes.sm),
+        Expanded(
+          child: Text(
+            name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontSize: 19,
+              color: AppColors.offWhite,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSizes.sm,
+            vertical: AppSizes.xxs,
+          ),
+          decoration: BoxDecoration(
+            color: AppColors.apricot.withValues(alpha: 0.18),
+            borderRadius: BorderRadius.circular(AppSizes.radiusPill),
+            border: Border.all(
+              color: AppColors.apricot.withValues(alpha: 0.45),
+            ),
+          ),
+          child: Text(
+            '$percent%',
+            style: theme.textTheme.labelLarge?.copyWith(
+              fontSize: 15,
+              color: AppColors.apricot,
+              fontFeatures: const [FontFeature.tabularFigures()],
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ProgressBar extends StatelessWidget {
+  const _ProgressBar({required this.value});
+
+  final double value;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(AppSizes.radiusPill),
+      child: SizedBox(
+        height: 10,
+        child: Stack(
+          children: [
+            const DecoratedBox(
+              decoration: BoxDecoration(color: Color(0x40FFFFFF)),
+              child: SizedBox.expand(),
+            ),
+            FractionallySizedBox(
+              widthFactor: value.clamp(0.0, 1.0),
+              child: const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFFFFD37A), AppColors.apricot],
                   ),
-                  const SizedBox(height: AppSizes.lg),
-                  // Discharge date.
-                  Row(
-                    children: [
-                      const Icon(Icons.flag_rounded,
-                          color: gold, size: AppSizes.iconSm),
-                      const SizedBox(width: AppSizes.xs),
-                      Text(
-                        '${AppStrings.shareDischargeLabel}՝ '
-                        '${AppDateUtils.formatLong(profile.dischargeDate)}',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: onDark,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSizes.md),
-                  const Divider(color: AppColors.outlineDark, height: 1),
-                  const SizedBox(height: AppSizes.sm),
-                  // Footer: app name + tagline.
-                  Row(
-                    children: [
-                      Text(
-                        AppStrings.appName,
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          color: gold,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      const Spacer(),
-                      Text(
-                        AppStrings.appTagline,
-                        style: theme.textTheme.bodySmall?.copyWith(color: muted),
-                      ),
-                    ],
-                  ),
-                ],
+                ),
+                child: SizedBox.expand(),
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _Footer extends StatelessWidget {
+  const _Footer();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(height: 1, color: AppColors.offWhite.withValues(alpha: 0.15)),
+        const SizedBox(height: AppSizes.md),
+        Row(
+          children: [
+            SvgPicture.asset(
+              'assets/svg/splash_wordmark.svg',
+              width: 86,
+              semanticsLabel: AppStrings.appName,
+            ),
+            const Spacer(),
+            Text(
+              AppStrings.appTagline,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontSize: 13,
+                color: AppColors.offWhite.withValues(alpha: 0.6),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

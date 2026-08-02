@@ -57,6 +57,19 @@
                 android:resource="@xml/depitun_widget_info" />
         </receiver>
 
+        <!-- Grants Instagram read access to the rendered story PNG in our
+             cache dir. Own authority so it can't collide with the providers
+             other plugins (share_plus, image_picker) declare. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.storyshare"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/story_share_paths" />
+        </provider>
+
         <!-- AdMob. -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
@@ -78,5 +91,8 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+        <!-- Package visibility (API 30+): without this the ADD_TO_STORY intent
+             cannot resolve and the direct-to-Stories button never fires. -->
+        <package android:name="com.instagram.android" />
     </queries>
 </manifest>

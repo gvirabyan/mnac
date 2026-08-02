@@ -180,6 +180,7 @@ abstract final class AppStrings {
   // Share card.
   static const String shareTitle = 'Կիսվել';
   static const String shareButton = 'Կիսվել պատկերով';
+  static const String shareToInstagramStory = 'Instagram Stories';
   static const String shareDaysSuffix = 'օր մինչև տուն';
   static const String shareDischargeLabel = 'Զորացրում';
   static const String shareCompletedTitle = 'Բարի վերադարձ տուն';

@@ -51,5 +51,11 @@
 	<false/>
 	<key>UIStatusBarHidden</key>
 	<false/>
+	<!-- Lets canOpenURL detect Instagram so the direct-to-Stories button can
+	     tell whether the composer is reachable. -->
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>instagram-stories</string>
+	</array>
 </dict>
 </plist>

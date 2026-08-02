@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Exposes only the cache dir, where the rendered story PNG is written, so
+     Instagram can read that one file via a content:// URI. -->
+<paths>
+    <cache-path name="story_share" path="." />
+    <external-cache-path name="story_share_external" path="." />
+</paths>
