@@ -75,11 +75,16 @@ dev_dependencies:
 flutter_launcher_icons:
   android: "ic_launcher"
   ios: true
-  # iOS + legacy Android: artwork already flattened onto the dark background
-  # (iOS forbids alpha). iOS masks with a squircle, which only shaves the
-  # corners, so the artwork needs no shrinking here.
-  image_path: "assets/icon/icon.png"
-  adaptive_icon_background: "#14110D"
+  # Every platform is fed the same transparent artwork and takes its background
+  # from the colours below, so the background is changed here and nowhere else —
+  # no repainting a fill into the PNG. For iOS the generator flattens the alpha
+  # onto background_color_ios; its squircle only shaves the corners, so the
+  # artwork needs no shrinking there.
+  #
+  # The beige is a touch darker than the app's #F4ECE1: the bird is cool and
+  # mostly light, so a warmer, deeper ground separates it better than a pale one.
+  image_path: "assets/icon/icon_foreground.png"
+  adaptive_icon_background: "#E0D3BE"
   adaptive_icon_foreground: "assets/icon/icon_foreground.png"
   # Android 8+ shows only the central 72dp of the 108dp layer, and a circular
   # mask cuts that down to a circle. The source artwork reaches 0.91 of the
@@ -88,7 +93,7 @@ flutter_launcher_icons:
   # 0.62 — clear of the circle and level with the 66dp safe zone.
   adaptive_icon_foreground_inset: 16
   remove_alpha_ios: true
-  background_color_ios: "#14110D"
+  background_color_ios: "#E0D3BE"
 
 # Native launch screen. Deliberately a bare background with no artwork: the
 # OS screen exists only to hand off invisibly to the animated Flutter splash,

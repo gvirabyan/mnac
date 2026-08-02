@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#14110D</color>
+    <color name="ic_launcher_background">#E0D3BE</color>
     <!-- Matches AppColors.charcoalDeep so the OS-drawn splash icon and the
          Flutter animated splash share one background instead of flashing. -->
     <color name="splash_background">#14110D</color>
