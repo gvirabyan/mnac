@@ -149,7 +149,6 @@ abstract final class AppStrings {
 
   // Settings.
   static const String settingsTitle = 'Կարգավորումներ';
-  static const String settingsPersonalization = 'Անհատականացում';
   static const String settingsNotifications = 'Ծանուցումներ';
   static const String settingsData = 'Տվյալներ';
   static const String settingsBackup = 'Պահուստավորում';
@@ -160,24 +159,15 @@ abstract final class AppStrings {
   static const String settingsFeedback = 'Հետադարձ կապ';
   static const String settingsEditProfile = 'Խմբագրել տվյալները';
 
-  // Personalization.
+  // Theme — the only app-level visual preference, shown on the settings page.
   static const String persTheme = 'Թեմա';
-  static const String persThemeSystem = 'Համակարգային';
+  static const String persThemeSystem = 'Ավտոմատ';
   static const String persThemeLight = 'Բաց';
   static const String persThemeDark = 'Մուգ';
-  static const String persAccent = 'Շեշտի գույն';
-  static const String persBackground = 'Ֆոնի նկար';
-  static const String persBackgroundChoose = 'Ընտրել նկար';
+
+  // Used by the soldier form's photo tile (the photo doubles as the home
+  // background), not by any settings screen.
   static const String persBackgroundRemove = 'Հեռացնել նկարը';
-  static const String persPhoto = 'Պրոֆիլի լուսանկար';
-  static const String persFontSize = 'Տառաչափ';
-  static const String persFontSmall = 'Փոքր';
-  static const String persFontMedium = 'Միջին';
-  static const String persFontLarge = 'Մեծ';
-  static const String persAnimationLevel = 'Անիմացիաներ';
-  static const String persAnimNone = 'Անջատ';
-  static const String persAnimReduced = 'Նվազեցված';
-  static const String persAnimFull = 'Լրիվ';
 
   // Notifications.
   static const String notifEnable = 'Միացնել ծանուցումները';

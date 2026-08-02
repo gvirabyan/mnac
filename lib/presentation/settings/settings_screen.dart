@@ -7,16 +7,17 @@ import '../../app/router/app_router.dart';
 import '../../core/constants/app_sizes.dart';
 import '../../core/di/providers.dart';
 import '../../core/l10n/app_strings.dart';
+import '../../domain/entities/app_settings.dart';
 import '../../services/notification_service.dart';
 import '../shared/state/settings_controller.dart';
 import '../shared/state/soldiers_controller.dart';
 import '../shared/widgets/glass_card.dart';
 import '../shared/widgets/gradient_scaffold.dart';
 import 'about_screen.dart';
-import 'personalization_screen.dart';
+import 'widgets/option_segments.dart';
 import 'widgets/settings_tile.dart';
 
-/// Settings tab: profile editing, personalization, local backup/restore/reset,
+/// Settings tab: theme, notifications, local backup/restore/reset,
 /// privacy/about, and feedback.
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -110,14 +111,7 @@ class SettingsScreen extends ConsumerWidget {
           AppSizes.xxl + MediaQuery.paddingOf(context).bottom,
         ),
         children: [
-          _Group(children: [
-            SettingsTile(
-              icon: Icons.palette_outlined,
-              title: AppStrings.settingsPersonalization,
-              onTap: () => _push(context, const PersonalizationScreen()),
-              trailing: const _Chevron(),
-            ),
-          ]),
+          const _ThemeGroup(),
           const SizedBox(height: AppSizes.lg),
           const _NotificationsGroup(),
           const SizedBox(height: AppSizes.lg),
@@ -156,6 +150,47 @@ class SettingsScreen extends ConsumerWidget {
               onTap: _feedback,
             ),
           ]),
+        ],
+      ),
+    );
+  }
+}
+
+/// Theme picker, inlined here rather than behind a personalization screen:
+/// it is the only app-level visual preference, so a whole sub-page for one
+/// control was more navigation than it was worth.
+class _ThemeGroup extends ConsumerWidget {
+  const _ThemeGroup();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final mode =
+        ref.watch(settingsControllerProvider.select((s) => s.themeMode));
+
+    return GlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.palette_outlined,
+                  color: theme.colorScheme.primary, size: AppSizes.iconMd),
+              const SizedBox(width: AppSizes.md),
+              Text(AppStrings.persTheme, style: theme.textTheme.titleMedium),
+            ],
+          ),
+          const SizedBox(height: AppSizes.md),
+          OptionSegments<AppThemeMode>(
+            selected: mode,
+            onChanged:
+                ref.read(settingsControllerProvider.notifier).setThemeMode,
+            options: const [
+              SegmentOption(AppThemeMode.system, AppStrings.persThemeSystem),
+              SegmentOption(AppThemeMode.light, AppStrings.persThemeLight),
+              SegmentOption(AppThemeMode.dark, AppStrings.persThemeDark),
+            ],
+          ),
         ],
       ),
     );

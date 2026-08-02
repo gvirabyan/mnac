@@ -22,15 +22,6 @@ class SettingsController extends Notifier<AppSettings> {
   Future<void> setThemeMode(AppThemeMode mode) =>
       _persist(state.copyWith(themeMode: mode));
 
-  Future<void> setAccent(String accentColorId) =>
-      _persist(state.copyWith(accentColorId: accentColorId));
-
-  Future<void> setFontScale(String fontScaleId) =>
-      _persist(state.copyWith(fontScaleId: fontScaleId));
-
-  Future<void> setAnimationLevel(AnimationLevel level) =>
-      _persist(state.copyWith(animationLevel: level));
-
   Future<void> setBackgroundImage(String? path) => _persist(
         path == null
             ? state.copyWith(clearBackgroundImage: true)
