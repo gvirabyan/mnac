@@ -81,22 +81,6 @@ class NotificationService {
     }
   }
 
-  /// Shows an immediate notification so the user can verify the pipeline
-  /// (permission + channel + display) works right now.
-  Future<void> showTest() async {
-    try {
-      await init();
-      await _plugin.show(
-        id: 9999,
-        title: AppStrings.appName,
-        body: AppStrings.notifTestBody,
-        notificationDetails: _details,
-      );
-    } catch (_) {
-      // Best-effort.
-    }
-  }
-
   /// Requests OS notification permission. Returns true if granted (or unknown).
   Future<bool> requestPermissions() async {
     try {

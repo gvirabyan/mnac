@@ -169,15 +169,9 @@ abstract final class AppStrings {
   // background), not by any settings screen.
   static const String persBackgroundRemove = 'Հեռացնել նկարը';
 
-  // Notifications.
+  // Notifications — one master toggle; the daily reminder and milestone
+  // alerts follow it automatically and have no separate UI.
   static const String notifEnable = 'Միացնել ծանուցումները';
-  static const String notifDailyReminder = 'Օրական հիշեցում';
-  static const String notifDailyReminderDesc =
-      'Եթե այդ օրը չես մտնում հավելված, նշված ժամին կհիշեցնենք';
-  static const String notifReminderTime = 'Հիշեցման ժամը';
-  static const String notifMilestones = 'Նվաճումների ծանուցումներ';
-  static const String notifTest = 'Փորձնական ծանուցում';
-  static const String notifTestBody = 'Ծանուցումներն աշխատում են ✓';
   static const String notifPermissionDenied =
       'Ծանուցումներն արգելափակված են սարքի կարգավորումներում';
 

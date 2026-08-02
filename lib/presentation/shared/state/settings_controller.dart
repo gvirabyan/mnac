@@ -31,15 +31,6 @@ class SettingsController extends Notifier<AppSettings> {
   Future<void> setNotificationsEnabled(bool enabled) =>
       _persist(state.copyWith(notificationsEnabled: enabled));
 
-  Future<void> setDailyReminderEnabled(bool enabled) =>
-      _persist(state.copyWith(dailyReminderEnabled: enabled));
-
-  Future<void> setDailyReminderMinutes(int minutes) =>
-      _persist(state.copyWith(dailyReminderMinutes: minutes));
-
-  Future<void> setMilestoneNotifications(bool enabled) =>
-      _persist(state.copyWith(milestoneNotificationsEnabled: enabled));
-
   /// Records that the given milestone thresholds have been celebrated.
   Future<void> markMilestonesUnlocked(Set<int> thresholds) {
     if (thresholds.every(state.unlockedMilestones.contains)) {

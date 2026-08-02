@@ -234,113 +234,60 @@ class _Chevron extends StatelessWidget {
   }
 }
 
-/// Notification preferences: master toggle, daily inactivity reminder (with
-/// time), and milestone alerts. Changes are picked up by the sync listener in
-/// [MainShell], which re-schedules notifications.
+/// Notifications: a single master toggle, no sub-options.
+///
+/// Turning it on asks the OS for permission first and only records the setting
+/// once permission is actually granted — otherwise the switch would sit in the
+/// "on" position while the OS silently blocks every notification. Because the
+/// switch renders straight off the stored setting, refusing the prompt leaves
+/// it visibly off. Changes are picked up by the sync listener in [MainShell],
+/// which re-schedules the daily reminder and milestone alerts.
 class _NotificationsGroup extends ConsumerWidget {
   const _NotificationsGroup();
 
-  static String _formatTime(int minutes) {
-    final h = (minutes ~/ 60).toString().padLeft(2, '0');
-    final m = (minutes % 60).toString().padLeft(2, '0');
-    return '$h:$m';
-  }
-
-  Future<void> _toggleMaster(WidgetRef ref, bool value) async {
+  Future<void> _toggle(BuildContext context, WidgetRef ref, bool value) async {
     final notifier = ref.read(settingsControllerProvider.notifier);
-    if (value) {
-      await ref.read(notificationServiceProvider).requestPermissions();
-      // Turn the daily 19:00 reminder on by default when notifications are
-      // enabled, so the headline reminder works without a second toggle.
-      await notifier.update(
-        (s) => s.copyWith(notificationsEnabled: true, dailyReminderEnabled: true),
-      );
-    } else {
+    if (!value) {
       await notifier.setNotificationsEnabled(false);
+      return;
     }
-  }
 
-  Future<void> _pickTime(
-      BuildContext context, WidgetRef ref, int current) async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay(hour: current ~/ 60, minute: current % 60),
-    );
-    if (picked != null) {
-      await ref
-          .read(settingsControllerProvider.notifier)
-          .setDailyReminderMinutes(picked.hour * 60 + picked.minute);
+    final granted =
+        await ref.read(notificationServiceProvider).requestPermissions();
+    if (!granted) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(content: Text(AppStrings.notifPermissionDenied)),
+        );
+      return;
     }
+
+    // The daily reminder is the point of the toggle, so it comes on with it
+    // rather than hiding behind a second switch.
+    await notifier.update(
+      (s) => s.copyWith(notificationsEnabled: true, dailyReminderEnabled: true),
+    );
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final settings = ref.watch(settingsControllerProvider);
-    final ctrl = ref.read(settingsControllerProvider.notifier);
-    final accent = theme.colorScheme.primary;
+    final enabled = ref.watch(
+      settingsControllerProvider.select((s) => s.notificationsEnabled),
+    );
 
     return GlassCard(
       padding: EdgeInsets.zero,
-      child: Column(
-        children: [
-          SwitchListTile(
-            secondary:
-                Icon(Icons.notifications_outlined, color: accent),
-            title: const Text(AppStrings.notifEnable),
-            value: settings.notificationsEnabled,
-            onChanged: (v) => _toggleMaster(ref, v),
-          ),
-          if (settings.notificationsEnabled) ...[
-            const _Divider(),
-            SwitchListTile(
-              secondary: Icon(Icons.alarm_outlined, color: accent),
-              title: const Text(AppStrings.notifDailyReminder),
-              subtitle: const Text(AppStrings.notifDailyReminderDesc),
-              isThreeLine: true,
-              value: settings.dailyReminderEnabled,
-              onChanged: ctrl.setDailyReminderEnabled,
-            ),
-            if (settings.dailyReminderEnabled)
-              SettingsTile(
-                icon: Icons.schedule_rounded,
-                title: AppStrings.notifReminderTime,
-                onTap: () =>
-                    _pickTime(context, ref, settings.dailyReminderMinutes),
-                trailing: Text(
-                  _formatTime(settings.dailyReminderMinutes),
-                  style: theme.textTheme.titleMedium?.copyWith(color: accent),
-                ),
-              ),
-            const _Divider(),
-            SwitchListTile(
-              secondary: Icon(Icons.emoji_events_outlined, color: accent),
-              title: const Text(AppStrings.notifMilestones),
-              value: settings.milestoneNotificationsEnabled,
-              onChanged: ctrl.setMilestoneNotifications,
-            ),
-            const _Divider(),
-            SettingsTile(
-              icon: Icons.notification_add_outlined,
-              title: AppStrings.notifTest,
-              onTap: () => _sendTest(context, ref),
-            ),
-          ],
-        ],
+      child: SwitchListTile(
+        secondary: Icon(
+          Icons.notifications_outlined,
+          color: Theme.of(context).colorScheme.primary,
+        ),
+        title: const Text(AppStrings.notifEnable),
+        value: enabled,
+        onChanged: (v) => _toggle(context, ref, v),
       ),
     );
-  }
-
-  Future<void> _sendTest(BuildContext context, WidgetRef ref) async {
-    final service = ref.read(notificationServiceProvider);
-    final granted = await service.requestPermissions();
-    if (!context.mounted) return;
-    if (!granted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(AppStrings.notifPermissionDenied)),
-      );
-      return;
-    }
-    await service.showTest();
   }
 }
