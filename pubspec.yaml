@@ -54,6 +54,7 @@ dependencies:
   flutter_timezone: ^5.1.0
   home_widget: ^0.9.3
   google_mobile_ads: ^9.0.0
+  flutter_svg: ^2.3.0
 
 dev_dependencies:
   flutter_test:
@@ -66,6 +67,7 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
   flutter_launcher_icons: ^0.14.4
+  flutter_native_splash: ^2.4.7
 
 # Launcher icon generation. Sources are 1024x1024 PNGs; run
 # `dart run flutter_launcher_icons` to regenerate native icons after changes.
@@ -83,6 +85,34 @@ flutter_launcher_icons:
   remove_alpha_ios: true
   background_color_ios: "#F4ECE1"
 
+# Native launch screen. Deliberately a bare background with no artwork: the
+# OS screen exists only to hand off invisibly to the animated Flutter splash,
+# so the app appears to start *on* the splash instead of flashing a launcher
+# icon first. Colour matches AppColors.charcoalDeep, which the Flutter splash
+# paints under its gradient on the first frame.
+#
+# Android 12+ always draws an icon on its system splash and only accepts a
+# solid colour (no gradient/image), so the icon is replaced with a fully
+# transparent PNG to hide it. Re-run after changes:
+#   dart run flutter_native_splash:create
+flutter_native_splash:
+  color: "#14110D"
+  color_dark: "#14110D"
+  android: true
+  ios: true
+  web: false
+  # The iOS storyboard always keeps a centred LaunchImage view; left unset the
+  # generator fills it with an opaque black pixel, so point it at the same
+  # transparent source. It must stay large enough that the per-scale downscale
+  # never rounds to a 0x0 (unreadable) PNG.
+  image_ios: assets/splash/transparent.png
+  image_dark_ios: assets/splash/transparent.png
+  android_12:
+    color: "#14110D"
+    color_dark: "#14110D"
+    image: assets/splash/transparent.png
+    image_dark: assets/splash/transparent.png
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
@@ -99,6 +129,7 @@ flutter:
     - assets/lottie/
     - assets/images/
     - assets/images/textures/
+    - assets/svg/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

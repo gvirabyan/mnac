@@ -8,6 +8,8 @@ abstract final class AppStrings {
   // App identity.
   static const String appName = 'Մնաց';
   static const String appTagline = 'Հաշված օրեր մինչև տուն';
+  static const String splashTagline =
+      'Առաջին հայկական հավելվածը զինվորների համար';
 
   // Bottom navigation.
   static const String navHome = 'Գլխավոր';
