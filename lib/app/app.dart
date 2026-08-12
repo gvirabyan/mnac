@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/l10n/app_strings.dart';
 import '../presentation/shared/state/theme_providers.dart';
-import '../presentation/shared/widgets/ad_debug_overlay.dart';
 import 'router/app_router.dart';
 
 /// Root application widget: wires Armenian localization, the reactive theme,
@@ -29,8 +28,6 @@ class DepiTunApp extends ConsumerWidget {
       ],
       // Sits above every route so ad diagnostics stay visible during launch
       // and over a full-screen ad. No-op unless kAdDebugToasts is on.
-      builder: (context, child) =>
-          AdDebugOverlay(child: child ?? const SizedBox.shrink()),
       home: const RootGate(),
     );
   }
