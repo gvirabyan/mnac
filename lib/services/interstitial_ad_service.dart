@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'ad_debug.dart';
 
 /// Loads and shows full-screen interstitial ads on app open.
 ///
@@ -58,7 +57,6 @@ class InterstitialAdService {
     _loading = true;
     _loadSettled = Completer<void>();
     final settled = _loadSettled!;
-    logAdEvent('requesting ad…');
     InterstitialAd.load(
       adUnitId: _adUnitId,
       request: const AdRequest(),
@@ -71,7 +69,6 @@ class InterstitialAdService {
           // — the Unity adapter reports a class name containing "Unity".
           final adapter =
               ad.responseInfo?.mediationAdapterClassName ?? 'unknown adapter';
-          logAdEvent('LOADED via $adapter');
           if (!settled.isCompleted) settled.complete();
         },
         onAdFailedToLoad: (error) {
@@ -79,7 +76,6 @@ class InterstitialAdService {
           // Code 3 is "no fill" — the request itself was fine, nobody had an
           // ad to serve at the configured floor. That distinguishes a broken
           // configuration from an empty market.
-          logAdEvent('FAILED code=${error.code} ${error.message}');
           if (!settled.isCompleted) settled.complete();
         },
       ),
@@ -97,7 +93,6 @@ class InterstitialAdService {
     await Future.delayed(_minDelay);
 
     if (_ad == null && _loading) {
-      logAdEvent('still loading, waiting up to ${_maxWait.inSeconds}s…');
       await _loadSettled?.future.timeout(_maxWait, onTimeout: () {});
     }
 
@@ -106,24 +101,20 @@ class InterstitialAdService {
       // Either the load failed outright or it outran [_maxWait]. Said out loud
       // so an empty launch reads as "nothing was ready" rather than leaving it
       // ambiguous whether the ad code ran at all.
-      logAdEvent('nothing to show — no ad available');
       return;
     }
     _ad = null;
 
     ad.fullScreenContentCallback = FullScreenContentCallback(
       onAdDismissedFullScreenContent: (ad) {
-        logAdEvent('dismissed');
         ad.dispose();
         preload();
       },
       onAdFailedToShowFullScreenContent: (ad, error) {
-        logAdEvent('SHOW FAILED code=${error.code} ${error.message}');
         ad.dispose();
         preload();
       },
     );
-    logAdEvent('showing ad');
     await ad.show();
   }
 

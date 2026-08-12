@@ -14,7 +14,6 @@ import 'data/repositories/settings_repository_impl.dart';
 import 'data/repositories/soldiers_repository_impl.dart';
 import 'firebase_options.dart';
 import 'presentation/home/home_controller.dart';
-import 'services/ad_debug.dart';
 import 'services/interstitial_ad_service.dart';
 import 'services/notification_service.dart';
 
@@ -48,8 +47,6 @@ Future<void> main() async {
   // Stated as a verdict rather than left to be inferred from the list: an
   // adapter absent here isn't linked into the build at all, which is a wholly
   // different problem from one that is linked but never wins a fill.
-  logAdEvent(hasUnity ? 'UNITY ADAPTER PRESENT' : 'UNITY ADAPTER MISSING');
-  logAdEvent('adapters: ${adapters.join(', ')}');
   final interstitialAds = InterstitialAdService(prefs);
   interstitialAds.preload();
 
