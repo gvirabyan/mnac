@@ -20,6 +20,27 @@ workflows:
         script: |
           flutter build ipa --release \
             --export-options-plist=/Users/builder/export_options.plist
+      # gma_mediation_unity has no Swift Package Manager support, so it is the
+      # one plugin that reaches the app through the CocoaPods fallback rather
+      # than the generated Swift package. The Podfile only exists after a
+      # build, hence running this afterwards. Answers whether the Unity
+      # adapter is actually linked, which the SDK's runtime adapter list
+      # cannot: that list reflects the server-side mediation config, so an
+      # adapter compiled in but not yet configured looks identical to one
+      # that was never built at all.
+      - name: Verify the Unity mediation adapter got linked
+        ignore_failure: true
+        script: |
+          echo "=== ios/Podfile ==="
+          cat ios/Podfile 2>/dev/null || echo "NO PODFILE"
+          echo "=== Unity entries in Podfile.lock ==="
+          grep -i unity ios/Podfile.lock || echo "UNITY ABSENT FROM Podfile.lock"
+          echo "=== Unity pods on disk ==="
+          ls ios/Pods 2>/dev/null | grep -i -e unity -e mediation \
+            || echo "NO UNITY POD DIRECTORY"
+          echo "=== Unity binaries inside the archive ==="
+          find build/ios/archive -iname '*unity*' -maxdepth 6 \
+            || echo "NO UNITY BINARY IN ARCHIVE"
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log

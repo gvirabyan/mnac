@@ -1,0 +1,15 @@
+// Base configuration for the DepitunWidgetExtension target.
+//
+// Deliberately separate from Debug/Release.xcconfig: `pod install` rewrites
+// those two to `#include?` the Pods-Runner xcconfig, and any target inheriting
+// them picks up the app's pod linkage. For an app extension that means the
+// pods' dynamic frameworks get copied into DepitunWidgetExtension.appex, and
+// App Store Connect rejects the upload — error 90206, "The bundle at
+// 'Runner.app/PlugIns/DepitunWidgetExtension.appex' contains disallowed file
+// 'Frameworks'". Extensions must not carry their own Frameworks directory;
+// only the host app embeds them.
+//
+// CocoaPods only rewrites the xcconfigs referenced by the Runner target, so
+// this file stays clean. The widget is pure SwiftUI/WidgetKit and needs
+// nothing from Flutter but the version numbers below.
+#include "Generated.xcconfig"

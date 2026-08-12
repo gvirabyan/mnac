@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.5+10
+version: 1.0.6+17
 
 environment:
   sdk: ^3.10.4
@@ -54,7 +54,13 @@ dependencies:
   flutter_timezone: ^5.1.0
   home_widget: ^0.9.3
   google_mobile_ads: ^9.0.0
+  # AdMob mediation adapter for Unity Ads. Pulls in the Unity Ads SDK + Google's
+  # adapter on both platforms; the Game ID / Placement ID live in the AdMob
+  # console (mediation group), not in this app.
+  gma_mediation_unity: ^1.9.0
   flutter_svg: ^2.3.0
+  firebase_core: ^4.13.0
+  firebase_analytics: ^12.4.6
 
 dev_dependencies:
   flutter_test:

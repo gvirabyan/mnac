@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,12 +12,18 @@ import 'core/di/providers.dart';
 import 'data/datasources/local_prefs_data_source.dart';
 import 'data/repositories/settings_repository_impl.dart';
 import 'data/repositories/soldiers_repository_impl.dart';
+import 'firebase_options.dart';
 import 'presentation/home/home_controller.dart';
+import 'services/ad_debug.dart';
 import 'services/interstitial_ad_service.dart';
 import 'services/notification_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
 
   // Initialize local storage and preload data so the first frame is correct.
   final prefs = await SharedPreferences.getInstance();
@@ -29,7 +36,20 @@ Future<void> main() async {
   final notifications = NotificationService();
   await notifications.init();
 
-  await MobileAds.instance.initialize();
+  // The adapter statuses answer the "is Unity actually wired in?" question on
+  // their own, before any ad request: an adapter missing from this map isn't
+  // linked into the build at all, which is a different problem from one that
+  // is linked but never gets a fill.
+  final adsStatus = await MobileAds.instance.initialize();
+  final adapters = adsStatus.adapterStatuses.entries
+      .map((e) => '${e.key.split('.').last}=${e.value.state.name}')
+      .toList();
+  final hasUnity = adapters.any((a) => a.toLowerCase().contains('unity'));
+  // Stated as a verdict rather than left to be inferred from the list: an
+  // adapter absent here isn't linked into the build at all, which is a wholly
+  // different problem from one that is linked but never wins a fill.
+  logAdEvent(hasUnity ? 'UNITY ADAPTER PRESENT' : 'UNITY ADAPTER MISSING');
+  logAdEvent('adapters: ${adapters.join(', ')}');
   final interstitialAds = InterstitialAdService(prefs);
   interstitialAds.preload();
 
