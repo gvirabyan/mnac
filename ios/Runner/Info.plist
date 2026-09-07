@@ -49,6 +49,10 @@
 	<string>ca-app-pub-9425467580147795~4597249344</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<!-- Shown in the App Tracking Transparency prompt raised before the Mobile
+	     Ads SDK initializes. Armenian, to match the app's only locale. -->
+	<key>NSUserTrackingUsageDescription</key>
+	<string>Ձեր թույլտվությունը թույլ կտա ցուցադրել ավելի համապատասխան գովազդ:</string>
 	<key>UIStatusBarHidden</key>
 	<false/>
 	<!-- Lets canOpenURL detect Instagram so the direct-to-Stories button can

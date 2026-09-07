@@ -16,6 +16,7 @@ import 'firebase_options.dart';
 import 'presentation/home/home_controller.dart';
 import 'services/interstitial_ad_service.dart';
 import 'services/notification_service.dart';
+import 'services/tracking_consent_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -34,6 +35,11 @@ Future<void> main() async {
 
   final notifications = NotificationService();
   await notifications.init();
+
+  // ATT first: on iOS the Mobile Ads SDK reads the IDFA at initialize time, so
+  // asking afterwards would leave the whole first session non-personalised.
+  // Whatever the user answers, startup continues.
+  await const TrackingConsentService().request();
 
   // The adapter statuses answer the "is Unity actually wired in?" question on
   // their own, before any ad request: an adapter missing from this map isn't

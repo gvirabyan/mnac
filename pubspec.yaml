@@ -58,6 +58,10 @@ dependencies:
   # adapter on both platforms; the Game ID / Placement ID live in the AdMob
   # console (mediation group), not in this app.
   gma_mediation_unity: ^1.9.0
+  # iOS App Tracking Transparency. The prompt must be answered before the
+  # Mobile Ads SDK initializes, otherwise the first session serves
+  # non-personalized inventory only. No-op on Android.
+  app_tracking_transparency: ^2.0.7
   flutter_svg: ^2.3.0
   firebase_core: ^4.13.0
   firebase_analytics: ^12.4.6
