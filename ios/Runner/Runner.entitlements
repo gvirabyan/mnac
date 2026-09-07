@@ -3,10 +3,17 @@
 <plist version="1.0">
 <dict>
 	<!-- APNs. Without it iOS hands Firebase no device token, so the app can
-	     neither receive a push nor subscribe to the broadcast topic. Xcode
-	     swaps this for "production" when exporting for the App Store. -->
+	     neither receive a push nor subscribe to the broadcast topic.
+	     "production" rather than "development" because every build that ships
+	     from here is signed for distribution: Codemagic signs manually, and
+	     manual signing embeds this file verbatim — the substitution Xcode
+	     performs under automatic signing never happens. A TestFlight build
+	     asking for the sandbox environment is refused a token outright, which
+	     looks exactly like push being broken: permission granted, no token,
+	     ever. Building for a device from Xcode directly would need
+	     "development" here. -->
 	<key>aps-environment</key>
-	<string>development</string>
+	<string>production</string>
 	<key>com.apple.security.application-groups</key>
 	<array>
 		<string>group.com.virabyan.mnac.widget</string>
