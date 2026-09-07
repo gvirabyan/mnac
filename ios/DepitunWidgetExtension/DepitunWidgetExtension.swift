@@ -115,14 +115,15 @@ struct DepitunWidgetEntryView: View {
   private var hasPhoto: Bool { entry.photoPath != nil }
 
   var body: some View {
-    ZStack(alignment: .topLeading) {
-      background
-      content
-        .padding(16)
-      if entry.soldierCount > 1 {
-        nextButton
+    content
+      .padding(16)
+      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+      .overlay(alignment: .bottomTrailing) {
+        if entry.soldierCount > 1 {
+          nextButton
+        }
       }
-    }
+      .widgetContainerBackground { background }
   }
 
   /// Bottom-trailing "next soldier" button, mirroring the Android widget's
@@ -131,20 +132,20 @@ struct DepitunWidgetEntryView: View {
   @ViewBuilder
   private var nextButton: some View {
     if #available(iOS 17.0, *) {
-      VStack {
-        Spacer()
-        HStack {
-          Spacer()
-          Button(intent: NextSoldierIntent()) {
-            Image(systemName: "chevron.right.circle.fill")
-              .font(.system(size: 20))
-              .foregroundColor(hasPhoto ? .white : Self.ink)
-              .opacity(0.85)
-          }
-          .buttonStyle(.plain)
-        }
+      Button(intent: NextSoldierIntent()) {
+        Image(systemName: "chevron.right.circle.fill")
+          .font(.system(size: 20))
+          .foregroundColor(hasPhoto ? .white : Self.ink)
+          .opacity(0.85)
+          // The glyph alone is a ~20pt target, well under the 44pt minimum,
+          // and only the drawn pixels take the tap. A padded frame with an
+          // explicit hit shape makes the whole corner tappable.
+          .frame(width: 44, height: 44)
+          .contentShape(Rectangle())
       }
-      .padding(10)
+      .buttonStyle(.plain)
+      .padding(.trailing, 2)
+      .padding(.bottom, 2)
     }
   }
 
@@ -155,8 +156,11 @@ struct DepitunWidgetEntryView: View {
         Image(uiImage: uiImage)
           .resizable()
           .aspectRatio(contentMode: .fill)
+        // Matches widget_scrim.xml on Android. The lighter gradient this
+        // started with left the muted title barely legible over a bright
+        // photo on a real device.
         LinearGradient(
-          colors: [Color.black.opacity(0.15), Color.black.opacity(0.55)],
+          colors: [Color.black.opacity(0.35), Color.black.opacity(0.65)],
           startPoint: .top,
           endPoint: .bottom
         )
@@ -203,6 +207,29 @@ struct DepitunWidgetEntryView: View {
       }
     }
     .frame(maxWidth: .infinity, alignment: .leading)
+  }
+}
+
+extension View {
+  /// Declares the widget's background the way iOS 17 demands.
+  ///
+  /// Since the iOS 17 SDK a widget that paints its background as an ordinary
+  /// view instead of through `containerBackground` is refused a slot: the
+  /// home-screen gallery offers "Please adopt containerBackground API" where
+  /// the widget should be, so it can't be placed at all. Below iOS 17 the
+  /// modifier doesn't exist, hence the plain ZStack fallback.
+  @ViewBuilder
+  func widgetContainerBackground<Background: View>(
+    @ViewBuilder _ background: () -> Background
+  ) -> some View {
+    if #available(iOS 17.0, *) {
+      self.containerBackground(for: .widget) { background() }
+    } else {
+      ZStack {
+        background()
+        self
+      }
+    }
   }
 }
 

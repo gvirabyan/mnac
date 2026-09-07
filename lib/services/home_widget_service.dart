@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:home_widget/home_widget.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../core/l10n/app_strings.dart';
 import '../core/utils/date_utils.dart';
@@ -23,6 +25,7 @@ class HomeWidgetService {
   static const String _androidProvider = 'DepitunWidgetProvider';
   static const String _iosWidgetKind = 'DepitunWidgetExtension';
   static const String _appGroupId = 'group.com.virabyan.mnac.widget';
+  static const String _defaultBackgroundAsset = 'assets/images/background.png';
   static const _compute = ComputeServiceProgress();
 
   /// Serialises [soldiers] (in display order) into the widget's shared data.
@@ -32,18 +35,31 @@ class HomeWidgetService {
         await HomeWidget.setAppGroupId(_appGroupId);
       }
 
+      // Soldiers without a photo fall back to the app's own backdrop, so the
+      // widget matches the home screen instead of showing a bare card.
+      final defaultBackground = await _defaultBackgroundPath();
+
       final now = DateTime.now();
       final items = <Map<String, String>>[];
       for (var i = 0; i < soldiers.length; i++) {
         final soldier = soldiers[i];
         final progress = _compute(soldier, now);
+        // A path recorded for a photo that has since been deleted would leave
+        // the widget blank, so it's treated the same as no photo at all —
+        // exactly what HomeBackground does in the app.
+        final photo = soldier.photoPath;
+        final hasPhoto = photo != null && File(photo).existsSync();
         // The iOS extension runs in a separate sandbox and can't read the
         // app's private photo file, so mirror every soldier's photo into the
         // shared App Group container (the widget can page to any of them).
-        var photoPath = soldier.photoPath ?? '';
-        if (Platform.isIOS && soldier.photoPath != null) {
+        final String photoPath;
+        if (!hasPhoto) {
+          photoPath = defaultBackground ?? '';
+        } else if (Platform.isIOS) {
           photoPath =
-              await _sharedPhotoPath(soldier.photoPath!, index: i) ?? '';
+              await _sharedPhotoPath(photo, index: i) ?? defaultBackground ?? '';
+        } else {
+          photoPath = photo;
         }
         items.add({
           'title': soldier.name ?? AppStrings.appName,
@@ -66,6 +82,43 @@ class HomeWidgetService {
       );
     } catch (_) {
       // Widget unavailable (e.g. no widget placed) — ignore.
+    }
+  }
+
+  /// Path to the bundled default backdrop, in storage the widget can read.
+  ///
+  /// It ships as a Flutter asset, which neither the Android provider nor the
+  /// (sandboxed) iOS extension can open, so it is unpacked on first use:
+  /// into the App Group container on iOS, the app's support directory on
+  /// Android. Cached for the process — the bytes never change.
+  static String? _defaultBackground;
+
+  Future<String?> _defaultBackgroundPath() async {
+    final cached = _defaultBackground;
+    if (cached != null) return cached;
+
+    try {
+      final bytes = await rootBundle.load(_defaultBackgroundAsset);
+      final data = bytes.buffer.asUint8List();
+
+      String path;
+      if (Platform.isIOS) {
+        path = await HomeWidget.saveFile(
+          'widget_default_background',
+          data,
+          extension: 'png',
+        );
+      } else {
+        final dir = await getApplicationSupportDirectory();
+        final file = File('${dir.path}/widget_default_background.png');
+        if (!file.existsSync() || file.lengthSync() != data.length) {
+          await file.writeAsBytes(data, flush: true);
+        }
+        path = file.path;
+      }
+      return _defaultBackground = path;
+    } catch (_) {
+      return null;
     }
   }
 

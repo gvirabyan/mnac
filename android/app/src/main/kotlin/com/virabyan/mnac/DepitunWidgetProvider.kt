@@ -32,6 +32,12 @@ class DepitunWidgetProvider : HomeWidgetProvider() {
         private const val STATE_PREFS = "DepitunWidgetState"
         private const val KEY_SOLDIERS = "widget_soldiers"
         private const val KEY_INDEX = "index"
+
+        // Mirrors the palette baked into depitun_widget.xml and the iOS view.
+        private const val COLOR_INK = 0xFF1E1B16.toInt()
+        private const val COLOR_MUTED = 0xFF8A8276.toInt()
+        private const val COLOR_ON_PHOTO = 0xFFFFFFFF.toInt()
+        private const val COLOR_ON_PHOTO_MUTED = 0xD9FFFFFF.toInt()
     }
 
     override fun onUpdate(
@@ -84,7 +90,9 @@ class DepitunWidgetProvider : HomeWidgetProvider() {
                 setTextViewText(R.id.widget_percent, "")
                 setTextViewText(R.id.widget_discharge, "")
                 setViewVisibility(R.id.widget_bg, View.GONE)
+                setViewVisibility(R.id.widget_scrim, View.GONE)
                 setViewVisibility(R.id.widget_next, View.GONE)
+                applyTextColors(overPhoto = false)
             } else {
                 val s = soldiers.getJSONObject(index)
                 setTextViewText(R.id.widget_title, s.optString("title", "Մնաց"))
@@ -96,9 +104,12 @@ class DepitunWidgetProvider : HomeWidgetProvider() {
                 if (bitmap != null) {
                     setImageViewBitmap(R.id.widget_bg, bitmap)
                     setViewVisibility(R.id.widget_bg, View.VISIBLE)
+                    setViewVisibility(R.id.widget_scrim, View.VISIBLE)
                 } else {
                     setViewVisibility(R.id.widget_bg, View.GONE)
+                    setViewVisibility(R.id.widget_scrim, View.GONE)
                 }
+                applyTextColors(overPhoto = bitmap != null)
 
                 if (count > 1) {
                     setViewVisibility(R.id.widget_next, View.VISIBLE)
@@ -125,6 +136,23 @@ class DepitunWidgetProvider : HomeWidgetProvider() {
         manager.updateAppWidget(widgetId, views)
     }
 
+    /**
+     * Recolours the labels for what sits behind them. Every soldier now gets a
+     * photo — their own or the app's default backdrop — and those are dark
+     * enough that the card palette's ink would be unreadable on top, so the
+     * text goes white over a photo and back to ink on the bare cream card.
+     * The day count keeps the accent colour either way.
+     */
+    private fun RemoteViews.applyTextColors(overPhoto: Boolean) {
+        val primary = if (overPhoto) COLOR_ON_PHOTO else COLOR_INK
+        val secondary = if (overPhoto) COLOR_ON_PHOTO_MUTED else COLOR_MUTED
+        setTextColor(R.id.widget_title, secondary)
+        setTextColor(R.id.widget_days_unit, primary)
+        setTextColor(R.id.widget_subtitle, primary)
+        setTextColor(R.id.widget_percent, primary)
+        setTextColor(R.id.widget_discharge, secondary)
+    }
+
     private fun parseSoldiers(prefs: SharedPreferences): JSONArray {
         val raw = prefs.getString(KEY_SOLDIERS, "[]") ?: "[]"
         return try {
@@ -148,15 +176,23 @@ class DepitunWidgetProvider : HomeWidgetProvider() {
             BitmapFactory.decodeFile(path, bounds)
             if (bounds.outWidth <= 0) return null
 
-            // Target ~500px on the long edge — plenty for a home-screen widget.
-            val target = 500
+            // A RemoteViews update crosses Binder, which caps a transaction at
+            // ~1 MB, and the bitmap travels inside it. 500px of ARGB_8888 came
+            // to roughly 1.7 MB — over the limit, so the host gave up with
+            // "Problem loading widget". 320px of RGB_565 is around 0.3 MB and
+            // still sharper than any home-screen widget can show; the photo is
+            // a full-bleed backdrop, so it has no alpha to lose.
+            val target = 320
             var sample = 1
             var longest = maxOf(bounds.outWidth, bounds.outHeight)
             while (longest / 2 >= target) {
                 sample *= 2
                 longest /= 2
             }
-            val opts = BitmapFactory.Options().apply { inSampleSize = sample }
+            val opts = BitmapFactory.Options().apply {
+                inSampleSize = sample
+                inPreferredConfig = Bitmap.Config.RGB_565
+            }
             BitmapFactory.decodeFile(path, opts)
         } catch (_: Throwable) {
             null

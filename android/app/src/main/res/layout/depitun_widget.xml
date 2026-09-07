@@ -15,6 +15,17 @@
         android:visibility="gone"
         android:contentDescription="@null" />
 
+    <!-- Darkens the photo so the text stays legible. Toggled together with
+         widget_bg by the provider. A FrameLayout rather than a plain View:
+         RemoteViews inflates only a fixed set of view classes, and View is
+         not among them — the widget host fails to load the layout at all. -->
+    <FrameLayout
+        android:id="@+id/widget_scrim"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/widget_scrim"
+        android:visibility="gone" />
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -50,6 +61,7 @@
                 android:includeFontPadding="false" />
 
             <TextView
+                android:id="@+id/widget_days_unit"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text=" օր"
@@ -59,6 +71,7 @@
         </LinearLayout>
 
         <TextView
+            android:id="@+id/widget_subtitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="մինչև տուն"
