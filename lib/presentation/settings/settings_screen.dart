@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
@@ -255,11 +257,6 @@ class _NotificationsGroup extends ConsumerWidget {
 
     final granted =
         await ref.read(notificationServiceProvider).requestPermissions();
-    if (granted) {
-      // iOS skips the broadcast subscription at launch when it has no APNs
-      // token yet, which is exactly the case until permission is granted.
-      await ref.read(pushServiceProvider).ensureSubscribed();
-    }
     if (!granted) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context)
@@ -275,6 +272,12 @@ class _NotificationsGroup extends ConsumerWidget {
     await notifier.update(
       (s) => s.copyWith(notificationsEnabled: true, dailyReminderEnabled: true),
     );
+
+    // Last, and deliberately not awaited: on iOS joining the topic waits on
+    // APNs for up to twenty seconds. The switch renders off the stored
+    // setting, so awaiting this left it sitting dead in the "off" position
+    // for the whole wait, exactly as if the tap had done nothing.
+    unawaited(ref.read(pushServiceProvider).ensureSubscribed());
   }
 
   @override
