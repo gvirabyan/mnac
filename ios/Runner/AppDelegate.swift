@@ -90,18 +90,33 @@ enum PushDiagnostics {
   /// The profile is a CMS-signed blob wrapping a plist; scanning it as text
   /// avoids pulling in a decoder for one string. Absent entirely on the
   /// simulator, where APNs registration cannot succeed regardless.
+  ///
+  /// Two spellings, because a profile may carry either: the bare key, or the
+  /// `com.apple.developer.` prefixed one that App Store profiles use. Looking
+  /// for only the bare one reports a push-entitled build as having none,
+  /// which is worse than saying nothing — it sends you off fixing signing
+  /// that was never broken.
   private static func provisionedAPSEnvironment() -> String? {
     guard
       let path = Bundle.main.path(forResource: "embedded", ofType: "mobileprovision"),
       let data = FileManager.default.contents(atPath: path),
-      let text = String(data: data, encoding: .isoLatin1),
-      let keyRange = text.range(of: "<key>aps-environment</key>"),
-      let openRange = text.range(of: "<string>", range: keyRange.upperBound..<text.endIndex),
-      let closeRange = text.range(of: "</string>", range: openRange.upperBound..<text.endIndex)
+      let text = String(data: data, encoding: .isoLatin1)
     else {
       return nil
     }
-    return String(text[openRange.upperBound..<closeRange.lowerBound])
+
+    let keys = ["<key>aps-environment</key>", "<key>com.apple.developer.aps-environment</key>"]
+    for key in keys {
+      guard
+        let keyRange = text.range(of: key),
+        let openRange = text.range(of: "<string>", range: keyRange.upperBound..<text.endIndex),
+        let closeRange = text.range(of: "</string>", range: openRange.upperBound..<text.endIndex)
+      else {
+        continue
+      }
+      return String(text[openRange.upperBound..<closeRange.lowerBound])
+    }
+    return nil
   }
 }
 
