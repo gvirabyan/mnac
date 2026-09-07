@@ -2,6 +2,11 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- APNs. Without it iOS hands Firebase no device token, so the app can
+	     neither receive a push nor subscribe to the broadcast topic. Xcode
+	     swaps this for "production" when exporting for the App Store. -->
+	<key>aps-environment</key>
+	<string>development</string>
 	<key>com.apple.security.application-groups</key>
 	<array>
 		<string>group.com.virabyan.mnac.widget</string>

@@ -9,6 +9,7 @@ import '../../core/di/providers.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../domain/entities/app_settings.dart';
 import '../../services/notification_service.dart';
+import '../../services/push_service.dart';
 import '../shared/state/settings_controller.dart';
 import '../shared/state/soldiers_controller.dart';
 import '../shared/widgets/glass_card.dart';
@@ -254,6 +255,11 @@ class _NotificationsGroup extends ConsumerWidget {
 
     final granted =
         await ref.read(notificationServiceProvider).requestPermissions();
+    if (granted) {
+      // iOS skips the broadcast subscription at launch when it has no APNs
+      // token yet, which is exactly the case until permission is granted.
+      await ref.read(pushServiceProvider).ensureSubscribed();
+    }
     if (!granted) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context)

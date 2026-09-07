@@ -70,6 +70,17 @@
                 android:resource="@xml/story_share_paths" />
         </provider>
 
+        <!-- FCM broadcasts. Without the channel below, a push arriving while
+             the app is backgrounded is drawn by the system on its own
+             "Miscellaneous" channel instead of the app's reminders channel,
+             which the user cannot then mute separately. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="depitun_reminders" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@mipmap/ic_launcher" />
+
         <!-- AdMob. -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"

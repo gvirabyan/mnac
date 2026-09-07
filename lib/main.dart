@@ -16,6 +16,7 @@ import 'firebase_options.dart';
 import 'presentation/home/home_controller.dart';
 import 'services/interstitial_ad_service.dart';
 import 'services/notification_service.dart';
+import 'services/push_service.dart';
 import 'services/tracking_consent_service.dart';
 
 Future<void> main() async {
@@ -35,6 +36,11 @@ Future<void> main() async {
 
   final notifications = NotificationService();
   await notifications.init();
+
+  // Broadcast pushes. Subscribing needs Firebase up (done above) and the local
+  // notification channel in place, so it follows both.
+  final push = PushService(notifications);
+  await push.init();
 
   // ATT first: on iOS the Mobile Ads SDK reads the IDFA at initialize time, so
   // asking afterwards would leave the whole first session non-personalised.
@@ -78,6 +84,7 @@ Future<void> main() async {
         initialSoldiersProvider.overrideWithValue(soldiers),
         initialActiveIdProvider.overrideWithValue(activeId),
         notificationServiceProvider.overrideWithValue(notifications),
+        pushServiceProvider.overrideWithValue(push),
         interstitialAdServiceProvider.overrideWithValue(interstitialAds),
         if (quotes != null) quotesProvider.overrideWith((ref) => quotes!),
       ],

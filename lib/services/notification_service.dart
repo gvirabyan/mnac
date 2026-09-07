@@ -37,6 +37,8 @@ class NotificationService {
   static const int _dailyWindow = 60; // reserved id range to cancel
   static const int _dailyDays = 30; // how many days ahead to schedule
   static const int _milestoneBase = 2000;
+  static const int _pushBase = 3000;
+  static const int _pushWindow = 100;
   static const int _milestoneWindow = 10;
 
   static const _compute = ComputeServiceProgress();
@@ -189,6 +191,27 @@ class NotificationService {
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       );
       idx++;
+    }
+  }
+
+  /// Shows [title]/[body] immediately, on the reminders channel.
+  ///
+  /// Used for pushes that land while the app is in the foreground: FCM hands
+  /// those to the app instead of drawing them itself, so without this a
+  /// broadcast is silently swallowed by anyone who happens to have the app
+  /// open. The id sits in its own range so it can never collide with a
+  /// scheduled reminder or milestone.
+  Future<void> showNow({required String title, required String body}) async {
+    if (!_initialized) await init();
+    try {
+      await _plugin.show(
+        id: _pushBase + DateTime.now().millisecondsSinceEpoch % _pushWindow,
+        title: title,
+        body: body,
+        notificationDetails: _details,
+      );
+    } catch (_) {
+      // Best-effort.
     }
   }
 
