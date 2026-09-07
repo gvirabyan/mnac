@@ -228,7 +228,7 @@ class _Greeting extends StatelessWidget {
         profile.photoPath != null && File(profile.photoPath!).existsSync();
     final greeting = profile.name == null
         ? AppStrings.appName
-        : 'Բարև, ${profile.name}';
+        : profile.name!;
 
     return InkWell(
       onTap: onTap,
