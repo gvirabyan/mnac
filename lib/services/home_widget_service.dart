@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter/services.dart' show MethodChannel, rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:home_widget/home_widget.dart';
 import 'package:path_provider/path_provider.dart';
@@ -119,6 +119,26 @@ class HomeWidgetService {
       return _defaultBackground = path;
     } catch (_) {
       return null;
+    }
+  }
+
+  /// Native side of [diagnostics].
+  static const MethodChannel _iosDiagnostics =
+      MethodChannel('com.virabyan.mnac/diagnostics');
+
+  /// Why the iOS widget is showing its placeholder rather than a countdown.
+  ///
+  /// An empty widget looks the same whatever the cause, and none of it is
+  /// visible from Dart: [sync] reports success as long as the plugin call
+  /// returns, whether or not the write reached storage the extension can see.
+  /// Empty on Android, where the widget reads the same process's data and
+  /// there is no sharing step to go wrong.
+  Future<String> diagnostics() async {
+    if (!Platform.isIOS) return '';
+    try {
+      return await _iosDiagnostics.invokeMethod<String>('widget') ?? '';
+    } catch (e) {
+      return 'widget diagnostics: FAILED ($e)';
     }
   }
 

@@ -7,6 +7,7 @@ import '../../core/constants/app_sizes.dart';
 import '../../core/l10n/app_strings.dart';
 import '../shared/widgets/glass_card.dart';
 import '../shared/widgets/gradient_scaffold.dart';
+import '../../services/home_widget_service.dart';
 import '../../services/push_service.dart';
 import '../shared/widgets/section_header.dart';
 
@@ -14,17 +15,20 @@ import '../shared/widgets/section_header.dart';
 class AboutScreen extends ConsumerWidget {
   const AboutScreen({super.key});
 
-  /// Shows why push does or doesn't reach this device, for diagnosing a
-  /// notification that never arrives. Deliberately unlabelled and behind a
-  /// long press on the version line: it is a support tool, not a feature, and
+  /// Shows why push does or doesn't reach this device, and why the home
+  /// widget is or isn't showing data, for diagnosing the two things that fail
+  /// silently and out of sight. Deliberately unlabelled and behind a long
+  /// press on the version line: it is a support tool, not a feature, and
   /// means nothing to a user who isn't being walked through it.
   Future<void> _showPushDiagnostics(BuildContext context, WidgetRef ref) async {
-    final report = await ref.read(pushServiceProvider).diagnostics();
+    final push = await ref.read(pushServiceProvider).diagnostics();
+    final widget = await ref.read(homeWidgetServiceProvider).diagnostics();
+    final report = widget.isEmpty ? push : '$push\n\n$widget';
     if (!context.mounted) return;
     await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Push'),
+        title: const Text('Diagnostics'),
         content: SingleChildScrollView(
           child: SelectableText(
             report,

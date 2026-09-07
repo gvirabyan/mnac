@@ -17,7 +17,7 @@ import UserNotifications
     }
     if let controller = window?.rootViewController as? FlutterViewController {
       StoryShareChannel.register(messenger: controller.binaryMessenger)
-      PushDiagnosticsChannel.register(messenger: controller.binaryMessenger)
+      DiagnosticsChannel.register(messenger: controller.binaryMessenger)
     }
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
@@ -83,40 +83,72 @@ enum PushDiagnostics {
     return lines.joined(separator: "\n")
   }
 
-  /// The `aps-environment` the embedded provisioning profile grants, or nil
-  /// when the profile carries no push entitlement — which is exactly the case
-  /// where registration fails and no token ever arrives.
-  ///
-  /// The profile is a CMS-signed blob wrapping a plist; scanning it as text
-  /// avoids pulling in a decoder for one string. Absent entirely on the
-  /// simulator, where APNs registration cannot succeed regardless.
-  ///
-  /// Two spellings, because a profile may carry either: the bare key, or the
-  /// `com.apple.developer.` prefixed one that App Store profiles use. Looking
-  /// for only the bare one reports a push-entitled build as having none,
-  /// which is worse than saying nothing — it sends you off fixing signing
-  /// that was never broken.
+  /// The APNs environment the embedded profile grants, or nil when it
+  /// carries no push entitlement — exactly the case where registration fails
+  /// and no token ever arrives.
   private static func provisionedAPSEnvironment() -> String? {
+    ProvisioningProfile.string(
+      forAnyOf: ["aps-environment", "com.apple.developer.aps-environment"])
+  }
+}
+
+/// The provisioning profile embedded in this build.
+///
+/// A CMS-signed blob wrapping a plist; scanning it as text avoids pulling in
+/// a decoder to read a couple of keys. Absent on the simulator, where neither
+/// push nor App Group sharing behaves like it does on a device anyway.
+enum ProvisioningProfile {
+  private static let text: String? = {
     guard
       let path = Bundle.main.path(forResource: "embedded", ofType: "mobileprovision"),
-      let data = FileManager.default.contents(atPath: path),
-      let text = String(data: data, encoding: .isoLatin1)
+      let data = FileManager.default.contents(atPath: path)
     else {
       return nil
     }
+    return String(data: data, encoding: .isoLatin1)
+  }()
 
-    let keys = ["<key>aps-environment</key>", "<key>com.apple.developer.aps-environment</key>"]
+  /// The `<string>` following whichever of `keys` appears first.
+  ///
+  /// Several entitlements exist under two spellings — bare, and prefixed with
+  /// `com.apple.developer.` — and reading only one reports an entitled build
+  /// as having none, which sends you off fixing signing that was never broken.
+  static func string(forAnyOf keys: [String]) -> String? {
+    guard let text else { return nil }
     for key in keys {
       guard
-        let keyRange = text.range(of: key),
-        let openRange = text.range(of: "<string>", range: keyRange.upperBound..<text.endIndex),
-        let closeRange = text.range(of: "</string>", range: openRange.upperBound..<text.endIndex)
+        let keyRange = text.range(of: "<key>\(key)</key>"),
+        let open = text.range(of: "<string>", range: keyRange.upperBound..<text.endIndex),
+        let close = text.range(of: "</string>", range: open.upperBound..<text.endIndex)
       else {
         continue
       }
-      return String(text[openRange.upperBound..<closeRange.lowerBound])
+      return String(text[open.upperBound..<close.lowerBound])
     }
     return nil
+  }
+
+  /// Every `<string>` in the `<array>` following `key`.
+  static func strings(forKey key: String) -> [String] {
+    guard
+      let text,
+      let keyRange = text.range(of: "<key>\(key)</key>"),
+      let open = text.range(of: "<array>", range: keyRange.upperBound..<text.endIndex),
+      let close = text.range(of: "</array>", range: open.upperBound..<text.endIndex)
+    else {
+      return []
+    }
+
+    var values: [String] = []
+    var cursor = open.upperBound
+    while
+      let itemOpen = text.range(of: "<string>", range: cursor..<close.lowerBound),
+      let itemClose = text.range(of: "</string>", range: itemOpen.upperBound..<close.lowerBound)
+    {
+      values.append(String(text[itemOpen.upperBound..<itemClose.lowerBound]))
+      cursor = itemClose.upperBound
+    }
+    return values
   }
 }
 
@@ -142,15 +174,63 @@ final class PushDiagnosticsObserver: NSObject, FlutterPlugin {
   }
 }
 
-enum PushDiagnosticsChannel {
-  static let name = "com.virabyan.mnac/push_diagnostics"
+/// Why the home-screen widget shows its placeholder instead of a countdown.
+///
+/// The app and the widget extension are separate processes sharing nothing
+/// but the App Group container, and every way that sharing can break looks
+/// identical from the home screen — an empty widget. So the report separates
+/// them: whether the group is granted at all, whether the profile actually
+/// carries it, and what the extension would read back if it ran right now.
+///
+/// Read from the app, not the extension: a widget cannot report on itself,
+/// and both processes see the same shared store when the group works. If the
+/// group is missing they see different ones, which is precisely the fault
+/// being looked for.
+enum WidgetDiagnostics {
+  private static let appGroupId = "group.com.virabyan.mnac.widget"
+  private static let dataKey = "widget_soldiers"
+  private static let indexKey = "widget_soldier_index"
+
+  static func report() -> String {
+    var lines: [String] = []
+
+    // nil means the entitlement is not in force, whatever the .entitlements
+    // file in the source tree says. This is the check that matters: without a
+    // container the two processes are simply not sharing anything.
+    let container = FileManager.default
+      .containerURL(forSecurityApplicationGroupIdentifier: appGroupId)
+    lines.append("app group container: \(container == nil ? "UNAVAILABLE" : "available")")
+
+    let groups = ProvisioningProfile.strings(forKey: "com.apple.security.application-groups")
+    lines.append(
+      "profile app groups: \(groups.isEmpty ? "none" : groups.joined(separator: ", "))")
+
+    let defaults = UserDefaults(suiteName: appGroupId)
+    if let raw = defaults?.string(forKey: dataKey) {
+      let items = (try? JSONSerialization.jsonObject(with: Data(raw.utf8))) as? [[String: String]]
+      let parsed = items.map { "\($0.count) soldiers" } ?? "UNREADABLE"
+      lines.append("\(dataKey): \(raw.count) chars, \(parsed)")
+    } else {
+      lines.append("\(dataKey): MISSING")
+    }
+
+    lines.append("\(indexKey): \(defaults?.integer(forKey: indexKey) ?? 0)")
+
+    return lines.joined(separator: "\n")
+  }
+}
+
+enum DiagnosticsChannel {
+  static let name = "com.virabyan.mnac/diagnostics"
 
   static func register(messenger: FlutterBinaryMessenger) {
     let channel = FlutterMethodChannel(name: name, binaryMessenger: messenger)
     channel.setMethodCallHandler { call, result in
       switch call.method {
-      case "report":
+      case "push":
         result(PushDiagnostics.report())
+      case "widget":
+        result(WidgetDiagnostics.report())
       default:
         result(FlutterMethodNotImplemented)
       }
