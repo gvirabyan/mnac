@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:firebase_core/firebase_core.dart';
@@ -19,6 +20,9 @@ import 'services/notification_service.dart';
 import 'services/push_service.dart';
 import 'services/tracking_consent_service.dart';
 
+/// Marks that the one-and-only notification permission prompt has been shown.
+const String _notificationsAskedKey = 'notifications_permission_asked';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -29,7 +33,8 @@ Future<void> main() async {
   // Initialize local storage and preload data so the first frame is correct.
   final prefs = await SharedPreferences.getInstance();
   final dataSource = LocalPrefsDataSource(prefs);
-  final settings = await SettingsRepositoryImpl(dataSource).load();
+  final settingsRepo = SettingsRepositoryImpl(dataSource);
+  var settings = await settingsRepo.load();
   final soldiersRepo = SoldiersRepositoryImpl(dataSource);
   final soldiers = await soldiersRepo.loadAll();
   final activeId = await soldiersRepo.loadActiveId();
@@ -37,15 +42,35 @@ Future<void> main() async {
   final notifications = NotificationService();
   await notifications.init();
 
-  // Broadcast pushes. Subscribing needs Firebase up (done above) and the local
-  // notification channel in place, so it follows both.
+  // Broadcast pushes. Only the listener for now — joining the topic raises the
+  // notification prompt on iOS, and that has to wait its turn below.
   final push = PushService(notifications);
-  await push.init();
+  push.init();
 
   // ATT first: on iOS the Mobile Ads SDK reads the IDFA at initialize time, so
   // asking afterwards would leave the whole first session non-personalised.
   // Whatever the user answers, startup continues.
   await const TrackingConsentService().request();
+
+  // Then notifications, so on a first launch the two system prompts follow one
+  // another instead of being spread across the session. Asked once ever: the
+  // OS remembers a refusal, and re-prompting someone who declined — or who
+  // later switched reminders off — would just be noise. Granting turns
+  // reminders on, since the permission is worth nothing while the app's own
+  // toggle stays off.
+  if (!(prefs.getBool(_notificationsAskedKey) ?? false)) {
+    final granted = await notifications.requestPermissions();
+    await prefs.setBool(_notificationsAskedKey, true);
+    if (granted) {
+      settings = settings.copyWith(notificationsEnabled: true);
+      await settingsRepo.save(settings);
+    }
+  }
+
+  // Now that the prompt is out of the way, join the broadcast topic. Not
+  // awaited: on iOS this waits on APNs for seconds, and the first frame must
+  // not be held for it.
+  unawaited(push.ensureSubscribed());
 
   // The adapter statuses answer the "is Unity actually wired in?" question on
   // their own, before any ad request: an adapter missing from this map isn't

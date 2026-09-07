@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:io' show Platform;
 
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -31,13 +30,15 @@ class PushService {
   /// background while the app carries on.
   static const Duration _apnsTokenTimeout = Duration(seconds: 20);
 
-  Future<void> init() async {
+  /// Starts listening for pushes that arrive with the app open.
+  ///
+  /// Joining the topic is deliberately *not* done here: on iOS that path
+  /// raises the notification prompt, and the caller decides when that should
+  /// happen relative to the other system prompt at startup. Call
+  /// [ensureSubscribed] once that ordering is settled.
+  void init() {
     try {
       FirebaseMessaging.onMessage.listen(_showForegroundMessage);
-      // Deliberately not awaited: joining the topic can sit waiting on APNs
-      // for seconds, and startup must not be held for it. Nothing downstream
-      // depends on the subscription having completed.
-      unawaited(ensureSubscribed());
     } catch (_) {
       // Push is an extra, never a reason for startup to fail.
     }
