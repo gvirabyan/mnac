@@ -1,18 +1,55 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../core/constants/app_sizes.dart';
 import '../../core/l10n/app_strings.dart';
 import '../shared/widgets/glass_card.dart';
 import '../shared/widgets/gradient_scaffold.dart';
+import '../../services/push_service.dart';
 import '../shared/widgets/section_header.dart';
 
 /// About + privacy screen.
-class AboutScreen extends StatelessWidget {
+class AboutScreen extends ConsumerWidget {
   const AboutScreen({super.key});
 
+  /// Shows why push does or doesn't reach this device, for diagnosing a
+  /// notification that never arrives. Deliberately unlabelled and behind a
+  /// long press on the version line: it is a support tool, not a feature, and
+  /// means nothing to a user who isn't being walked through it.
+  Future<void> _showPushDiagnostics(BuildContext context, WidgetRef ref) async {
+    final report = await ref.read(pushServiceProvider).diagnostics();
+    if (!context.mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Push'),
+        content: SingleChildScrollView(
+          child: SelectableText(
+            report,
+            style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: report));
+              if (context.mounted) Navigator.of(context).pop();
+            },
+            child: const Text('Copy'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     return GradientScaffold(
       appBar: AppBar(title: const Text(AppStrings.settingsAbout)),
@@ -35,10 +72,16 @@ class AboutScreen extends StatelessWidget {
                 FutureBuilder<PackageInfo>(
                   future: PackageInfo.fromPlatform(),
                   builder: (context, snapshot) {
-                    final version = snapshot.data?.version ?? '—';
-                    return Text(
-                      '${AppStrings.aboutVersionLabel}՝ $version',
-                      style: theme.textTheme.bodySmall,
+                    final info = snapshot.data;
+                    final version = info == null
+                        ? '—'
+                        : '${info.version} (${info.buildNumber})';
+                    return GestureDetector(
+                      onLongPress: () => _showPushDiagnostics(context, ref),
+                      child: Text(
+                        '${AppStrings.aboutVersionLabel}՝ $version',
+                        style: theme.textTheme.bodySmall,
+                      ),
                     );
                   },
                 ),

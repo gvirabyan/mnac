@@ -82,6 +82,52 @@ class PushService {
     return false;
   }
 
+  /// A readable account of why this device is, or isn't, reachable by push.
+  ///
+  /// Every step of the chain is silent when it fails, and on iOS none of it is
+  /// observable from the outside: a topic send reports success whatever
+  /// becomes of the message afterwards. Walking the chain in order tells you
+  /// where it breaks — permission, then the APNs token that only Apple can
+  /// issue, then the FCM token derived from it, then the topic itself.
+  ///
+  /// The FCM token is included in full so a message can be aimed at this one
+  /// device, which unlike a topic send returns the reason it failed.
+  Future<String> diagnostics() async {
+    final lines = <String>[];
+
+    try {
+      final settings = await _messaging.getNotificationSettings();
+      lines.add('permission: ${settings.authorizationStatus.name}');
+    } catch (e) {
+      lines.add('permission: FAILED ($e)');
+    }
+
+    if (Platform.isIOS) {
+      try {
+        final apns = await _messaging.getAPNSToken();
+        lines.add('apns token: ${apns == null ? 'MISSING' : 'present'}');
+      } catch (e) {
+        lines.add('apns token: FAILED ($e)');
+      }
+    }
+
+    try {
+      final fcm = await _messaging.getToken();
+      lines.add('fcm token: ${fcm ?? 'MISSING'}');
+    } catch (e) {
+      lines.add('fcm token: FAILED ($e)');
+    }
+
+    try {
+      await _messaging.subscribeToTopic(broadcastTopic);
+      lines.add('topic $broadcastTopic: subscribed');
+    } catch (e) {
+      lines.add('topic $broadcastTopic: FAILED ($e)');
+    }
+
+    return lines.join('\n');
+  }
+
   /// Joins the topic, swallowing any failure.
   ///
   /// Also worth calling after the user grants notification permission: on iOS
