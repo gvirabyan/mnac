@@ -6,6 +6,7 @@ import '../../core/l10n/app_strings.dart';
 import '../../services/home_widget_service.dart';
 import '../../services/interstitial_ad_service.dart';
 import '../../services/notification_service.dart';
+import '../../services/push_service.dart';
 import '../calendar/calendar_screen.dart';
 import '../home/home_controller.dart';
 import '../home/home_screen.dart';
@@ -35,6 +36,8 @@ class _MainShellState extends ConsumerState<MainShell>
   int _index = 0;
   bool _celebrating = false;
 
+  static const String _notificationsAskedKey = 'notifications_permission_asked';
+
   static const _screens = [
     HomeScreen(),
     StatisticsScreen(),
@@ -48,6 +51,9 @@ class _MainShellState extends ConsumerState<MainShell>
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _syncBackground();
+      // Ahead of the ad, so the very first thing the user is asked is the
+      // permission the app actually needs.
+      _askForNotificationsOnce();
       // Cold-start only — deliberately not repeated on resume, so the ad
       // cadence tracks app opens rather than every foreground/background flip.
       ref.read(interstitialAdServiceProvider).maybeShowOnLaunch();
@@ -64,6 +70,32 @@ class _MainShellState extends ConsumerState<MainShell>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // Re-syncing on resume cancels today's reminder once the user opens the app.
     if (state == AppLifecycleState.resumed) _syncBackground();
+  }
+
+  /// Asks for notification permission the first time the app is opened.
+  ///
+  /// The OS shows its prompt once and remembers a refusal, so this is gated on
+  /// a flag of its own rather than on [AppSettings.notificationsEnabled]: a
+  /// user who declines, or who later turns reminders off, must not be asked
+  /// again on the next launch. Granting also switches reminders on — the
+  /// permission is worth nothing while the app's own toggle stays off — and
+  /// picks up the broadcast topic, which iOS could not join at launch for want
+  /// of an APNs token.
+  Future<void> _askForNotificationsOnce() async {
+    final prefs = ref.read(sharedPreferencesProvider);
+    if (prefs.getBool(_notificationsAskedKey) ?? false) return;
+
+    final granted =
+        await ref.read(notificationServiceProvider).requestPermissions();
+    // Recorded only once an answer is in, so a launch cut short while the
+    // system dialog was still up asks again rather than losing the chance.
+    await prefs.setBool(_notificationsAskedKey, true);
+    if (!granted || !mounted) return;
+
+    await ref
+        .read(settingsControllerProvider.notifier)
+        .setNotificationsEnabled(true);
+    await ref.read(pushServiceProvider).ensureSubscribed();
   }
 
   Future<void> _syncBackground() async {

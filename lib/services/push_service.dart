@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io' show Platform;
 
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -25,10 +26,18 @@ class PushService {
   /// reaches all users; keep it in step with what the console targets.
   static const String broadcastTopic = 'all';
 
+  /// How long to wait for APNs. Generous because it covers a cold start on
+  /// a slow network; nothing is blocked on it, the wait runs in the
+  /// background while the app carries on.
+  static const Duration _apnsTokenTimeout = Duration(seconds: 20);
+
   Future<void> init() async {
     try {
       FirebaseMessaging.onMessage.listen(_showForegroundMessage);
-      await _subscribeToBroadcasts();
+      // Deliberately not awaited: joining the topic can sit waiting on APNs
+      // for seconds, and startup must not be held for it. Nothing downstream
+      // depends on the subscription having completed.
+      unawaited(ensureSubscribed());
     } catch (_) {
       // Push is an extra, never a reason for startup to fail.
     }
@@ -45,18 +54,38 @@ class PushService {
 
   /// Joins [broadcastTopic].
   ///
-  /// iOS cannot subscribe before APNs has handed Firebase a device token, and
-  /// that only arrives once the user has allowed notifications — so a refusal
-  /// here is normal and simply means this device stays unsubscribed until a
-  /// later launch. [ensureSubscribed] is what picks it up again.
+  /// iOS cannot subscribe before APNs has handed Firebase a device token, so
+  /// this waits for one rather than giving up on the first look — see
+  /// [_awaitApnsToken]. Android has no such step and subscribes straight away.
   Future<void> _subscribeToBroadcasts() async {
-    if (Platform.isIOS && await _messaging.getAPNSToken() == null) return;
+    if (Platform.isIOS && !await _awaitApnsToken()) return;
     await _messaging.subscribeToTopic(broadcastTopic);
   }
 
-  /// Re-attempts the subscription. Call after the user grants notification
-  /// permission, since on iOS the first attempt at launch will have been
-  /// skipped for want of an APNs token.
+  /// Waits for APNs to issue this device a token, up to [_apnsTokenTimeout].
+  ///
+  /// Two things have to happen first, and neither is instant. The app must
+  /// register with APNs — `requestPermission` is what does that on iOS, and
+  /// it raises no second prompt once the user has already answered — and APNs
+  /// must then answer over the network. Reading the token once at launch is
+  /// therefore almost guaranteed to come back null, which previously left the
+  /// device permanently unsubscribed and every broadcast silently missed.
+  Future<bool> _awaitApnsToken() async {
+    await _messaging.requestPermission();
+
+    final deadline = DateTime.now().add(_apnsTokenTimeout);
+    while (DateTime.now().isBefore(deadline)) {
+      if (await _messaging.getAPNSToken() != null) return true;
+      await Future<void>.delayed(const Duration(seconds: 1));
+    }
+    return false;
+  }
+
+  /// Joins the topic, swallowing any failure.
+  ///
+  /// Also worth calling after the user grants notification permission: on iOS
+  /// that is what finally lets APNs issue a token, so an attempt made earlier
+  /// may have timed out.
   Future<void> ensureSubscribed() async {
     try {
       await _subscribeToBroadcasts();
