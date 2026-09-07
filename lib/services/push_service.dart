@@ -1,3 +1,4 @@
+import 'dart:async' show unawaited;
 import 'dart:io' show Platform;
 
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -45,8 +46,33 @@ class PushService {
   void init() {
     try {
       FirebaseMessaging.onMessage.listen(_showForegroundMessage);
+      if (Platform.isIOS) unawaited(_registerWithApns());
     } catch (_) {
       // Push is an extra, never a reason for startup to fail.
+    }
+  }
+
+  /// Asks iOS to register with APNs.
+  ///
+  /// The plugin does this itself at launch, but only if Firebase's auto-init
+  /// flag reads as on — and it reads that flag from the *native* Firebase app
+  /// while `didFinishLaunching` is still running. This app has no
+  /// `GoogleService-Info.plist`; it configures Firebase from Dart instead,
+  /// which happens later, so at that moment there is no native app, the flag
+  /// comes back off, and registration is skipped. Nothing retries it: APNs
+  /// then never calls back, the token stays null forever, and every send to
+  /// the topic is dropped. Requesting notification permission does not fix
+  /// this — permission and registration are separate steps, which is why the
+  /// device reports itself authorized while still having no token.
+  ///
+  /// Setting the flag from Dart, once Firebase is up, is what runs the
+  /// registration the launch path skipped. Android registers with FCM
+  /// directly and needs none of this.
+  Future<void> _registerWithApns() async {
+    try {
+      await _messaging.setAutoInitEnabled(true);
+    } catch (_) {
+      // Same reasoning as above: never fatal.
     }
   }
 
