@@ -9,6 +9,7 @@ import UserNotifications
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
     GeneratedPluginRegistrant.register(with: self)
+    PushDiagnostics.observeRegistration(with: self)
     // Required for flutter_local_notifications to present alerts while the app
     // is in the foreground on iOS.
     if #available(iOS 10.0, *) {
@@ -16,8 +17,129 @@ import UserNotifications
     }
     if let controller = window?.rootViewController as? FlutterViewController {
       StoryShareChannel.register(messenger: controller.binaryMessenger)
+      PushDiagnosticsChannel.register(messenger: controller.binaryMessenger)
     }
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
+}
+
+/// What the app itself can see about its APNs registration.
+///
+/// Everything here answers a question the Dart side cannot: whether iOS ever
+/// called back at all, what it said when it refused, and which APNs
+/// environment the signed build is actually entitled to — the last one read
+/// from the embedded provisioning profile rather than the entitlements file,
+/// so it reflects what the profile granted rather than what the source asked
+/// for. A mismatch between that and the token type Firebase registers is the
+/// usual reason a push that works in one build never arrives in another.
+enum PushDiagnostics {
+  private static var deviceTokenLength: Int?
+  private static var failure: String?
+
+  /// Listens for the APNs callbacks by joining the plugin delegate chain
+  /// rather than overriding them on `AppDelegate`: `FlutterAppDelegate`
+  /// implements both but declares neither in its header, so a Swift subclass
+  /// has nothing to override. Registering an observer is the supported route
+  /// and leaves every other plugin's copy of the callback untouched.
+  static func observeRegistration(with registry: FlutterPluginRegistry) {
+    guard let registrar = registry.registrar(forPlugin: observerName) else { return }
+    registrar.addApplicationDelegate(observer)
+  }
+
+  private static let observerName = "PushDiagnosticsObserver"
+  private static let observer = PushDiagnosticsObserver()
+
+  fileprivate static func recordToken(_ token: Data) {
+    deviceTokenLength = token.count
+    failure = nil
+  }
+
+  fileprivate static func recordFailure(_ error: Error) {
+    let ns = error as NSError
+    failure = "\(ns.domain) \(ns.code): \(ns.localizedDescription)"
+  }
+
+  static func report() -> String {
+    var lines: [String] = []
+
+    if let length = deviceTokenLength {
+      lines.append("apns callback: token received (\(length) bytes)")
+    } else if let failure {
+      lines.append("apns callback: FAILED (\(failure))")
+    } else {
+      lines.append("apns callback: never fired")
+    }
+
+    let registered = UIApplication.shared.isRegisteredForRemoteNotifications
+    lines.append("registered for remote: \(registered)")
+    lines.append("profile aps-environment: \(provisionedAPSEnvironment() ?? "none")")
+
+    #if DEBUG
+      lines.append("build: debug (Firebase registers a sandbox APNs token)")
+    #else
+      lines.append("build: release (Firebase registers a production APNs token)")
+    #endif
+
+    return lines.joined(separator: "\n")
+  }
+
+  /// The `aps-environment` the embedded provisioning profile grants, or nil
+  /// when the profile carries no push entitlement — which is exactly the case
+  /// where registration fails and no token ever arrives.
+  ///
+  /// The profile is a CMS-signed blob wrapping a plist; scanning it as text
+  /// avoids pulling in a decoder for one string. Absent entirely on the
+  /// simulator, where APNs registration cannot succeed regardless.
+  private static func provisionedAPSEnvironment() -> String? {
+    guard
+      let path = Bundle.main.path(forResource: "embedded", ofType: "mobileprovision"),
+      let data = FileManager.default.contents(atPath: path),
+      let text = String(data: data, encoding: .isoLatin1),
+      let keyRange = text.range(of: "<key>aps-environment</key>"),
+      let openRange = text.range(of: "<string>", range: keyRange.upperBound..<text.endIndex),
+      let closeRange = text.range(of: "</string>", range: openRange.upperBound..<text.endIndex)
+    else {
+      return nil
+    }
+    return String(text[openRange.upperBound..<closeRange.lowerBound])
+  }
+}
+
+/// Records what APNs told the app, for [PushDiagnostics].
+final class PushDiagnosticsObserver: NSObject, FlutterPlugin {
+  // Never invoked: the observer is registered by hand, not by the generated
+  // registrant. Required by `FlutterPlugin`, which `addApplicationDelegate`
+  // takes.
+  static func register(with registrar: FlutterPluginRegistrar) {}
+
+  func application(
+    _ application: UIApplication,
+    didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
+  ) {
+    PushDiagnostics.recordToken(deviceToken)
+  }
+
+  func application(
+    _ application: UIApplication,
+    didFailToRegisterForRemoteNotificationsWithError error: Error
+  ) {
+    PushDiagnostics.recordFailure(error)
+  }
+}
+
+enum PushDiagnosticsChannel {
+  static let name = "com.virabyan.mnac/push_diagnostics"
+
+  static func register(messenger: FlutterBinaryMessenger) {
+    let channel = FlutterMethodChannel(name: name, binaryMessenger: messenger)
+    channel.setMethodCallHandler { call, result in
+      switch call.method {
+      case "report":
+        result(PushDiagnostics.report())
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
   }
 }
 

@@ -1,6 +1,7 @@
 import 'dart:io' show Platform;
 
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'notification_service.dart';
@@ -20,6 +21,11 @@ class PushService {
 
   final NotificationService _notifications;
   final FirebaseMessaging _messaging;
+
+  /// Native side of [diagnostics] on iOS: what the app delegate saw APNs do,
+  /// which Dart is never told about.
+  static const MethodChannel _iosDiagnostics =
+      MethodChannel('com.virabyan.mnac/push_diagnostics');
 
   /// The topic every install subscribes to. Sending to it is how a message
   /// reaches all users; keep it in step with what the console targets.
@@ -108,6 +114,16 @@ class PushService {
         lines.add('apns token: ${apns == null ? 'MISSING' : 'present'}');
       } catch (e) {
         lines.add('apns token: FAILED ($e)');
+      }
+      // Says *why* the token above is missing: whether iOS refused
+      // registration outright, and whether the signed build even carries a
+      // push entitlement. Without this the report stops at "MISSING", which
+      // is true of every cause at once.
+      try {
+        final native = await _iosDiagnostics.invokeMethod<String>('report');
+        if (native != null) lines.add(native);
+      } catch (e) {
+        lines.add('native diagnostics: FAILED ($e)');
       }
     }
 
