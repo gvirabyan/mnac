@@ -52,22 +52,23 @@ class PushService {
     }
   }
 
-  /// Asks iOS to register with APNs.
+  /// Asks iOS to register with APNs, in case the launch path didn't.
   ///
-  /// The plugin does this itself at launch, but only if Firebase's auto-init
+  /// The plugin registers at launch itself, but only if Firebase's auto-init
   /// flag reads as on — and it reads that flag from the *native* Firebase app
-  /// while `didFinishLaunching` is still running. This app has no
-  /// `GoogleService-Info.plist`; it configures Firebase from Dart instead,
-  /// which happens later, so at that moment there is no native app, the flag
-  /// comes back off, and registration is skipped. Nothing retries it: APNs
-  /// then never calls back, the token stays null forever, and every send to
-  /// the topic is dropped. Requesting notification permission does not fix
-  /// this — permission and registration are separate steps, which is why the
-  /// device reports itself authorized while still having no token.
+  /// while `didFinishLaunching` is still running. What puts a native app
+  /// there that early is `ios/Runner/GoogleService-Info.plist`; configuring
+  /// Firebase from Dart happens too late to count. Lose that file and the
+  /// flag comes back off, registration is skipped, and nothing ever retries:
+  /// APNs never calls back, the token stays null, and every topic send is
+  /// dropped. Permission does not stand in for this — it is a separate step,
+  /// which is why a device in that state reports itself authorized while
+  /// still having no token.
   ///
-  /// Setting the flag from Dart, once Firebase is up, is what runs the
-  /// registration the launch path skipped. Android registers with FCM
-  /// directly and needs none of this.
+  /// Setting the flag here, once Firebase is up, runs the registration the
+  /// launch path would have skipped, so the failure cannot return silently.
+  /// Redundant when the plist is in place, and harmless: registering twice
+  /// costs nothing. Android talks to FCM directly and needs none of it.
   Future<void> _registerWithApns() async {
     try {
       await _messaging.setAutoInitEnabled(true);
