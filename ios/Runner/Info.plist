@@ -53,6 +53,17 @@
 	     Ads SDK initializes. Armenian, to match the app's only locale. -->
 	<key>NSUserTrackingUsageDescription</key>
 	<string>Ձեր թույլտվությունը թույլ կտա ցուցադրել ավելի համապատասխան գովազդ:</string>
+	<!-- Firebase Analytics starts with every advertising-side signal off, so a
+	     launch cut short before the ATT answer arrives cannot track.
+	     `AdConsentService` turns them back on only if tracking is authorised.
+	     First-party analytics storage is untouched: it is measurement, not
+	     tracking. -->
+	<key>GOOGLE_ANALYTICS_DEFAULT_ALLOW_AD_STORAGE</key>
+	<false/>
+	<key>GOOGLE_ANALYTICS_DEFAULT_ALLOW_AD_USER_DATA</key>
+	<false/>
+	<key>GOOGLE_ANALYTICS_DEFAULT_ALLOW_AD_PERSONALIZATION_SIGNALS</key>
+	<false/>
 	<key>UIStatusBarHidden</key>
 	<false/>
 	<!-- Lets canOpenURL detect Instagram so the direct-to-Stories button can

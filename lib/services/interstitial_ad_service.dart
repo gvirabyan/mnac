@@ -16,6 +16,16 @@ class InterstitialAdService {
 
   final SharedPreferences _prefs;
 
+  /// Whether the ad request may be personalised. Starts out false so a request
+  /// fired before the App Tracking Transparency answer is in errs towards no
+  /// tracking; [setPersonalisedAds] raises it once the user has authorised.
+  bool _personalised = false;
+
+  /// Records the App Tracking Transparency outcome. Call before [preload].
+  void setPersonalisedAds({required bool personalised}) {
+    _personalised = personalised;
+  }
+
   static const _launchCountKey = 'interstitial_launch_count';
   static const _showEveryNLaunches = 1;
 
@@ -59,7 +69,7 @@ class InterstitialAdService {
     final settled = _loadSettled!;
     InterstitialAd.load(
       adUnitId: _adUnitId,
-      request: const AdRequest(),
+      request: AdRequest(nonPersonalizedAds: !_personalised),
       adLoadCallback: InterstitialAdLoadCallback(
         onAdLoaded: (ad) {
           _ad = ad;

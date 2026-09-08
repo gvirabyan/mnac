@@ -1,9 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../core/di/providers.dart';
 import '../presentation/shared/state/settings_controller.dart';
+import '../services/ad_consent_service.dart';
 import '../services/interstitial_ad_service.dart';
 import '../services/notification_service.dart';
 import '../services/push_service.dart';
@@ -22,7 +24,8 @@ const String _notificationsAskedKey = 'notifications_permission_asked';
 ///     so asking afterwards would leave the whole session non-personalised.
 ///  2. Notifications, immediately after, so a first launch presents its two
 ///     prompts back to back rather than spread across the session.
-///  3. The ad SDK, now that tracking has been answered.
+///  3. The ad SDK, now that tracking has been answered — with the answer
+///     handed to Unity first, before its adapter starts it.
 ///  4. The broadcast topic, which on iOS registers with APNs — itself a source
 ///     of the notification prompt, hence strictly after step 2.
 ///
@@ -37,10 +40,25 @@ Future<void> runStartupSequence(WidgetRef ref) async {
   final interstitialAds = ref.read(interstitialAdServiceProvider);
   final settings = ref.read(settingsControllerProvider.notifier);
 
-  await const TrackingConsentService().request();
+  final tracking = await const TrackingConsentService().request();
   await _askForNotificationsOnce(prefs, notifications, settings);
 
+  // Nothing short of an outright authorisation personalises. `notSupported`
+  // is the one exception: it is Android, or an iOS too old for ATT, where the
+  // question does not arise. A prompt left unanswered (`notDetermined`, i.e.
+  // the request timed out) counts as a refusal — the IDFA is unavailable
+  // either way, so there is nothing to gain by assuming otherwise.
+  final asked = tracking != TrackingStatus.notSupported;
+  final personalised = tracking == TrackingStatus.authorized ||
+      tracking == TrackingStatus.notSupported;
+  // Only where ATT actually ran: asserting consent to Unity on Android would
+  // be claiming an answer nobody gave.
+  if (asked) {
+    await const AdConsentService().apply(personalised: personalised);
+  }
+
   await MobileAds.instance.initialize();
+  interstitialAds.setPersonalisedAds(personalised: personalised);
   interstitialAds.preload();
 
   await push.ensureSubscribed();
