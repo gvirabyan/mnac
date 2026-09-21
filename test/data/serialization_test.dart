@@ -38,7 +38,10 @@ void main() {
       dailyReminderEnabled: true,
       dailyReminderMinutes: 8 * 60 + 15,
       milestoneNotificationsEnabled: false,
-      unlockedMilestones: {'pct25', 'pct50'},
+      unlockedMilestones: {
+        's1': {'pct25', 'pct50'},
+        's2': {'day100'},
+      },
     );
 
     final json = jsonEncode(AppSettingsModel(original).toJson());
@@ -55,16 +58,22 @@ void main() {
     expect(restored.dailyReminderEnabled, isTrue);
     expect(restored.dailyReminderMinutes, 8 * 60 + 15);
     expect(restored.milestoneNotificationsEnabled, isFalse);
-    expect(restored.unlockedMilestones, {'pct25', 'pct50'});
+    expect(restored.milestonesOf('s1'), {'pct25', 'pct50'});
+    expect(restored.milestonesOf('s2'), {'day100'});
+    expect(restored.milestonesOf('nobody'), isEmpty);
   });
 
-  test('unlocked milestones written as percents by an older build migrate',
-      () {
+  test('an app-wide unlocked set from an older build is parked as legacy', () {
+    // Both older shapes at once: bare percents, and no soldier to attribute
+    // them to. The controller hands them to whoever was active on load.
     final restored = AppSettingsModel.fromJson(const <String, dynamic>{
       'unlockedMilestones': [25, 50, 90],
     }).settings;
 
-    expect(restored.unlockedMilestones, {'pct25', 'pct50', 'pct90'});
+    expect(
+      restored.unlockedMilestones,
+      {AppSettings.legacyMilestonesKey: {'pct25', 'pct50', 'pct90'}},
+    );
   });
 
   test('AppSettings falls back to defaults for empty json', () {

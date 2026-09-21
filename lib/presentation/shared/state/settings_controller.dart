@@ -9,7 +9,38 @@ import '../../../domain/entities/app_settings.dart';
 /// on first frame. Every mutation updates state immediately, then persists.
 class SettingsController extends Notifier<AppSettings> {
   @override
-  AppSettings build() => ref.watch(initialSettingsProvider);
+  AppSettings build() {
+    final initial = ref.watch(initialSettingsProvider);
+    final migrated = _withLegacyMilestonesAttributed(initial);
+    if (!identical(migrated, initial)) {
+      // build() has to stay synchronous, so the rewritten settings are saved
+      // on the next microtask rather than awaited here.
+      Future<void>.microtask(
+        () => ref.read(settingsRepositoryProvider).save(migrated),
+      );
+    }
+    return migrated;
+  }
+
+  /// Hands a pre-per-soldier unlocked set to the soldier who was active when
+  /// it was written — the only profile that could have earned it.
+  ///
+  /// With no active soldier there is nobody to attribute it to, and keeping it
+  /// would mean the next profile created inherits somebody else's
+  /// achievements, so it is dropped.
+  AppSettings _withLegacyMilestonesAttributed(AppSettings settings) {
+    final legacy =
+        settings.unlockedMilestones[AppSettings.legacyMilestonesKey];
+    if (legacy == null) return settings;
+
+    final bySoldier = {...settings.unlockedMilestones}
+      ..remove(AppSettings.legacyMilestonesKey);
+    final activeId = ref.read(initialActiveIdProvider);
+    if (activeId != null) {
+      bySoldier[activeId] = {...legacy, ...?bySoldier[activeId]};
+    }
+    return settings.copyWith(unlockedMilestones: bySoldier);
+  }
 
   Future<void> _persist(AppSettings next) async {
     state = next;
@@ -31,14 +62,17 @@ class SettingsController extends Notifier<AppSettings> {
   Future<void> setNotificationsEnabled(bool enabled) =>
       _persist(state.copyWith(notificationsEnabled: enabled));
 
-  /// Records that the given milestones have been celebrated.
-  Future<void> markMilestonesUnlocked(Set<String> ids) {
-    if (ids.every(state.unlockedMilestones.contains)) {
-      return Future.value();
-    }
+  /// Records that [soldierId] has celebrated the given milestones.
+  Future<void> markMilestonesUnlocked(String soldierId, Set<String> ids) {
+    final current = state.milestonesOf(soldierId);
+    if (ids.every(current.contains)) return Future.value();
+
     return _persist(
       state.copyWith(
-        unlockedMilestones: {...state.unlockedMilestones, ...ids},
+        unlockedMilestones: {
+          ...state.unlockedMilestones,
+          soldierId: {...current, ...ids},
+        },
       ),
     );
   }

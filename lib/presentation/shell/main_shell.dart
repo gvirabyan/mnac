@@ -54,7 +54,11 @@ class _MainShellState extends ConsumerState<MainShell>
       _syncBackground();
       // Cold-start only — deliberately not repeated on resume, so the ad
       // cadence tracks app opens rather than every foreground/background flip.
-      ref.read(interstitialAdServiceProvider).maybeShowOnLaunch();
+      // The milestone dialog waits for the ad to be done with the screen.
+      ref
+          .read(interstitialAdServiceProvider)
+          .maybeShowOnLaunch()
+          .whenComplete(_maybeShowTodaysMilestone);
     });
   }
 
@@ -70,6 +74,9 @@ class _MainShellState extends ConsumerState<MainShell>
     if (state != AppLifecycleState.resumed) return;
     // Permission first: it decides whether the sync has anything to schedule.
     _reconcileNotificationPermission().then((_) => _syncBackground());
+    // A milestone crossed while the app sat in the background belongs to the
+    // day the user comes back, not to the next cold start.
+    _maybeShowTodaysMilestone();
   }
 
   /// Brings the app's notification setting back in line with what the OS
@@ -129,7 +136,35 @@ class _MainShellState extends ConsumerState<MainShell>
     await ref.read(homeWidgetServiceProvider).sync(ordered);
   }
 
-  Future<void> _celebrate(Milestone milestone) async {
+  /// Opens the day's milestone once a day.
+  ///
+  /// This, rather than [pendingCelebrationProvider], is what shows a milestone
+  /// crossed while the app was closed: the listener below only fires on a
+  /// change, and a milestone reached overnight is already in place by the time
+  /// anything starts listening.
+  Future<void> _maybeShowTodaysMilestone() async {
+    if (_celebrating || !mounted) return;
+
+    final milestone = ref.read(todaysMilestoneProvider);
+    if (milestone == null) return;
+
+    final tag = _recapTag(milestone);
+    if (tag == null) return;
+    final prefs = ref.read(sharedPreferencesProvider);
+    if ((prefs.getStringList(milestoneRecapShownKey) ?? const [])
+        .contains(tag)) {
+      return;
+    }
+
+    // Anything not yet celebrated is news and gets the full treatment;
+    // something already marked is a recap of the day, opened quietly.
+    await _celebrate(milestone, alreadyReached: !milestone.justUnlocked);
+  }
+
+  Future<void> _celebrate(
+    Milestone milestone, {
+    bool alreadyReached = false,
+  }) async {
     if (_celebrating) return;
     _celebrating = true;
 
@@ -137,17 +172,52 @@ class _MainShellState extends ConsumerState<MainShell>
     // celebrated: several can land on the same day, and the rest would
     // otherwise queue up one dialog per app open.
     final progress = ref.read(serviceProgressProvider);
-    if (progress != null) {
+    final soldier = ref.read(activeSoldierProvider);
+    if (progress != null && soldier != null) {
       final unlocked =
           ref.read(computeMilestonesProvider).unlockedIds(progress);
       await ref
           .read(settingsControllerProvider.notifier)
-          .markMilestonesUnlocked(unlocked);
+          .markMilestonesUnlocked(soldier.id, unlocked);
     }
 
-    if (!mounted) return;
-    await showMilestoneCelebration(context, milestone);
+    // Marked whichever way the dialog was raised, so a milestone celebrated
+    // as it happened is not shown again as the day's recap a few hours later.
+    await _markRecapShown(milestone);
+
+    if (!mounted) {
+      _celebrating = false;
+      return;
+    }
+    await showMilestoneCelebration(
+      context,
+      milestone,
+      alreadyReached: alreadyReached,
+    );
     _celebrating = false;
+  }
+
+  /// Identifies one showing: this milestone, for this soldier, today.
+  /// Null when there is no active soldier to attribute it to.
+  String? _recapTag(Milestone milestone) {
+    final soldier = ref.read(activeSoldierProvider);
+    if (soldier == null) return null;
+    final now = DateTime.now();
+    return '${now.year}-${now.month}-${now.day}'
+        '|${soldier.id}|${milestone.id}';
+  }
+
+  Future<void> _markRecapShown(Milestone milestone) async {
+    final tag = _recapTag(milestone);
+    if (tag == null) return;
+
+    final prefs = ref.read(sharedPreferencesProvider);
+    final today = tag.split('|').first;
+    // Yesterday's entries are dropped on the way past, so the list stays the
+    // size of one day's achievements rather than growing for the whole term.
+    final kept = (prefs.getStringList(milestoneRecapShownKey) ?? const [])
+        .where((e) => e.startsWith('$today|') && e != tag);
+    await prefs.setStringList(milestoneRecapShownKey, [...kept, tag]);
   }
 
   @override
@@ -161,8 +231,13 @@ class _MainShellState extends ConsumerState<MainShell>
     });
 
     // Re-schedule notifications when the active soldier or notification
-    // settings change.
-    ref.listen(activeSoldierProvider, (_, _) => _syncBackground());
+    // settings change. A soldier just added — or switched to — also brings
+    // its own achievements, including one that may fall on today, so the
+    // day's milestone is re-checked for the new profile.
+    ref.listen(activeSoldierProvider, (_, _) {
+      _syncBackground();
+      _maybeShowTodaysMilestone();
+    });
     ref.listen<({bool enabled, bool daily, int minutes, bool milestones})>(
       settingsControllerProvider.select(
         (s) => (

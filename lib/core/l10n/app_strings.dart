@@ -113,6 +113,17 @@ abstract final class AppStrings {
   static const String milestoneLocked = 'Փակ է';
   static const String milestoneUnlocked = 'Հասանելի է';
   static const String milestoneReached = 'Շնորհավո՛ր նոր նվաճումը';
+
+  /// Header of the same dialog when it recaps a milestone the user reached
+  /// earlier today rather than in this moment.
+  static const String milestoneReachedToday = 'ԱՅՍՕՐՎԱ ՆՎԱՃՈՒՄԸ';
+  static const String milestoneShare = 'Կիսվել նվաճումով';
+
+  /// Kicker printed above the milestone on the shareable card.
+  static const String milestoneShareBadge = 'ՆՎԱՃՈՒՄ';
+
+  static String milestoneShareText(String title, int days) =>
+      '$title 🎖️ Մնաց $days օր մինչև տուն 🇦🇲 #ԴեպիՏուն';
   static const String milestoneCelebrate = 'Նշել';
   static const String milestoneClose = 'Փակել';
 

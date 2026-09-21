@@ -3,6 +3,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../core/constants/app_sizes.dart';
 import '../../core/l10n/app_strings.dart';
+import '../../domain/entities/milestone.dart';
 import '../../domain/entities/service_progress.dart';
 import '../../domain/entities/soldier_profile.dart';
 import '../../services/story_share_service.dart';
@@ -15,16 +16,19 @@ import 'share_card.dart';
 /// an image via the system share sheet.
 ///
 /// Takes a [ServiceProgress] snapshot captured at open time so the preview does
-/// not tick (and stays stable while being captured).
+/// not tick (and stays stable while being captured). Pass a [milestone] to
+/// preview and share the achievement card instead of the plain countdown.
 class ShareCardScreen extends StatefulWidget {
   const ShareCardScreen({
     super.key,
     required this.profile,
     required this.progress,
+    this.milestone,
   });
 
   final SoldierProfile profile;
   final ServiceProgress progress;
+  final Milestone? milestone;
 
   @override
   State<ShareCardScreen> createState() => _ShareCardScreenState();
@@ -35,16 +39,28 @@ class _ShareCardScreenState extends State<ShareCardScreen> {
   static const _storyShare = StoryShareService();
   bool _busy = false;
 
+  /// The caption that goes out with the image, naming the milestone when the
+  /// card is about one.
+  String get _caption {
+    final days = widget.progress.daysRemaining < 0
+        ? 0
+        : widget.progress.daysRemaining;
+    final milestone = widget.milestone;
+    return milestone == null
+        ? AppStrings.shareText(days)
+        : AppStrings.milestoneShareText(
+            AppStrings.milestoneTitle(milestone.id),
+            days,
+          );
+  }
+
   /// Shares through the system sheet (Instagram included, among everything
   /// else that accepts an image).
   Future<void> _share() => _run((path) async {
-        final days = widget.progress.daysRemaining < 0
-            ? 0
-            : widget.progress.daysRemaining;
         await SharePlus.instance.share(
           ShareParams(
             files: [XFile(path)],
-            text: AppStrings.shareText(days),
+            text: _caption,
             subject: AppStrings.appName,
           ),
         );
@@ -56,13 +72,10 @@ class _ShareCardScreenState extends State<ShareCardScreen> {
   Future<void> _shareToStory() => _run((path) async {
         final opened = await _storyShare.shareToInstagramStory(path);
         if (opened || !mounted) return;
-        final days = widget.progress.daysRemaining < 0
-            ? 0
-            : widget.progress.daysRemaining;
         await SharePlus.instance.share(
           ShareParams(
             files: [XFile(path)],
-            text: AppStrings.shareText(days),
+            text: _caption,
             subject: AppStrings.appName,
           ),
         );
@@ -111,6 +124,7 @@ class _ShareCardScreenState extends State<ShareCardScreen> {
                         child: ShareCard(
                           profile: widget.profile,
                           progress: widget.progress,
+                          milestone: widget.milestone,
                         ),
                       ),
                     ),

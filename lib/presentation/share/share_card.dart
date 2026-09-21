@@ -7,12 +7,17 @@ import '../../core/constants/app_sizes.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/date_utils.dart';
+import '../../domain/entities/milestone.dart';
 import '../../domain/entities/service_progress.dart';
 import '../../domain/entities/soldier_profile.dart';
 
 /// A full-bleed 9:16 story canvas summarizing a soldier's countdown, designed
 /// to be captured to an image and posted straight to Instagram/WhatsApp
 /// stories.
+///
+/// Pass a [milestone] to make the card about that achievement instead: the
+/// hero slot carries the milestone rather than the remaining-days number, over
+/// the same photo background, so sharing a milestone needs no second card.
 ///
 /// Renders at a fixed logical size so the capture resolution is predictable
 /// regardless of device; the preview screen scales it down with a [FittedBox].
@@ -23,10 +28,14 @@ class ShareCard extends StatelessWidget {
     super.key,
     required this.profile,
     required this.progress,
+    this.milestone,
   });
 
   final SoldierProfile profile;
   final ServiceProgress progress;
+
+  /// When set, the card celebrates this milestone instead of the countdown.
+  final Milestone? milestone;
 
   /// Natural size used both for capture and for the preview's aspect ratio.
   /// 9:16, so the default 3.0 capture ratio lands on exactly 1080x1920 — the
@@ -40,6 +49,7 @@ class ShareCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final milestone = this.milestone;
     final isDone = progress.isComplete;
     final days = progress.daysRemaining < 0 ? 0 : progress.daysRemaining;
     final pct = progress.percentInt;
@@ -112,8 +122,63 @@ class ShareCard extends StatelessWidget {
                   percent: pct,
                 ),
                 const Spacer(flex: 3),
-                // Hero: the number is the whole point, so it gets the room.
-                if (isDone)
+                // Hero: the number is the whole point, so it gets the room —
+                // unless the card is about a milestone, which takes its place.
+                if (milestone != null) ...[
+                  Row(
+                    children: [
+                      const Icon(Icons.emoji_events_rounded,
+                          color: gold, size: 26),
+                      const SizedBox(width: AppSizes.xs),
+                      Text(
+                        AppStrings.milestoneShareBadge,
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          fontSize: 15,
+                          color: gold,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 5,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSizes.sm),
+                  // Titles run from a word to a short phrase, so this scales
+                  // down rather than overflowing the canvas.
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      AppStrings.milestoneTitle(milestone.id),
+                      style: theme.textTheme.displayLarge?.copyWith(
+                        fontSize: 40,
+                        color: onDark,
+                        fontWeight: FontWeight.w800,
+                        height: 1.06,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSizes.sm),
+                  Text(
+                    AppStrings.milestoneMessage(milestone.id),
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      fontSize: 16,
+                      color: onDark.withValues(alpha: 0.85),
+                      height: 1.35,
+                    ),
+                  ),
+                  const SizedBox(height: AppSizes.md),
+                  // The countdown still earns a line: it is what the card is
+                  // read for, milestone or not.
+                  Text(
+                    '$days ${AppStrings.shareDaysSuffix}',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontSize: 18,
+                      color: gold,
+                      fontWeight: FontWeight.w600,
+                      fontFeatures: tabular,
+                    ),
+                  ),
+                ] else if (isDone)
                   Text(
                     AppStrings.shareCompletedTitle,
                     style: theme.textTheme.displayLarge?.copyWith(

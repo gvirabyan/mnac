@@ -39,7 +39,7 @@ class AppSettings {
     this.dailyReminderEnabled = false,
     this.dailyReminderMinutes = 19 * 60, // 19:00, minutes since midnight
     this.milestoneNotificationsEnabled = true,
-    this.unlockedMilestones = const <String>{},
+    this.unlockedMilestones = const <String, Set<String>>{},
   });
 
   final AppThemeMode themeMode;
@@ -54,8 +54,23 @@ class AppSettings {
   final int dailyReminderMinutes;
   final bool milestoneNotificationsEnabled;
 
-  /// Set of milestone thresholds (e.g. 25, 50) already celebrated.
-  final Set<String> unlockedMilestones;
+  /// Milestones already celebrated, keyed by soldier id.
+  ///
+  /// Per soldier rather than per app: two profiles run their own service and
+  /// reach the same milestones on their own days, and one having celebrated
+  /// something must not rob the other of it.
+  final Map<String, Set<String>> unlockedMilestones;
+
+  /// Key under which a set written before milestones were tracked per soldier
+  /// is parked at load, until the controller can attribute it to whoever was
+  /// active at the time. Not a soldier id — no profile can have this id.
+  static const String legacyMilestonesKey = '_legacy';
+
+  /// What has been celebrated for [soldierId]; empty for an unknown or
+  /// missing profile.
+  Set<String> milestonesOf(String? soldierId) => soldierId == null
+      ? const <String>{}
+      : (unlockedMilestones[soldierId] ?? const <String>{});
 
   static const AppSettings defaults = AppSettings();
 
@@ -69,7 +84,7 @@ class AppSettings {
     bool? dailyReminderEnabled,
     int? dailyReminderMinutes,
     bool? milestoneNotificationsEnabled,
-    Set<String>? unlockedMilestones,
+    Map<String, Set<String>>? unlockedMilestones,
     bool clearBackgroundImage = false,
   }) {
     return AppSettings(

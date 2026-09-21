@@ -16,10 +16,13 @@ class AppSettingsModel {
         'dailyReminderEnabled': settings.dailyReminderEnabled,
         'dailyReminderMinutes': settings.dailyReminderMinutes,
         'milestoneNotificationsEnabled': settings.milestoneNotificationsEnabled,
-        'unlockedMilestones': settings.unlockedMilestones.toList()..sort(),
+        'unlockedMilestones': {
+          for (final entry in settings.unlockedMilestones.entries)
+            entry.key: entry.value.toList()..sort(),
+        },
       };
 
-  /// Reads one entry of the persisted unlocked set.
+  /// Reads one entry of a persisted unlocked set.
   ///
   /// Milestones used to be identified by their percent threshold alone, so a
   /// set written by an older build holds bare numbers; those map onto the
@@ -31,13 +34,28 @@ class AppSettingsModel {
         _ => null,
       };
 
-  factory AppSettingsModel.fromJson(Map<String, dynamic> json) {
-    final unlocked = (json['unlockedMilestones'] as List?)
-            ?.map(_milestoneId)
-            .nonNulls
-            .toSet() ??
-        const <String>{};
+  static Set<String> _milestoneIds(Object? raw) =>
+      (raw as List?)?.map(_milestoneId).nonNulls.toSet() ?? const <String>{};
 
+  /// Reads the unlocked milestones in either shape they have been written in.
+  ///
+  /// A map is the current one, keyed by soldier id. A bare list comes from a
+  /// build that tracked milestones for the app as a whole; it is parked under
+  /// [AppSettings.legacyMilestonesKey] for the controller to hand to the
+  /// soldier who was active when it was written.
+  static Map<String, Set<String>> _unlockedMilestones(Object? raw) =>
+      switch (raw) {
+        final Map<dynamic, dynamic> bySoldier => {
+            for (final entry in bySoldier.entries)
+              '${entry.key}': _milestoneIds(entry.value),
+          },
+        final List<dynamic> flat when flat.isNotEmpty => {
+            AppSettings.legacyMilestonesKey: _milestoneIds(flat),
+          },
+        _ => const <String, Set<String>>{},
+      };
+
+  factory AppSettingsModel.fromJson(Map<String, dynamic> json) {
     return AppSettingsModel(
       AppSettings(
         themeMode: AppThemeMode.fromId(json['themeMode'] as String?),
@@ -51,7 +69,7 @@ class AppSettingsModel {
             (json['dailyReminderMinutes'] as num?)?.toInt() ?? 19 * 60,
         milestoneNotificationsEnabled:
             json['milestoneNotificationsEnabled'] as bool? ?? true,
-        unlockedMilestones: unlocked,
+        unlockedMilestones: _unlockedMilestones(json['unlockedMilestones']),
       ),
     );
   }
