@@ -15,6 +15,4 @@ abstract final class ServiceConstants {
   static const int minServiceDays = 30;
   static const int maxServiceDays = 1825; // 5 years
 
-  /// Milestone thresholds (percent of service completed) that unlock rewards.
-  static const List<int> milestoneThresholds = [25, 50, 75, 90, 95, 99, 100];
 }

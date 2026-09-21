@@ -7,23 +7,24 @@ import 'package:flutter_animate/flutter_animate.dart';
 
 import '../../core/constants/app_sizes.dart';
 import '../../core/l10n/app_strings.dart';
+import '../../domain/entities/milestone.dart';
 
 /// Shows a celebratory milestone dialog with confetti and haptics.
 Future<void> showMilestoneCelebration(
   BuildContext context,
-  int threshold,
+  Milestone milestone,
 ) {
   return showDialog<void>(
     context: context,
     barrierDismissible: true,
     barrierColor: Colors.black.withValues(alpha: 0.5),
-    builder: (_) => _MilestoneCelebration(threshold: threshold),
+    builder: (_) => _MilestoneCelebration(milestone: milestone),
   );
 }
 
 class _MilestoneCelebration extends StatefulWidget {
-  const _MilestoneCelebration({required this.threshold});
-  final int threshold;
+  const _MilestoneCelebration({required this.milestone});
+  final Milestone milestone;
 
   @override
   State<_MilestoneCelebration> createState() => _MilestoneCelebrationState();
@@ -92,14 +93,14 @@ class _MilestoneCelebrationState extends State<_MilestoneCelebration> {
                       .shimmer(duration: 1200.ms),
                   const SizedBox(height: AppSizes.lg),
                   Text(
-                    '${widget.threshold}% — ${AppStrings.milestoneTitle(widget.threshold)}',
+                    AppStrings.milestoneTitle(widget.milestone.id),
                     textAlign: TextAlign.center,
                     style: theme.textTheme.titleLarge
                         ?.copyWith(color: theme.colorScheme.primary),
                   ),
                   const SizedBox(height: AppSizes.sm),
                   Text(
-                    AppStrings.milestoneMessage(widget.threshold),
+                    AppStrings.milestoneMessage(widget.milestone.id),
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodyMedium,
                   ),

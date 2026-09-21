@@ -40,7 +40,7 @@ class NotificationService {
   static const int _milestoneBase = 2000;
   static const int _pushBase = 3000;
   static const int _pushWindow = 100;
-  static const int _milestoneWindow = 10;
+  static const int _milestoneWindow = 20;
 
   /// Native side of [openSystemSettings].
   static const MethodChannel _settingsChannel =
@@ -238,8 +238,8 @@ class NotificationService {
       await _plugin.zonedSchedule(
         id: _milestoneBase + idx,
         title: AppStrings.milestoneReached,
-        body: '${m.thresholdPercent}% · '
-            '${AppStrings.milestoneMessage(m.thresholdPercent)}',
+        body: '${AppStrings.milestoneTitle(m.id)} · '
+            '${AppStrings.milestoneMessage(m.id)}',
         scheduledDate: when,
         notificationDetails: _details,
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,

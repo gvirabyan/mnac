@@ -10,7 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('pendingCelebration reports the new threshold, then clears once marked',
+  test('pendingCelebration reports the new milestone, then clears once marked',
       () async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
@@ -36,11 +36,19 @@ void main() {
     final sub = container.listen(pendingCelebrationProvider, (_, _) {});
     addTearDown(sub.close);
 
-    expect(container.read(pendingCelebrationProvider), 50);
+    // Half way through a two-year term: the 50% milestone falls on the same
+    // day as "one year served" and wins the tie as the headline entry.
+    expect(container.read(pendingCelebrationProvider)?.id, 'pct50');
 
     await container
         .read(settingsControllerProvider.notifier)
-        .markMilestonesUnlocked({25, 50});
+        .markMilestonesUnlocked(
+          container
+              .read(milestonesProvider)
+              .where((m) => m.unlocked)
+              .map((m) => m.id)
+              .toSet(),
+        );
 
     expect(container.read(pendingCelebrationProvider), isNull);
   });

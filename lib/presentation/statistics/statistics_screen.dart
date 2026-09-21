@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/router/app_router.dart';
 import '../../core/constants/app_sizes.dart';
-import '../../core/constants/service_constants.dart';
 import '../../core/di/providers.dart';
 import '../../core/l10n/app_strings.dart';
 import '../milestones/milestones_screen.dart';
@@ -156,11 +155,12 @@ class _MilestonePeek extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final unlocked = ref
-        .read(computeMilestonesProvider)
-        .unlockedThresholds(progress)
-        .length;
-    final total = ServiceConstants.milestoneThresholds.length;
+    // Counted off the resolved list rather than the catalogue: the day-based
+    // milestones that fall past the discharge date are not offered at all for
+    // a shorter term, and must not be counted as forever-locked.
+    final milestones = ref.read(computeMilestonesProvider)(progress);
+    final unlocked = milestones.where((m) => m.unlocked).length;
+    final total = milestones.length;
 
     return GlassCard(
       onTap: () => Navigator.of(context).push(

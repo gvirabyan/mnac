@@ -31,14 +31,14 @@ class SettingsController extends Notifier<AppSettings> {
   Future<void> setNotificationsEnabled(bool enabled) =>
       _persist(state.copyWith(notificationsEnabled: enabled));
 
-  /// Records that the given milestone thresholds have been celebrated.
-  Future<void> markMilestonesUnlocked(Set<int> thresholds) {
-    if (thresholds.every(state.unlockedMilestones.contains)) {
+  /// Records that the given milestones have been celebrated.
+  Future<void> markMilestonesUnlocked(Set<String> ids) {
+    if (ids.every(state.unlockedMilestones.contains)) {
       return Future.value();
     }
     return _persist(
       state.copyWith(
-        unlockedMilestones: {...state.unlockedMilestones, ...thresholds},
+        unlockedMilestones: {...state.unlockedMilestones, ...ids},
       ),
     );
   }

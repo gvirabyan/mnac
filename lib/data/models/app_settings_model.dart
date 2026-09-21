@@ -19,11 +19,24 @@ class AppSettingsModel {
         'unlockedMilestones': settings.unlockedMilestones.toList()..sort(),
       };
 
+  /// Reads one entry of the persisted unlocked set.
+  ///
+  /// Milestones used to be identified by their percent threshold alone, so a
+  /// set written by an older build holds bare numbers; those map onto the
+  /// percent ids of the catalogue. Anything else is dropped rather than
+  /// guessed at.
+  static String? _milestoneId(Object? raw) => switch (raw) {
+        final num n => 'pct${n.toInt()}',
+        final String id => id,
+        _ => null,
+      };
+
   factory AppSettingsModel.fromJson(Map<String, dynamic> json) {
     final unlocked = (json['unlockedMilestones'] as List?)
-            ?.map((e) => (e as num).toInt())
+            ?.map(_milestoneId)
+            .nonNulls
             .toSet() ??
-        const <int>{};
+        const <String>{};
 
     return AppSettingsModel(
       AppSettings(

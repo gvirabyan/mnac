@@ -1,8 +1,5 @@
-import 'dart:math' as math;
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/constants/service_constants.dart';
 import '../../core/di/providers.dart';
 import '../../domain/entities/milestone.dart';
 import '../home/home_controller.dart';
@@ -21,20 +18,34 @@ final milestonesProvider = Provider.autoDispose<List<Milestone>>((ref) {
   );
 });
 
-/// The highest threshold that has just been reached but not yet celebrated,
-/// or null. Recomputes only when the integer percent or the persisted set
-/// changes, so the celebration listener fires at most once per crossing.
-final pendingCelebrationProvider = Provider.autoDispose<int?>((ref) {
-  final percentInt = ref.watch(
-    serviceProgressProvider.select((p) => p?.percentInt ?? -1),
+/// The furthest milestone that has just been reached but not yet celebrated,
+/// or null.
+///
+/// Progress ticks once a second, so this recomputes only when one of the three
+/// quantities a milestone can turn on — the whole percent, days served, days
+/// left — actually changes, and the celebration listener fires at most once
+/// per crossing.
+final pendingCelebrationProvider = Provider.autoDispose<Milestone?>((ref) {
+  final counts = ref.watch(
+    serviceProgressProvider.select(
+      (p) => p == null
+          ? null
+          : (percent: p.percentInt, served: p.daysServed, left: p.daysRemaining),
+    ),
   );
+  if (counts == null) return null;
+
+  final progress = ref.read(serviceProgressProvider);
+  if (progress == null) return null;
+
   final unlocked = ref.watch(
     settingsControllerProvider.select((s) => s.unlockedMilestones),
   );
 
-  final newly = ServiceConstants.milestoneThresholds
-      .where((t) => percentInt >= t && !unlocked.contains(t))
-      .toList();
-  if (newly.isEmpty) return null;
-  return newly.reduce(math.max);
+  // The list is date-ordered, so the last pending entry is the furthest one
+  // reached — the one worth celebrating when several land together.
+  final newly = ref
+      .read(computeMilestonesProvider)(progress, alreadyUnlocked: unlocked)
+      .where((m) => m.justUnlocked);
+  return newly.isEmpty ? null : newly.last;
 });

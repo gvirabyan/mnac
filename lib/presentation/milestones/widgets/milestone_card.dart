@@ -17,7 +17,16 @@ class MilestoneCard extends StatelessWidget {
     final theme = Theme.of(context);
     final accent = theme.colorScheme.primary;
     final unlocked = milestone.unlocked;
-    final percent = milestone.thresholdPercent;
+    // Percentages read as "50%"; the day-based kinds show the count with a
+    // unit underneath, so "100 days served" and "100 days left" cannot be
+    // mistaken for one another at a glance.
+    final (badge, unit) = switch (milestone.kind) {
+      MilestoneKind.percent => ('${milestone.value}%', null),
+      MilestoneKind.daysServed =>
+        ('${milestone.value}', AppStrings.milestoneUnitDays),
+      MilestoneKind.daysRemaining =>
+        ('${milestone.value}', AppStrings.milestoneUnitLeft),
+    };
 
     return GlassCard(
       child: Row(
@@ -32,11 +41,27 @@ class MilestoneCard extends StatelessWidget {
                   : theme.colorScheme.surfaceContainerHighest,
             ),
             alignment: Alignment.center,
-            child: Text(
-              '$percent%',
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: unlocked ? accent : theme.colorScheme.outline,
-              ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  badge,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: unlocked ? accent : theme.colorScheme.outline,
+                  ),
+                ),
+                if (unit != null)
+                  Text(
+                    unit,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      fontSize: 9,
+                      height: 1,
+                      color: unlocked
+                          ? accent.withValues(alpha: 0.8)
+                          : theme.colorScheme.outline,
+                    ),
+                  ),
+              ],
             ),
           ),
           const SizedBox(width: AppSizes.md),
@@ -45,7 +70,7 @@ class MilestoneCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  AppStrings.milestoneTitle(percent),
+                  AppStrings.milestoneTitle(milestone.id),
                   style: theme.textTheme.titleMedium,
                 ),
                 const SizedBox(height: AppSizes.xxs),

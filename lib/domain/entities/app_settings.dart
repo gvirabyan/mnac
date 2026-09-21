@@ -39,7 +39,7 @@ class AppSettings {
     this.dailyReminderEnabled = false,
     this.dailyReminderMinutes = 19 * 60, // 19:00, minutes since midnight
     this.milestoneNotificationsEnabled = true,
-    this.unlockedMilestones = const <int>{},
+    this.unlockedMilestones = const <String>{},
   });
 
   final AppThemeMode themeMode;
@@ -55,7 +55,7 @@ class AppSettings {
   final bool milestoneNotificationsEnabled;
 
   /// Set of milestone thresholds (e.g. 25, 50) already celebrated.
-  final Set<int> unlockedMilestones;
+  final Set<String> unlockedMilestones;
 
   static const AppSettings defaults = AppSettings();
 
@@ -69,7 +69,7 @@ class AppSettings {
     bool? dailyReminderEnabled,
     int? dailyReminderMinutes,
     bool? milestoneNotificationsEnabled,
-    Set<int>? unlockedMilestones,
+    Set<String>? unlockedMilestones,
     bool clearBackgroundImage = false,
   }) {
     return AppSettings(

@@ -38,7 +38,7 @@ void main() {
       dailyReminderEnabled: true,
       dailyReminderMinutes: 8 * 60 + 15,
       milestoneNotificationsEnabled: false,
-      unlockedMilestones: {25, 50},
+      unlockedMilestones: {'pct25', 'pct50'},
     );
 
     final json = jsonEncode(AppSettingsModel(original).toJson());
@@ -55,7 +55,16 @@ void main() {
     expect(restored.dailyReminderEnabled, isTrue);
     expect(restored.dailyReminderMinutes, 8 * 60 + 15);
     expect(restored.milestoneNotificationsEnabled, isFalse);
-    expect(restored.unlockedMilestones, {25, 50});
+    expect(restored.unlockedMilestones, {'pct25', 'pct50'});
+  });
+
+  test('unlocked milestones written as percents by an older build migrate',
+      () {
+    final restored = AppSettingsModel.fromJson(const <String, dynamic>{
+      'unlockedMilestones': [25, 50, 90],
+    }).settings;
+
+    expect(restored.unlockedMilestones, {'pct25', 'pct50', 'pct90'});
   });
 
   test('AppSettings falls back to defaults for empty json', () {

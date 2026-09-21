@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/di/providers.dart';
 import '../../core/l10n/app_strings.dart';
+import '../../domain/entities/milestone.dart';
 import '../../services/home_widget_service.dart';
 import '../../services/interstitial_ad_service.dart';
 import '../../services/notification_service.dart';
@@ -128,29 +129,30 @@ class _MainShellState extends ConsumerState<MainShell>
     await ref.read(homeWidgetServiceProvider).sync(ordered);
   }
 
-  Future<void> _celebrate(int threshold) async {
+  Future<void> _celebrate(Milestone milestone) async {
     if (_celebrating) return;
     _celebrating = true;
 
-    // Persist all currently-unlocked thresholds so this fires only once.
+    // Persist every milestone currently unlocked, not just the one being
+    // celebrated: several can land on the same day, and the rest would
+    // otherwise queue up one dialog per app open.
     final progress = ref.read(serviceProgressProvider);
     if (progress != null) {
-      final unlocked = ref
-          .read(computeMilestonesProvider)
-          .unlockedThresholds(progress);
+      final unlocked =
+          ref.read(computeMilestonesProvider).unlockedIds(progress);
       await ref
           .read(settingsControllerProvider.notifier)
           .markMilestonesUnlocked(unlocked);
     }
 
     if (!mounted) return;
-    await showMilestoneCelebration(context, threshold);
+    await showMilestoneCelebration(context, milestone);
     _celebrating = false;
   }
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<int?>(pendingCelebrationProvider, (previous, next) {
+    ref.listen<Milestone?>(pendingCelebrationProvider, (previous, next) {
       if (next != null) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) _celebrate(next);
