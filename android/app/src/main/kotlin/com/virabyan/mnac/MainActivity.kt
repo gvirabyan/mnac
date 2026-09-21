@@ -13,5 +13,11 @@ class MainActivity : FlutterActivity() {
         ).setMethodCallHandler { call, result ->
             StoryShareChannel.handle(this, call, result)
         }
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            AppSettingsChannel.CHANNEL,
+        ).setMethodCallHandler { call, result ->
+            AppSettingsChannel.handle(this, call, result)
+        }
     }
 }

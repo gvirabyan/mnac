@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -6,6 +8,7 @@ import '../../core/l10n/app_strings.dart';
 import '../../services/home_widget_service.dart';
 import '../../services/interstitial_ad_service.dart';
 import '../../services/notification_service.dart';
+import '../../services/push_service.dart';
 import '../calendar/calendar_screen.dart';
 import '../home/home_controller.dart';
 import '../home/home_screen.dart';
@@ -63,7 +66,46 @@ class _MainShellState extends ConsumerState<MainShell>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // Re-syncing on resume cancels today's reminder once the user opens the app.
-    if (state == AppLifecycleState.resumed) _syncBackground();
+    if (state != AppLifecycleState.resumed) return;
+    // Permission first: it decides whether the sync has anything to schedule.
+    _reconcileNotificationPermission().then((_) => _syncBackground());
+  }
+
+  /// Brings the app's notification setting back in line with what the OS
+  /// actually allows, which can have changed while the app was away.
+  ///
+  /// Two directions, deliberately not symmetric:
+  ///
+  /// * Revoked in the system settings — the setting goes off, so the switch
+  ///   stops promising reminders that can never be delivered.
+  /// * Granted in the system settings — the setting comes on only if the user
+  ///   was sent there from the toggle (see [notificationsPendingEnableKey]).
+  ///   Otherwise an allowed permission would keep forcing reminders back on
+  ///   for someone who simply switched them off in the app.
+  Future<void> _reconcileNotificationPermission() async {
+    final granted = await ref.read(notificationServiceProvider).hasPermission();
+    if (!mounted) return;
+
+    final prefs = ref.read(sharedPreferencesProvider);
+    final settings = ref.read(settingsControllerProvider);
+    final notifier = ref.read(settingsControllerProvider.notifier);
+
+    if (!granted) {
+      if (settings.notificationsEnabled) {
+        await notifier.setNotificationsEnabled(false);
+      }
+      return;
+    }
+
+    if (!(prefs.getBool(notificationsPendingEnableKey) ?? false)) return;
+    await prefs.remove(notificationsPendingEnableKey);
+    if (settings.notificationsEnabled) return;
+
+    await notifier.update(
+      (s) => s.copyWith(notificationsEnabled: true, dailyReminderEnabled: true),
+    );
+    if (!mounted) return;
+    unawaited(ref.read(pushServiceProvider).ensureSubscribed());
   }
 
   Future<void> _syncBackground() async {

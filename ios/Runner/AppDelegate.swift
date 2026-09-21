@@ -18,6 +18,7 @@ import UserNotifications
     if let controller = window?.rootViewController as? FlutterViewController {
       StoryShareChannel.register(messenger: controller.binaryMessenger)
       DiagnosticsChannel.register(messenger: controller.binaryMessenger)
+      AppSettingsChannel.register(messenger: controller.binaryMessenger)
     }
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
@@ -312,6 +313,43 @@ enum StoryShareChannel {
       options: [.expirationDate: Date().addingTimeInterval(300)]
     )
 
+    UIApplication.shared.open(url, options: [:]) { opened in
+      result(opened)
+    }
+  }
+}
+
+/// Opens the app's own page in the Settings app.
+///
+/// The escape hatch for a refused notification permission: iOS offers its
+/// prompt exactly once per install, after which `requestAuthorization`
+/// returns the recorded answer without showing anything, and the switch under
+/// Settings > Notifications is the only place left to change it.
+///
+/// Lives in this file rather than its own so it is compiled without touching
+/// the Xcode project file.
+enum AppSettingsChannel {
+  static let name = "com.virabyan.mnac/app_settings"
+
+  static func register(messenger: FlutterBinaryMessenger) {
+    let channel = FlutterMethodChannel(name: name, binaryMessenger: messenger)
+    channel.setMethodCallHandler { call, result in
+      switch call.method {
+      case "openNotificationSettings":
+        open(result: result)
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
+  }
+
+  private static func open(result: @escaping FlutterResult) {
+    guard let url = URL(string: UIApplication.openSettingsURLString),
+          UIApplication.shared.canOpenURL(url)
+    else {
+      result(false)
+      return
+    }
     UIApplication.shared.open(url, options: [:]) { opened in
       result(opened)
     }

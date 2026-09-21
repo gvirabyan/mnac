@@ -239,12 +239,26 @@ class _Chevron extends StatelessWidget {
 
 /// Notifications: a single master toggle, no sub-options.
 ///
-/// Turning it on asks the OS for permission first and only records the setting
-/// once permission is actually granted — otherwise the switch would sit in the
-/// "on" position while the OS silently blocks every notification. Because the
-/// switch renders straight off the stored setting, refusing the prompt leaves
-/// it visibly off. Changes are picked up by the sync listener in [MainShell],
-/// which re-schedules the daily reminder and milestone alerts.
+/// Turning it on only records the setting once the OS actually allows
+/// notifications — otherwise the switch would sit in the "on" position while
+/// every notification is silently blocked. Because the switch renders straight
+/// off the stored setting, a refusal leaves it visibly off. Changes are picked
+/// up by the sync listener in [MainShell], which re-schedules the daily
+/// reminder and milestone alerts.
+///
+/// Permission is chased in three steps, because the system prompt is a
+/// one-time offer — twice on Android, once on iOS — after which requesting it
+/// again returns false without showing anything:
+///
+///  1. Ask the OS what it currently allows, rather than trusting the stored
+///     setting: the user may have granted or revoked it from the settings app
+///     since the last time we looked.
+///  2. Request, which raises the system dialog while the OS still has one to
+///     raise. This is what gives a first-launch refusal a second chance.
+///  3. Once it is refused for good, put up our own dialog and offer the only
+///     route left: the app's notification settings in the OS. A flag records
+///     that we sent the user there, so [MainShell] can finish the job on
+///     resume if they came back having allowed it.
 class _NotificationsGroup extends ConsumerWidget {
   const _NotificationsGroup();
 
@@ -255,15 +269,15 @@ class _NotificationsGroup extends ConsumerWidget {
       return;
     }
 
-    final granted =
-        await ref.read(notificationServiceProvider).requestPermissions();
+    final notifications = ref.read(notificationServiceProvider);
+    var granted = await notifications.hasPermission();
+    // Only worth asking while the OS might still show its dialog; after a
+    // final refusal the request returns false without putting anything on
+    // screen, which is exactly the case step three below handles.
+    if (!granted) granted = await notifications.requestPermissions();
     if (!granted) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(content: Text(AppStrings.notifPermissionDenied)),
-        );
+      await _offerSystemSettings(context, ref);
       return;
     }
 
@@ -278,6 +292,45 @@ class _NotificationsGroup extends ConsumerWidget {
     // setting, so awaiting this left it sitting dead in the "off" position
     // for the whole wait, exactly as if the tap had done nothing.
     unawaited(ref.read(pushServiceProvider).ensureSubscribed());
+  }
+
+  /// Explains that the OS is blocking notifications and offers to open its
+  /// settings, the only place a refused permission can still be granted.
+  Future<void> _offerSystemSettings(BuildContext context, WidgetRef ref) async {
+    final open = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text(AppStrings.notifBlockedTitle),
+            content: const Text(AppStrings.notifBlockedBody),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text(AppStrings.cancel),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text(AppStrings.notifOpenSettings),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (!open) return;
+
+    // Recorded before the jump, not after: the app can be backgrounded the
+    // instant the settings screen appears.
+    await ref
+        .read(sharedPreferencesProvider)
+        .setBool(notificationsPendingEnableKey, true);
+
+    final opened =
+        await ref.read(notificationServiceProvider).openSystemSettings();
+    if (opened || !context.mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(content: Text(AppStrings.notifSettingsUnavailable)),
+      );
   }
 
   @override

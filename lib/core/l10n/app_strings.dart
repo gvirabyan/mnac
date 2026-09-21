@@ -172,8 +172,18 @@ abstract final class AppStrings {
   // Notifications — one master toggle; the daily reminder and milestone
   // alerts follow it automatically and have no separate UI.
   static const String notifEnable = 'Միացնել ծանուցումները';
-  static const String notifPermissionDenied =
-      'Ծանուցումներն արգելափակված են սարքի կարգավորումներում';
+
+  // Shown when the OS will no longer raise its own permission dialog: the
+  // system prompt is a one-time offer, so the only way back is the settings
+  // app, and this asks before sending the user there.
+  static const String notifBlockedTitle = 'Ծանուցումներն անջատված են';
+  static const String notifBlockedBody =
+      'Դուք նախկինում մերժել եք ծանուցումները։ Հեռախոսի կարգավորումներում '
+      'միացրեք դրանք, որպեսզի ստանաք ամենօրյա հիշեցումներն ու նվաճումների '
+      'մասին ծանուցումները։';
+  static const String notifOpenSettings = 'Բացել կարգավորումները';
+  static const String notifSettingsUnavailable =
+      'Չհաջողվեց բացել կարգավորումները';
 
   static String daysLeftBody(int days) => 'Մնաց $days օր մինչև տուն';
 

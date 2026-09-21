@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
@@ -41,6 +42,10 @@ class NotificationService {
   static const int _pushWindow = 100;
   static const int _milestoneWindow = 10;
 
+  /// Native side of [openSystemSettings].
+  static const MethodChannel _settingsChannel =
+      MethodChannel('com.virabyan.mnac/app_settings');
+
   static const _compute = ComputeServiceProgress();
   static const _computeMilestones = ComputeMilestones();
 
@@ -83,7 +88,56 @@ class NotificationService {
     }
   }
 
+  /// Whether the OS currently lets the app post notifications.
+  ///
+  /// Asked of the system rather than remembered, because the answer can change
+  /// behind the app's back at any time: the user can revoke — or grant —
+  /// notifications from the system settings while the app sits in the
+  /// background. An unknown answer counts as granted, so a platform that
+  /// cannot report (or a test double) never silently disables reminders.
+  Future<bool> hasPermission() async {
+    try {
+      final android = _plugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+      if (android != null) {
+        return await android.areNotificationsEnabled() ?? true;
+      }
+
+      final ios = _plugin.resolvePlatformSpecificImplementation<
+          IOSFlutterLocalNotificationsPlugin>();
+      if (ios != null) {
+        final options = await ios.checkPermissions();
+        return options?.isEnabled ?? true;
+      }
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Opens the app's notification settings in the OS.
+  ///
+  /// The escape hatch for a refused permission: the system prompt is a
+  /// one-time offer (twice on Android, once on iOS), after which a request
+  /// returns false without showing anything, and the only way back is the
+  /// settings app. Returns false if the screen could not be opened.
+  Future<bool> openSystemSettings() async {
+    try {
+      return await _settingsChannel
+              .invokeMethod<bool>('openNotificationSettings') ??
+          false;
+    } on PlatformException {
+      return false;
+    } on MissingPluginException {
+      return false;
+    }
+  }
+
   /// Requests OS notification permission. Returns true if granted (or unknown).
+  ///
+  /// Only ever shows a dialog while the OS still has one to show; once the
+  /// permission is permanently denied this returns false immediately, which is
+  /// the caller's cue to send the user to [openSystemSettings].
   Future<bool> requestPermissions() async {
     try {
       final android = _plugin.resolvePlatformSpecificImplementation<
@@ -240,6 +294,17 @@ class NotificationService {
         ),
       );
 }
+
+/// Marks that the user asked for notifications, was found to be blocked by the
+/// OS, and was sent to the system settings to lift it.
+///
+/// The trip out to the settings app is the one case where a granted permission
+/// must switch the app's own toggle back on by itself: the user already asked
+/// for it here, and coming back to a switch still sitting at "off" would read
+/// as the settings change having been ignored. Without the flag, a resume
+/// could not tell that case apart from someone who simply has notifications
+/// allowed and deliberately keeps the app's reminders off.
+const String notificationsPendingEnableKey = 'notifications_pending_enable';
 
 final notificationServiceProvider = Provider<NotificationService>(
   (ref) => NotificationService(),
