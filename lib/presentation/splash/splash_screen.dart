@@ -6,6 +6,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../core/l10n/app_strings.dart';
 import '../../core/theme/app_colors.dart';
+import 'widgets/flying_logo.dart';
 
 /// Backdrop base: warm charcoal at the top deepening to near-black at the
 /// bottom, so the screen has a direction of light rather than a flat fill.
@@ -20,10 +21,9 @@ final _backdropGradient = LinearGradient(
   stops: const [0, 0.52, 1],
 );
 
-/// Apricot bloom behind the wordmark — reads as the logo lighting the screen.
-/// Centred slightly above the middle so it sits on the title, not the tagline.
+/// Apricot bloom centred on the logo — reads as the dove lighting the screen
+/// as it lands.
 final _glowGradient = RadialGradient(
-  center: const Alignment(0, -0.12),
   radius: 0.85,
   colors: [
     AppColors.apricot.withValues(alpha: 0.17),
@@ -40,21 +40,25 @@ const _vignetteGradient = RadialGradient(
   stops: [0.55, 1],
 );
 
-/// The logo, drawn above the wordmark. This is deliberately the same file the
-/// launcher icon is generated from (see the `flutter_launcher_icons` block in
-/// pubspec), not a separate copy: replacing the logo there and re-running the
-/// generator updates the splash too, with nothing to keep in sync by hand.
+/// The logo. This is deliberately the same file the launcher icon is
+/// generated from (see the `flutter_launcher_icons` block in pubspec), not a
+/// separate copy: replacing the logo there and re-running the generator
+/// updates the splash too, with nothing to keep in sync by hand.
 const _logoAsset = 'assets/icon/icon_foreground.png';
 
-/// Animated startup splash: the logo appears first, the "Մնաց" wordmark
-/// brightens out of black beneath it, then the tagline fades in below that.
-/// Calls [onFinished] once the sequence has fully played so the caller can
-/// swap in the real app.
+/// Animated startup splash: the logo dove flies in and lands in the centre of
+/// the screen (see [FlyingLogo]), the glow and the "Մնաց" wordmark below it
+/// come up as it touches down, and a band of light crosses the logo. Calls
+/// [onFinished] once that has fully played, so the caller can swap in the
+/// real app.
 ///
-/// Both lines of type are vector artwork rather than live text: the glyphs are
-/// baked to outlines so the gold gradient on the wordmark and the divider above
-/// the tagline render identically everywhere, with no webfont fetch on first
-/// run.
+/// The sequence is driven by the animation's own events, not by a clock: on
+/// a slow cold start the first frames arrive late, and a timer started at
+/// launch used to close the splash before the animation had finished.
+///
+/// The wordmark is vector artwork rather than live text: its glyphs are baked
+/// to outlines so the gold gradient renders identically everywhere, with no
+/// webfont fetch on first run.
 ///
 /// The OS launch screen (see the `flutter_native_splash` block in pubspec) is
 /// a bare charcoalDeep fill with no artwork on either platform, and this
@@ -70,65 +74,74 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-  // The logo leads, the title overlaps its tail so the two read as one move,
-  // and a full beat after the title settles the tagline rises in. Milliseconds
-  // (not Duration) so the delays below can be summed as const expressions.
-  // The shortened pause keeps the whole sequence the same length it was before
-  // the logo was added.
-  static const _logoDelayMs = 100;
-  static const _logoDurationMs = 800;
-  static const _titleDelayMs = 500;
-  static const _titleDurationMs = 900;
-  static const _pauseAfterTitleMs = 650;
-  static const _taglineDelayMs =
-      _titleDelayMs + _titleDurationMs + _pauseAfterTitleMs;
-  static const _taglineDurationMs = 800;
+  static const _logoDelay = Duration(milliseconds: 150);
+  // Slow and calm on purpose: the dove crosses half the screen at full size.
+  static const _logoDuration = Duration(milliseconds: 4000);
 
-  static const _logoDelay = Duration(milliseconds: _logoDelayMs);
-  static const _logoDuration = Duration(milliseconds: _logoDurationMs);
-  static const _titleDelay = Duration(milliseconds: _titleDelayMs);
-  static const _titleDuration = Duration(milliseconds: _titleDurationMs);
-  static const _taglineDelay = Duration(milliseconds: _taglineDelayMs);
-  static const _taglineDuration = Duration(milliseconds: _taglineDurationMs);
+  // The wordmark brightens in as the dove touches down.
+  static const _titleDuration = Duration(milliseconds: 900);
 
-  // A last unhurried beat with both on screen before handing off.
-  static const _holdAfter = Duration(milliseconds: 1100);
+  // The glow warms up with the landing and slower than the wordmark, so the
+  // screen looks like it is being lit rather than switched on.
+  static const _glowDuration = Duration(milliseconds: 1500);
 
-  // The glow warms up slower than the wordmark it sits behind, so the screen
-  // looks like it is being lit rather than switched on.
-  static const _glowDuration = Duration(milliseconds: 1800);
+  // A last unhurried beat on the finished screen before handing off.
+  static const _holdAfter = Duration(milliseconds: 600);
+
+  // Hands off regardless if the sequence never reports back (say, an asset
+  // that fails to decode), so the app can't get stuck behind the splash.
+  // Well above the ~6.5 s the sequence takes, so a slow device never trips it.
+  static const _failsafe = Duration(seconds: 15);
 
   // The native launch screen is a flat charcoalDeep fill, so the first Flutter
   // frame starts from that exact colour and blooms the gradient in on top —
   // the handoff between the two screens is then invisible.
   static const _backdropDuration = Duration(milliseconds: 700);
 
-  // Artwork widths, as a fraction of the screen capped for tablets. Heights
-  // follow from each SVG's own aspect ratio; the logo is square, and its
-  // source carries its own padding, so the drawn bird fills less than the box.
-  static const _logoWidthFactor = 0.38;
-  static const _logoMaxWidth = 168.0;
-  static const _logoGap = 12.0;
-  static const _wordmarkWidthFactor = 0.52;
-  static const _wordmarkMaxWidth = 230.0;
-  static const _taglineWidthFactor = 0.72;
-  static const _taglineMaxWidth = 320.0;
+  // Artwork widths, as a fraction of the screen capped for tablets. The logo
+  // is square and its source carries its own padding, so the drawn bird
+  // fills less than the box.
+  static const _logoWidthFactor = 0.56;
+  static const _logoMaxWidth = 240.0;
+  static const _wordmarkWidthFactor = 0.34;
+  static const _wordmarkMaxWidth = 150.0;
 
-  Timer? _finishTimer;
+  // The wordmark sits low on the screen, well under the centred logo
+  // (Alignment y: 0 is the middle, 1 the bottom edge).
+  static const _wordmarkAlignment = Alignment(0, 0.75);
+
+  bool _landed = false;
+  bool _finished = false;
+  Timer? _holdTimer;
+  Timer? _failsafeTimer;
 
   @override
   void initState() {
     super.initState();
-    _finishTimer = Timer(
-      _taglineDelay + _taglineDuration + _holdAfter,
-      widget.onFinished,
-    );
+    _failsafeTimer = Timer(_failsafe, _finish);
   }
 
   @override
   void dispose() {
-    _finishTimer?.cancel();
+    _holdTimer?.cancel();
+    _failsafeTimer?.cancel();
     super.dispose();
+  }
+
+  void _onLanded() {
+    if (mounted) setState(() => _landed = true);
+  }
+
+  void _onLogoFinished() {
+    _holdTimer = Timer(_holdAfter, _finish);
+  }
+
+  void _finish() {
+    if (_finished || !mounted) return;
+    _finished = true;
+    _holdTimer?.cancel();
+    _failsafeTimer?.cancel();
+    widget.onFinished();
   }
 
   @override
@@ -142,10 +155,7 @@ class _SplashScreenState extends State<SplashScreen> {
       0.0,
       _wordmarkMaxWidth,
     );
-    final taglineWidth = (screenWidth * _taglineWidthFactor).clamp(
-      0.0,
-      _taglineMaxWidth,
-    );
+    final landed = _landed ? 1.0 : 0.0;
 
     return ColoredBox(
       color: AppColors.charcoalDeep,
@@ -163,73 +173,39 @@ class _SplashScreenState extends State<SplashScreen> {
           ),
           DecoratedBox(
             decoration: BoxDecoration(gradient: _glowGradient),
-          ).animate().fadeIn(duration: _glowDuration, curve: Curves.easeInOut),
+          ).animate(target: landed).fadeIn(
+            duration: _glowDuration,
+            curve: Curves.easeInOut,
+          ),
           Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // The wordmark right below already carries the app name for
-                // screen readers, so the logo stays out of the semantics tree
-                // rather than announcing it twice.
-                Image.asset(
-                      _logoAsset,
-                      width: logoWidth,
-                      height: logoWidth,
-                      fit: BoxFit.contain,
-                      filterQuality: FilterQuality.medium,
-                      excludeFromSemantics: true,
-                    )
-                    .animate()
-                    .fadeIn(
-                      delay: _logoDelay,
-                      duration: _logoDuration,
-                      curve: Curves.easeOut,
-                    )
-                    .scale(
-                      begin: const Offset(0.9, 0.9),
-                      end: const Offset(1, 1),
-                      delay: _logoDelay,
-                      duration: _logoDuration,
-                      curve: Curves.easeOutBack,
-                    ),
-                const SizedBox(height: _logoGap),
-                SvgPicture.asset(
-                      'assets/svg/splash_wordmark.svg',
-                      width: wordmarkWidth,
-                      semanticsLabel: AppStrings.appName,
-                    )
-                    .animate()
-                    .fadeIn(
-                      delay: _titleDelay,
-                      duration: _titleDuration,
-                      curve: Curves.easeIn,
-                    )
-                    .scale(
-                      begin: const Offset(0.96, 0.96),
-                      end: const Offset(1, 1),
-                      curve: Curves.easeOut,
-                    ),
-                const SizedBox(height: 4),
-                SvgPicture.asset(
-                      'assets/svg/splash_tagline.svg',
-                      width: taglineWidth,
-                      semanticsLabel: AppStrings.splashTagline,
-                    )
-                    .animate()
-                    .fadeIn(
-                      delay: _taglineDelay,
-                      duration: _taglineDuration,
-                      curve: Curves.easeOut,
-                    )
-                    .moveY(
-                      begin: 8,
-                      end: 0,
-                      delay: _taglineDelay,
-                      duration: _taglineDuration,
-                      curve: Curves.easeOut,
-                    ),
-              ],
+            // Its own layer, so the flight and the light sweep repaint only
+            // the logo, not the gradients behind it.
+            child: RepaintBoundary(
+              child: FlyingLogo(
+                restAsset: _logoAsset,
+                size: logoWidth,
+                delay: _logoDelay,
+                duration: _logoDuration,
+                onLanded: _onLanded,
+                onFinished: _onLogoFinished,
+              ),
             ),
+          ),
+          Align(
+            alignment: _wordmarkAlignment,
+            child: SvgPicture.asset(
+                  'assets/svg/splash_wordmark.svg',
+                  width: wordmarkWidth,
+                  semanticsLabel: AppStrings.appName,
+                )
+                .animate(target: landed)
+                .fadeIn(duration: _titleDuration, curve: Curves.easeIn)
+                .scale(
+                  begin: const Offset(0.96, 0.96),
+                  end: const Offset(1, 1),
+                  duration: _titleDuration,
+                  curve: Curves.easeOut,
+                ),
           ),
         ],
       ),

@@ -80,7 +80,8 @@ lib/
 │   │   ├── home_screen.dart      # empty-state OR countdown; greeting->switcher; bg = ACTIVE SOLDIER's photo (same source as avatar); wallpaper btn sets that photo; long-press => immersive (hide UI+navbar)
 │   │   ├── home_controller.dart  # clock/serviceProgress/quotes providers
 │   │   └── widgets/              # circular_countdown (CustomPainter), unit_breakdown_row, discharge_date_chip, quote_banner, home_background (painted Ararat / custom image)
-│   ├── cartoon/cartoon_screen.dart  # AI cartoon of a photo (default: active soldier's): before/after, set as photo, share; opened by ✨ in home top row
+│   ├── cartoon/cartoon_screen.dart  # AI cartoon of a photo (default: active soldier's): before/after, set as photo, share; SWITCHED OFF for now: its ✨ entry button in home_screen.dart is commented out (see note there)
+│   ├── splash/                 # splash_screen + widgets/flying_logo (dove flies in with near+far wing, lands, light sweep + halo; layers assets/icon/dove_*.png baked by tool/split_logo_wing.py — no runtime blur)
 │   ├── share/                  # share_card (fixed-size shareable card visuals) + share_card_screen (preview + system share); reached from home top-row share button
 │   ├── soldiers/soldier_switcher_sheet.dart  # bottom sheet: list/switch/edit/delete + add; showSoldierSwitcher()
 │   ├── soldier_form/
