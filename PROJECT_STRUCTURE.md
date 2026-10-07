@@ -80,6 +80,7 @@ lib/
 │   │   ├── home_screen.dart      # empty-state OR countdown; greeting->switcher; bg = ACTIVE SOLDIER's photo (same source as avatar); wallpaper btn sets that photo; long-press => immersive (hide UI+navbar)
 │   │   ├── home_controller.dart  # clock/serviceProgress/quotes providers
 │   │   └── widgets/              # circular_countdown (CustomPainter), unit_breakdown_row, discharge_date_chip, quote_banner, home_background (painted Ararat / custom image)
+│   ├── cartoon/cartoon_screen.dart  # AI cartoon of a photo (default: active soldier's): before/after, set as photo, share; opened by ✨ in home top row
 │   ├── share/                  # share_card (fixed-size shareable card visuals) + share_card_screen (preview + system share); reached from home top-row share button
 │   ├── soldiers/soldier_switcher_sheet.dart  # bottom sheet: list/switch/edit/delete + add; showSoldierSwitcher()
 │   ├── soldier_form/
@@ -100,6 +101,7 @@ lib/
     ├── notification_service.dart # flutter_local_notifications 22 + timezone; daily inactivity reminder (19:00) + milestones; sync() best-effort
     ├── home_widget_service.dart  # writes countdown to Android home-screen widget via home_widget; sync() from MainShell._syncBackground
     ├── image_storage_service.dart # copy picked images into app docs dir
+    ├── cartoon_avatar_service.dart # OpenAI image edit: photo -> cartoon soldier portrait (key in git-ignored core/config/secrets.dart; Codemagic writes it from OPENAI_API_KEY)
     └── widget_to_image.dart      # captureBoundaryToPng(): RepaintBoundary -> PNG in temp dir (for share card)
 
 android/app/src/main/kotlin/com/virabyan/mnac/DepitunWidgetProvider.kt  # native widget (RemoteViews) + tap-to-open  (app id: com.virabyan.mnac)

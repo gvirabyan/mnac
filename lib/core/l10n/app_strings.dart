@@ -206,6 +206,31 @@ abstract final class AppStrings {
   // background), not by any settings screen.
   static const String persBackgroundRemove = 'Հեռացնել նկարը';
 
+  // AI cartoon portrait screen, opened from the home top row.
+  static const String cartoonTitle = 'Մուլտ կերպար';
+  static const String cartoonHint =
+      'Ընտրիր լուսանկար, և այն կդառնա մուլտֆիլմի կադր';
+  static const String cartoonMake = 'Դարձնել մուլտհերոս';
+  static const String cartoonPickPhoto = 'Ընտրել լուսանկար';
+  static const String cartoonOtherPhoto = 'Ընտրել այլ լուսանկար';
+  static const String cartoonRetry = 'Կրկին';
+  static const String cartoonOriginal = 'Բնօրինակ';
+  static const String cartoonResult = 'Մուլտ';
+  static const String cartoonSetAsPhoto = 'Դնել որպես լուսանկար';
+  static const String cartoonApplied = 'Լուսանկարը թարմացվեց';
+  static const String cartoonConsentBody =
+      'Մուլտ կերպար ստեղծելու համար լուսանկարը կուղարկվի OpenAI '
+      'ծառայությանը։ Այն չի պահվում մեր կողմից։ Շարունակե՞լ։';
+  static const String cartoonContinue = 'Շարունակել';
+  static const String cartoonGenerating =
+      'Ստեղծում ենք մուլտ կերպարը… Սա կարող է տևել մինչև մեկ րոպե։';
+  static const String cartoonFailedNetwork =
+      'Չհաջողվեց ստեղծել նկարը։ Ստուգիր ինտերնետը և փորձիր կրկին։';
+  static const String cartoonFailedRejected =
+      'Այս լուսանկարով հնարավոր չէ ստեղծել նկար։ Փորձիր այլ լուսանկար։';
+  static const String cartoonFailedOther =
+      'Չհաջողվեց ստեղծել նկարը։ Փորձիր մի փոքր ուշ։';
+
   // Notifications — one master toggle; the daily reminder and milestone
   // alerts follow it automatically and have no separate UI.
   static const String notifEnable = 'Միացնել ծանուցումները';
@@ -248,8 +273,10 @@ abstract final class AppStrings {
       'Մնաց — հավելված հայ զինվորների համար։ Քո ճանապարհը՝ դեպի տուն, '
       'գեղեցիկ ու ոգևորող ձևով։';
   static const String privacyBody =
-      'Բոլոր տվյալները պահվում են միայն քո սարքում։ Հավելվածը չունի սերվեր, '
-      'չի հավաքում և չի ուղարկում որևէ տեղեկություն։';
+      'Բոլոր տվյալները պահվում են միայն քո սարքում։ Հավելվածը չունի սերվեր '
+      'և չի հավաքում քո տվյալները։ Միակ բացառությունը մուլտ կերպարն է․ '
+      'քո հաստատումից հետո լուսանկարը ուղարկվում է OpenAI ծառայությանը '
+      'միայն նկարը ստեղծելու համար։';
   static const String aboutVersionLabel = 'Տարբերակ';
 
   // Common.

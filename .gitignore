@@ -44,3 +44,7 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 ios_signing_temp/
+
+# OpenAI key — never committed. Codemagic writes this file from the
+# OPENAI_API_KEY environment variable before building.
+lib/core/config/secrets.dart

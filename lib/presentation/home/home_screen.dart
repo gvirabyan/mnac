@@ -11,6 +11,8 @@ import '../../core/utils/duration_breakdown.dart';
 import '../../domain/entities/app_settings.dart';
 import '../../domain/entities/soldier_profile.dart';
 import '../../services/image_storage_service.dart';
+import '../../services/cartoon_avatar_service.dart';
+import '../cartoon/cartoon_screen.dart';
 import '../milestones/milestones_screen.dart';
 import '../shared/animations/fade_slide_in.dart';
 import '../shared/state/immersive_controller.dart';
@@ -113,6 +115,7 @@ class HomeScreen extends ConsumerWidget {
                                       onTap: () => showSoldierSwitcher(context),
                                     ),
                                   ),
+                                  const _CartoonButton(),
                                   const _BackgroundButton(),
                                   const _ShareButton(),
                                 ],
@@ -176,6 +179,25 @@ class _ShareButton extends ConsumerWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// Opens the cartoon-portrait screen; hidden in builds without an API key.
+class _CartoonButton extends ConsumerWidget {
+  const _CartoonButton();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (!ref.watch(cartoonAvatarServiceProvider).isConfigured) {
+      return const SizedBox.shrink();
+    }
+    return IconButton(
+      tooltip: AppStrings.cartoonTitle,
+      icon: const Icon(Icons.auto_awesome_rounded),
+      onPressed: () => Navigator.of(context).push(
+        appPageRoute(const CartoonScreen()),
+      ),
     );
   }
 }

@@ -7,7 +7,18 @@ workflows:
     environment:
       flutter: stable
       xcode: 26.4
+      # Holds OPENAI_API_KEY (Codemagic UI → Environment variables, group
+      # "openai", marked secure).
+      groups:
+        - openai
     scripts:
+      # lib/core/config/secrets.dart is git-ignored, so the build recreates
+      # it from the secure variable. An empty key just hides the cartoon
+      # feature instead of failing the build.
+      - name: Write OpenAI key
+        script: |
+          mkdir -p lib/core/config
+          echo "const String openAiApiKey = '${OPENAI_API_KEY:-}';" > lib/core/config/secrets.dart
       - name: Get Flutter packages
         script: flutter packages pub get
       - name: Set up keychain to be used for codesigning
