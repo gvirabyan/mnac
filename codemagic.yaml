@@ -7,14 +7,16 @@ workflows:
     environment:
       flutter: stable
       xcode: 26.4
-      # Holds OPENAI_API_KEY (Codemagic UI → Environment variables, group
-      # "openai", marked secure).
-      groups:
-        - openai
+      # The AI cartoon is switched off for now. When it comes back, create
+      # the group "openai" holding OPENAI_API_KEY (Codemagic UI →
+      # Environment variables, marked secure) and uncomment this — the
+      # build fails if it references a group that doesn't exist.
+      # groups:
+      #   - openai
     scripts:
       # lib/core/config/secrets.dart is git-ignored, so the build recreates
-      # it from the secure variable. An empty key just hides the cartoon
-      # feature instead of failing the build.
+      # it from the secure variable. Kept while the feature is off: without
+      # the group the key is simply empty, which is harmless.
       - name: Write OpenAI key
         script: |
           mkdir -p lib/core/config
