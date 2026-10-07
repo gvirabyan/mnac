@@ -115,15 +115,14 @@ class InterstitialAdService {
     }
     _ad = null;
 
+    // No preload for a next ad here: one ad per launch, and the next launch
+    // starts a fresh process that loads its own, so an ad fetched now would
+    // never be shown — just a second request per launch that halves the show
+    // rate in AdMob. Bring the preload back if ads ever show more than once
+    // in a session.
     ad.fullScreenContentCallback = FullScreenContentCallback(
-      onAdDismissedFullScreenContent: (ad) {
-        ad.dispose();
-        preload();
-      },
-      onAdFailedToShowFullScreenContent: (ad, error) {
-        ad.dispose();
-        preload();
-      },
+      onAdDismissedFullScreenContent: (ad) => ad.dispose(),
+      onAdFailedToShowFullScreenContent: (ad, error) => ad.dispose(),
     );
     await ad.show();
   }
