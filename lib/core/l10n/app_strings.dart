@@ -119,6 +119,17 @@ abstract final class AppStrings {
   static const String milestonesTitle = 'Նվաճումներ';
   static const String milestoneLocked = 'Փակ է';
   static const String milestoneUnlocked = 'Հասանելի է';
+
+  /// Bottom line of a milestone card: when it opens / opened.
+  static String milestoneOpensOn(String date) => 'Կբացվի՝ $date';
+  static String milestoneOpenedOn(String date) => 'Բացվել է՝ $date';
+
+  /// How far off a locked milestone is, shown after its date.
+  static String milestoneInDays(int days) => switch (days) {
+        <= 0 => 'այսօր',
+        1 => 'վաղը',
+        _ => '$days օր հետո',
+      };
   static const String milestoneReached = 'Շնորհավո՛ր նոր նվաճումը';
 
   /// Header of the same dialog when it recaps a milestone the user reached
