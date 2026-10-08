@@ -1,12 +1,25 @@
 import 'package:depitun/app/app.dart';
 import 'package:depitun/core/di/providers.dart';
 import 'package:depitun/domain/entities/app_settings.dart';
+import 'package:depitun/domain/entities/announcement.dart';
 import 'package:depitun/domain/entities/soldier_profile.dart';
+import 'package:depitun/domain/repositories/announcements_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+/// The home bell reads Firestore; tests run without Firebase.
+class _NoAnnouncements implements AnnouncementsRepository {
+  @override
+  Stream<List<Announcement>> watchRecent({int limit = 50}) =>
+      Stream.value(const []);
+
+  @override
+  Stream<LatestAnnouncement> watchLatest() =>
+      Stream.value(const LatestAnnouncement(null, isConfirmed: true));
+}
 
 void main() {
   setUpAll(() => GoogleFonts.config.allowRuntimeFetching = false);
@@ -29,6 +42,7 @@ void main() {
           initialSettingsProvider.overrideWithValue(AppSettings.defaults),
           initialSoldiersProvider.overrideWithValue([profile]),
           initialActiveIdProvider.overrideWithValue(profile.id),
+          announcementsRepositoryProvider.overrideWithValue(_NoAnnouncements()),
         ],
         child: const DepiTunApp(),
       ),

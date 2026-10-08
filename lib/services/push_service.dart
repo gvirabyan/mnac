@@ -1,4 +1,4 @@
-import 'dart:async' show unawaited;
+import 'dart:async' show StreamController, unawaited;
 import 'dart:io' show Platform;
 
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -22,6 +22,14 @@ class PushService {
 
   final NotificationService _notifications;
   final FirebaseMessaging _messaging;
+
+  final StreamController<String> _announcementArrivals =
+      StreamController<String>.broadcast();
+
+  /// Ids of announcements whose push has just reached the open app — the
+  /// moment its banner is shown. The push history holds a fresh announcement
+  /// back until then, so it never shows in the app ahead of its push.
+  Stream<String> get announcementArrivals => _announcementArrivals.stream;
 
   /// Native side of [diagnostics] on iOS: what the app delegate saw APNs do,
   /// which Dart is never told about.
@@ -84,6 +92,9 @@ class PushService {
     final body = notification.body;
     if (title == null && body == null) return;
     _notifications.showNow(title: title ?? '', body: body ?? '');
+
+    final announcementId = message.data['announcementId'];
+    if (announcementId is String) _announcementArrivals.add(announcementId);
   }
 
   /// Joins [broadcastTopic].

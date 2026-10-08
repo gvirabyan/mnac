@@ -13,6 +13,7 @@ import 'data/repositories/settings_repository_impl.dart';
 import 'data/repositories/soldiers_repository_impl.dart';
 import 'firebase_options.dart';
 import 'presentation/home/home_controller.dart';
+import 'presentation/shared/state/announcements_provider.dart';
 import 'services/interstitial_ad_service.dart';
 import 'services/notification_service.dart';
 import 'services/push_service.dart';
@@ -69,6 +70,9 @@ Future<void> main() async {
         initialActiveIdProvider.overrideWithValue(activeId),
         notificationServiceProvider.overrideWithValue(notifications),
         pushServiceProvider.overrideWithValue(push),
+        announcementArrivalsProvider.overrideWithValue(
+          push.announcementArrivals,
+        ),
         interstitialAdServiceProvider.overrideWithValue(interstitialAds),
         if (quotes != null) quotesProvider.overrideWith((ref) => quotes!),
       ],

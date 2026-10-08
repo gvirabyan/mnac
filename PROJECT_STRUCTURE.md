@@ -2,7 +2,7 @@
 
 > Read this first every task to locate files fast. Keep it updated when files are added/moved.
 > Conventions: **UI text Armenian (only via `core/l10n/app_strings.dart`)**, **code/comments English**.
-> Stack: Flutter 3.38 / Dart 3.10 · Clean Architecture · Riverpod 3.x (`.value`, NOT `.valueOrNull`) · storage = shared_preferences only.
+> Stack: Flutter 3.38 / Dart 3.10 · Clean Architecture · Riverpod 3.x (`.value`, NOT `.valueOrNull`) · storage = shared_preferences (local) + read-only Firestore `announcements` (push history).
 
 ---
 
@@ -26,6 +26,8 @@
 | Settings screen sections | `lib/presentation/settings/settings_screen.dart` |
 | Share-as-image card (design / flow) | `lib/presentation/share/` (`share_card.dart` visuals, `share_card_screen.dart` preview+share), capture util `lib/services/widget_to_image.dart` |
 | Bottom-nav / app-wide listeners (celebration, notif sync) | `lib/presentation/shell/main_shell.dart` |
+| Scheduled broadcast pushes + push history (server) | `functions/index.js`, `firestore.rules`, `firestore.indexes.json`, topic in `functions/.env` |
+| Push history (app side) | screen `presentation/announcements/announcements_screen.dart`, bell `_AnnouncementsButton` in `home_screen.dart`, state `presentation/shared/state/announcements_provider.dart` |
 
 ---
 
@@ -46,6 +48,7 @@
   - `epochDayProvider` (day ordinal, re-emits at local midnight), **`quoteOfTheDayProvider`** (deterministic quote-of-the-day; advances at 00:00) — used by `QuoteBanner`
 - **Milestones** — `presentation/milestones/milestones_controller.dart`
   - `milestonesProvider` (list), `pendingCelebrationProvider` (int? threshold to celebrate)
+- **Push history** — `announcementsRepositoryProvider` (DI) → `announcementsProvider` (autoDispose, up to 50 docs, unfiltered — history screen only, filter via `gate.visible`), **`announcementGateProvider`** (`AnnouncementGate`: holds an announcement sent while the app is open until its push arrives via `announcementArrivalsProvider` ← `PushService.announcementArrivals`; baseline = server-confirmed newest at launch / return from background; watches 1 doc), `announcementsSeenProvider` (prefs `announcements_seen_v1`), `hasUnreadAnnouncementsProvider` (bell dot)
 - **Services** — `notificationServiceProvider` (overridden in main with initialized instance), `imageStorageServiceProvider`
 
 ---
@@ -69,7 +72,7 @@ lib/
 │   ├── repositories/             # soldiers_repository, settings_repository, backup_repository (interfaces)
 │   └── usecases/                 # compute_service_progress, compute_milestones, backup_data, restore_data
 ├── data/
-│   ├── datasources/local_prefs_data_source.dart  # keys: soldiers_v1, active_soldier_v1, settings_v1, profile_v1(legacy)
+│   ├── datasources/local_prefs_data_source.dart  # keys: soldiers_v1, active_soldier_v1, settings_v1, announcements_seen_v1, profile_v1(legacy)
 │   ├── models/                   # soldier_profile_model, app_settings_model (JSON <-> entity)
 │   └── repositories/             # soldiers_repository_impl (migrates legacy profile), settings_repository_impl, backup_repository_impl
 ├── presentation/
@@ -80,6 +83,7 @@ lib/
 │   │   ├── home_screen.dart      # empty-state OR countdown; greeting->switcher; bg = ACTIVE SOLDIER's photo (same source as avatar); wallpaper btn sets that photo; long-press => immersive (hide UI+navbar)
 │   │   ├── home_controller.dart  # clock/serviceProgress/quotes providers
 │   │   └── widgets/              # circular_countdown (CustomPainter), unit_breakdown_row, discharge_date_chip, quote_banner, home_background (painted Ararat / custom image)
+│   ├── announcements/announcements_screen.dart  # push history list (newest first, dot on ones new this visit); opened from the 🔔 in home's top row, which shows a dot when something unseen exists
 │   ├── cartoon/cartoon_screen.dart  # AI cartoon of a photo (default: active soldier's): before/after, set as photo, share; SWITCHED OFF for now: its ✨ entry button in home_screen.dart is commented out (see note there)
 │   ├── splash/                 # splash_screen + widgets/flying_logo (dove flies in with near+far wing, lands, light sweep + halo; layers assets/icon/dove_*.png baked by tool/split_logo_wing.py — no runtime blur)
 │   ├── share/                  # share_card (fixed-size shareable card visuals) + share_card_screen (preview + system share); reached from home top-row share button
@@ -99,11 +103,15 @@ lib/
 │       ├── state/                # soldiers_controller, settings_controller, theme_providers
 │       └── widgets/              # gradient_scaffold, glass_card, primary_button, section_header, app_loading, empty_state, animated_counter
 └── services/
+    ├── push_service.dart         # FCM: everyone subscribed to topic `all`; foreground pushes re-shown locally
     ├── notification_service.dart # flutter_local_notifications 22 + timezone; daily inactivity reminder (19:00) + milestones; sync() best-effort
     ├── home_widget_service.dart  # writes countdown to Android home-screen widget via home_widget; sync() from MainShell._syncBackground
     ├── image_storage_service.dart # copy picked images into app docs dir
     ├── cartoon_avatar_service.dart # OpenAI image edit: photo -> cartoon soldier portrait (key in git-ignored core/config/secrets.dart; Codemagic writes it from OPENAI_API_KEY)
     └── widget_to_image.dart      # captureBoundaryToPng(): RepaintBoundary -> PNG in temp dir (for share card)
+
+functions/index.js   # Cloud Function, every 5 min: announcements with status "scheduled" & sendAt<=now -> FCM topic (PUSH_TOPIC in functions/.env) -> status "sent"; >6h late -> "expired"
+firestore.rules      # clients may read announcements only where status == 'sent'; no client writes
 
 android/app/src/main/kotlin/com/virabyan/mnac/DepitunWidgetProvider.kt  # native widget (RemoteViews) + tap-to-open  (app id: com.virabyan.mnac)
 android/app/src/main/res/{layout/depitun_widget.xml, xml/depitun_widget_info.xml, drawable/widget_background.xml}

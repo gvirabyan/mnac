@@ -13,6 +13,7 @@ class LocalPrefsDataSource {
   static const String soldiersKey = 'soldiers_v1';
   static const String activeSoldierKey = 'active_soldier_v1';
   static const String settingsKey = 'settings_v1';
+  static const String announcementsSeenKey = 'announcements_seen_v1';
 
   // Legacy single profile (migration source only).
   String? readProfileJson() => _prefs.getString(profileKey);
@@ -40,4 +41,10 @@ class LocalPrefsDataSource {
       _prefs.setString(settingsKey, json);
 
   Future<void> deleteSettings() => _prefs.remove(settingsKey);
+
+  // Send time (epoch ms) of the newest announcement the user has seen.
+  int? readAnnouncementsSeenAt() => _prefs.getInt(announcementsSeenKey);
+
+  Future<void> writeAnnouncementsSeenAt(int epochMs) =>
+      _prefs.setInt(announcementsSeenKey, epochMs);
 }

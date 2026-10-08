@@ -4,9 +4,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../data/datasources/local_prefs_data_source.dart';
 import '../../domain/entities/app_settings.dart';
 import '../../domain/entities/soldier_profile.dart';
+import '../../data/repositories/announcements_repository_impl.dart';
 import '../../data/repositories/backup_repository_impl.dart';
 import '../../data/repositories/settings_repository_impl.dart';
 import '../../data/repositories/soldiers_repository_impl.dart';
+import '../../domain/repositories/announcements_repository.dart';
 import '../../domain/repositories/backup_repository.dart';
 import '../../domain/repositories/settings_repository.dart';
 import '../../domain/repositories/soldiers_repository.dart';
@@ -54,6 +56,11 @@ final settingsRepositoryProvider = Provider<SettingsRepository>(
 
 final backupRepositoryProvider = Provider<BackupRepository>(
   (ref) => BackupRepositoryImpl(ref.watch(localPrefsDataSourceProvider)),
+);
+
+/// Broadcast push history, read from Firestore. Overridden in tests.
+final announcementsRepositoryProvider = Provider<AnnouncementsRepository>(
+  (ref) => AnnouncementsRepositoryImpl(),
 );
 
 // Use cases (stateless, const).

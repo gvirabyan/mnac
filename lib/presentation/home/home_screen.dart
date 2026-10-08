@@ -14,8 +14,10 @@ import '../../services/image_storage_service.dart';
 // AI cartoon, off for now — see _CartoonButton below.
 // import '../../services/cartoon_avatar_service.dart';
 // import '../cartoon/cartoon_screen.dart';
+import '../announcements/announcements_screen.dart';
 import '../milestones/milestones_screen.dart';
 import '../shared/animations/fade_slide_in.dart';
+import '../shared/state/announcements_provider.dart';
 import '../shared/state/immersive_controller.dart';
 import '../shared/state/settings_controller.dart';
 import '../shared/state/soldiers_controller.dart';
@@ -107,19 +109,10 @@ class HomeScreen extends ConsumerWidget {
                               AppSizes.xxl,
                             ),
                             children: [
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: _Greeting(
-                                      profile: profile,
-                                      soldierCount: soldierCount,
-                                      onTap: () => showSoldierSwitcher(context),
-                                    ),
-                                  ),
-                                  // const _CartoonButton(), // AI cartoon, off for now
-                                  const _BackgroundButton(),
-                                  const _ShareButton(),
-                                ],
+                              _TopBar(
+                                profile: profile,
+                                soldierCount: soldierCount,
+                                onTap: () => showSoldierSwitcher(context),
                               ),
                               const SizedBox(height: AppSizes.xl),
                       _CountdownHero(animate: animate),
@@ -155,6 +148,30 @@ class HomeScreen extends ConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Opens the push history; a dot marks announcements not yet seen there.
+///
+/// Watches only the newest announcement's time — one document read — never
+/// the full history, since this button is on screen every time the app opens.
+class _AnnouncementsButton extends ConsumerWidget {
+  const _AnnouncementsButton();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final hasUnread = ref.watch(hasUnreadAnnouncementsProvider);
+    return IconButton(
+      tooltip: AppStrings.announcementsTitle,
+      icon: Badge(
+        isLabelVisible: hasUnread,
+        smallSize: 8,
+        child: const Icon(Icons.notifications_none_rounded),
+      ),
+      onPressed: () => Navigator.of(context).push(
+        appPageRoute(const AnnouncementsScreen()),
       ),
     );
   }
@@ -239,8 +256,14 @@ class _BackgroundButton extends ConsumerWidget {
   }
 }
 
-class _Greeting extends StatelessWidget {
-  const _Greeting({
+/// Greeting plus the action buttons.
+///
+/// Avatar and buttons give way to the name: when it would not fit on one
+/// line beside them at their normal size, both shrink a little — the avatar
+/// and the buttons share the cut, so neither ends up tiny. A name too long
+/// even then wraps to a second line and is cut with an ellipsis after that.
+class _TopBar extends StatelessWidget {
+  const _TopBar({
     required this.profile,
     required this.soldierCount,
     required this.onTap,
@@ -250,14 +273,117 @@ class _Greeting extends StatelessWidget {
   final int soldierCount;
   final VoidCallback onTap;
 
+  static const List<Widget> _actions = [
+    // _CartoonButton(), // AI cartoon, off for now
+    _AnnouncementsButton(),
+    _BackgroundButton(),
+    _ShareButton(),
+  ];
+
+  /// Width of one action button at the default Material size.
+  static const double _regularActionWidth = 48;
+
+  /// Compact action button: 22px icon with 7px padding on each side (36px
+  /// wide instead of 48).
+  static const double _compactIconSize = 22;
+  static const double _compactPadding = 7;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final nameRoom = constraints.maxWidth -
+            _actions.length * _regularActionWidth -
+            _Greeting.reservedWidth;
+        final compact = !_Greeting.fitsOnOneLine(context, profile, nameRoom);
+
+        final row = Row(
+          children: [
+            Expanded(
+              child: _Greeting(
+                profile: profile,
+                soldierCount: soldierCount,
+                onTap: onTap,
+                compact: compact,
+              ),
+            ),
+            ..._actions,
+          ],
+        );
+        if (!compact) return row;
+
+        return IconButtonTheme(
+          data: IconButtonThemeData(
+            style: IconButton.styleFrom(
+              iconSize: _compactIconSize,
+              padding: const EdgeInsets.all(_compactPadding),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              visualDensity: VisualDensity.compact,
+            ),
+          ),
+          child: row,
+        );
+      },
+    );
+  }
+}
+
+class _Greeting extends StatelessWidget {
+  const _Greeting({
+    required this.profile,
+    required this.soldierCount,
+    required this.onTap,
+    this.compact = false,
+  });
+
+  final SoldierProfile profile;
+  final int soldierCount;
+  final VoidCallback onTap;
+
+  /// Smaller avatar and gap, to leave a long name more room.
+  final bool compact;
+
+  static const double _avatarRadius = 26;
+  static const double _compactAvatarRadius = 21;
+  static const double _chevronSize = 24;
+
+  /// Horizontal space the greeting takes besides the name itself at the
+  /// regular size: avatar, the gap after it, and the chevron.
+  static const double reservedWidth =
+      _avatarRadius * 2 + AppSizes.md + _chevronSize;
+
+  static String _nameOf(SoldierProfile profile) =>
+      profile.name ?? AppStrings.appName;
+
+  static TextStyle? _nameStyle(BuildContext context) =>
+      Theme.of(context).textTheme.titleLarge;
+
+  /// Whether the name fits on a single line in [width] at the current text
+  /// scale.
+  static bool fitsOnOneLine(
+    BuildContext context,
+    SoldierProfile profile,
+    double width,
+  ) {
+    if (width <= 0) return false;
+    final painter = TextPainter(
+      text: TextSpan(text: _nameOf(profile), style: _nameStyle(context)),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout(maxWidth: width);
+    final fits = !painter.didExceedMaxLines;
+    painter.dispose();
+    return fits;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final hasPhoto =
         profile.photoPath != null && File(profile.photoPath!).existsSync();
-    final greeting = profile.name == null
-        ? AppStrings.appName
-        : profile.name!;
+    final greeting = _nameOf(profile);
 
     return InkWell(
       onTap: onTap,
@@ -269,7 +395,7 @@ class _Greeting extends StatelessWidget {
             Hero(
               tag: 'profile-photo',
               child: CircleAvatar(
-                radius: 26,
+                radius: compact ? _compactAvatarRadius : _avatarRadius,
                 backgroundColor: theme.colorScheme.surfaceContainerHighest,
                 backgroundImage:
                     hasPhoto ? FileImage(File(profile.photoPath!)) : null,
@@ -279,12 +405,17 @@ class _Greeting extends StatelessWidget {
                         color: theme.colorScheme.primary),
               ),
             ),
-            const SizedBox(width: AppSizes.md),
+            SizedBox(width: compact ? AppSizes.sm : AppSizes.md),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(greeting, style: theme.textTheme.titleLarge),
+                  Text(
+                    greeting,
+                    style: _nameStyle(context),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   if (profile.unit != null)
                     Text(profile.unit!, style: theme.textTheme.bodySmall),
                 ],
@@ -294,6 +425,7 @@ class _Greeting extends StatelessWidget {
               soldierCount > 1
                   ? Icons.unfold_more_rounded
                   : Icons.expand_more_rounded,
+              size: _chevronSize,
               color: theme.colorScheme.primary,
             ),
           ],

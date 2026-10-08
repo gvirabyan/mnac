@@ -106,6 +106,15 @@ abstract final class AppStrings {
   static const String statsServedVsRemaining = 'Անցած / Մնացած';
   static const String statsMilestonesPeek = 'Նվաճումներ';
 
+  // Push history (announcements).
+  static const String announcementsTitle = 'Ծանուցումներ';
+  static const String announcementsEmpty = 'Ծանուցումներ դեռ չկան';
+  static const String announcementsEmptySubtitle =
+      'Այստեղ կպահվեն բոլոր ծանուցումները, որոնք ուղարկում ենք։';
+  static const String announcementsError = 'Չհաջողվեց բեռնել ծանուցումները';
+  static const String announcementsErrorSubtitle =
+      'Ստուգեք ինտերնետ կապը և փորձեք կրկին։';
+
   // Milestones.
   static const String milestonesTitle = 'Նվաճումներ';
   static const String milestoneLocked = 'Փակ է';

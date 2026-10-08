@@ -66,6 +66,9 @@ dependencies:
   firebase_core: ^4.14.0
   firebase_analytics: ^12.5.0
   firebase_messaging: ^16.6.0
+  # Read-only history of broadcast pushes (`announcements` collection); written
+  # only by the Cloud Function in functions/, which also sends each one.
+  cloud_firestore: ^6.10.0
   http: ^1.6.0
   http_parser: ^4.1.2
 
