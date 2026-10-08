@@ -1,0 +1,17 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Push history. Apps may read only what has actually been sent — a
+    // scheduled push stays hidden until it goes out. Nothing writes from a
+    // client; the Cloud Function and the console use admin access.
+    match /announcements/{id} {
+      allow read: if resource.data.status == 'sent';
+      allow write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

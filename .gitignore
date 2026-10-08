@@ -48,3 +48,9 @@ ios_signing_temp/
 # OpenAI key — never committed. Codemagic writes this file from the
 # OPENAI_API_KEY environment variable before building.
 lib/core/config/secrets.dart
+
+# Cloud Functions dependencies
+functions/node_modules/
+
+# Firebase service account keys - full admin access, never committed
+tool/*firebase-adminsdk*.json
