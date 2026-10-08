@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:home_widget/home_widget.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../core/constants/app_assets.dart';
 import '../core/l10n/app_strings.dart';
 import '../core/utils/date_utils.dart';
 import '../domain/entities/soldier_profile.dart';
@@ -25,7 +26,6 @@ class HomeWidgetService {
   static const String _androidProvider = 'DepitunWidgetProvider';
   static const String _iosWidgetKind = 'DepitunWidgetExtension';
   static const String _appGroupId = 'group.com.virabyan.mnac.widget';
-  static const String _defaultBackgroundAsset = 'assets/images/background.png';
   static const _compute = ComputeServiceProgress();
 
   /// Serialises [soldiers] (in display order) into the widget's shared data.
@@ -98,7 +98,7 @@ class HomeWidgetService {
     if (cached != null) return cached;
 
     try {
-      final bytes = await rootBundle.load(_defaultBackgroundAsset);
+      final bytes = await rootBundle.load(AppAssets.defaultBackground);
       final data = bytes.buffer.asUint8List();
 
       String path;
@@ -106,11 +106,11 @@ class HomeWidgetService {
         path = await HomeWidget.saveFile(
           'widget_default_background',
           data,
-          extension: 'png',
+          extension: 'jpg',
         );
       } else {
         final dir = await getApplicationSupportDirectory();
-        final file = File('${dir.path}/widget_default_background.png');
+        final file = File('${dir.path}/widget_default_background.jpg');
         if (!file.existsSync() || file.lengthSync() != data.length) {
           await file.writeAsBytes(data, flush: true);
         }

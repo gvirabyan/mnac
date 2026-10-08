@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../core/constants/app_assets.dart';
 import '../../core/constants/app_sizes.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/theme/app_colors.dart';
@@ -66,40 +67,29 @@ class ShareCard extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // Background: the soldier's photo (with a scrim heavy enough at both
-          // ends to keep the header and footer legible over any photo) when
-          // set, otherwise the branded gradient.
-          if (hasPhoto) ...[
-            Image.file(File(profile.photoPath!), fit: BoxFit.cover),
-            const DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Color(0xCC000000),
-                    Color(0x73000000),
-                    Color(0xE6000000),
-                  ],
-                  stops: [0, 0.42, 1],
-                ),
+          // Background: the soldier's photo, or the app's default one — the
+          // same image Home shows — under a scrim heavy enough at both ends to
+          // keep the header and footer legible over any photo.
+          Image(
+            image: hasPhoto
+                ? FileImage(File(profile.photoPath!))
+                : const AssetImage(AppAssets.defaultBackground),
+            fit: BoxFit.cover,
+          ),
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0xCC000000),
+                  Color(0x73000000),
+                  Color(0xE6000000),
+                ],
+                stops: [0, 0.42, 1],
               ),
             ),
-          ] else
-            const DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Color(0xFF241F17),
-                    AppColors.charcoal,
-                    AppColors.charcoalDeep,
-                  ],
-                  stops: [0, 0.45, 1],
-                ),
-              ),
-            ),
+          ),
           // Apricot bloom behind the hero number, echoing the splash screen.
           const _Glow(
             alignment: Alignment(0.85, -0.55),

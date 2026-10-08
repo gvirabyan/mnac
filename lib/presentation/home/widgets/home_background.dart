@@ -2,11 +2,13 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import '../../../core/constants/app_assets.dart';
+
 /// Full-bleed home background.
 ///
 /// If the user picked a custom background image it fills the screen (with a
 /// readability scrim). Otherwise the bundled default photo
-/// (assets/images/background.png) is shown with the same treatment.
+/// ([AppAssets.defaultBackground]) is shown with the same treatment.
 class HomeBackground extends StatelessWidget {
   const HomeBackground({
     super.key,
@@ -15,7 +17,6 @@ class HomeBackground extends StatelessWidget {
     this.scrimVisible = true,
   });
 
-  static const String _defaultAsset = 'assets/images/background.png';
 
   final String? customImagePath;
 
@@ -33,7 +34,7 @@ class HomeBackground extends StatelessWidget {
         customImagePath != null && File(customImagePath!).existsSync();
     final ImageProvider image = hasCustomImage
         ? FileImage(File(customImagePath!))
-        : const AssetImage(_defaultAsset);
+        : const AssetImage(AppAssets.defaultBackground);
 
     return Stack(
       fit: StackFit.expand,
