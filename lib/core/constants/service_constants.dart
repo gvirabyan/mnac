@@ -11,8 +11,4 @@ abstract final class ServiceConstants {
   /// A shorter common option (e.g. higher-education track) — 12 months.
   static const int shortServiceDays = 365;
 
-  /// Reasonable bounds for custom durations (in days).
-  static const int minServiceDays = 30;
-  static const int maxServiceDays = 1825; // 5 years
-
 }

@@ -70,7 +70,8 @@ class _SoldierFormScreenState extends ConsumerState<SoldierFormScreen> {
     final picked = await showDatePicker(
       context: context,
       initialDate: _startDate.isAfter(now) ? now : _startDate,
-      firstDate: DateTime(now.year - 6),
+      // The picker needs bounds; these are far enough not to limit anyone.
+      firstDate: DateTime(1950),
       lastDate: now,
       locale: const Locale('hy'),
     );
@@ -93,9 +94,7 @@ class _SoldierFormScreenState extends ConsumerState<SoldierFormScreen> {
       context: context,
       initialDate: initial,
       firstDate: _startDate.add(const Duration(days: 1)),
-      lastDate: _startDate.add(
-        const Duration(days: ServiceConstants.maxServiceDays),
-      ),
+      lastDate: DateTime(2100),
       locale: const Locale('hy'),
     );
     if (picked != null) setState(() => _endDate = picked);
