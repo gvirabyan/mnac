@@ -1,3 +1,4 @@
+import '../../core/utils/app_files.dart';
 import '../../domain/entities/app_settings.dart';
 
 /// Data-layer representation of [AppSettings] with JSON (de)serialization.
@@ -62,7 +63,8 @@ class AppSettingsModel {
         accentColorId: json['accentColorId'] as String? ?? 'apricot',
         fontScaleId: json['fontScaleId'] as String? ?? 'medium',
         animationLevel: AnimationLevel.fromId(json['animationLevel'] as String?),
-        backgroundImagePath: json['backgroundImagePath'] as String?,
+        backgroundImagePath:
+            AppFiles.relocate(json['backgroundImagePath'] as String?),
         notificationsEnabled: json['notificationsEnabled'] as bool? ?? false,
         dailyReminderEnabled: json['dailyReminderEnabled'] as bool? ?? false,
         dailyReminderMinutes:

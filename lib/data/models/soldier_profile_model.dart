@@ -1,3 +1,4 @@
+import '../../core/utils/app_files.dart';
 import '../../domain/entities/soldier_profile.dart';
 
 /// Data-layer representation of [SoldierProfile] with JSON (de)serialization.
@@ -58,7 +59,7 @@ class SoldierProfileModel {
         unit: json['unit'] as String?,
         serviceStart: DateTime.parse(json['serviceStart'] as String),
         serviceDurationDays: (json['serviceDurationDays'] as num).toInt(),
-        photoPath: json['photoPath'] as String?,
+        photoPath: AppFiles.relocate(json['photoPath'] as String?),
         createdAt: DateTime.parse(json['createdAt'] as String),
       );
 }

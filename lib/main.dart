@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app/app.dart';
 import 'core/di/providers.dart';
+import 'core/utils/app_files.dart';
 import 'data/datasources/local_prefs_data_source.dart';
 import 'data/repositories/settings_repository_impl.dart';
 import 'data/repositories/soldiers_repository_impl.dart';
@@ -27,6 +28,7 @@ Future<void> main() async {
 
   // Initialize local storage and preload data so the first frame is correct.
   final prefs = await SharedPreferences.getInstance();
+  await AppFiles.init();
   final dataSource = LocalPrefsDataSource(prefs);
   final settings = await SettingsRepositoryImpl(dataSource).load();
   final soldiersRepo = SoldiersRepositoryImpl(dataSource);
