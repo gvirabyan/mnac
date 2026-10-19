@@ -7,8 +7,8 @@ abstract interface class AnnouncementsRepository {
   /// whenever a new one is sent; serves the last copy while offline.
   Stream<List<Announcement>> watchRecent({int limit});
 
-  /// The newest sent announcement, re-emitted whenever it changes and once
-  /// more when the server confirms a cached copy. Costs a single document
-  /// read, unlike [watchRecent] — meant for an always-visible marker.
-  Stream<LatestAnnouncement> watchLatest();
+  /// The newest sent announcement, or null when there is none; re-emitted
+  /// whenever it changes. Costs a single document read, unlike
+  /// [watchRecent] — meant for an always-visible marker.
+  Stream<Announcement?> watchLatest();
 }

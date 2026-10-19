@@ -135,7 +135,7 @@ class HomeScreen extends ConsumerWidget {
                             appPageRoute(const MilestonesScreen()),
                           ),
                           icon: const Icon(Icons.emoji_events_outlined),
-                          label: const Text(AppStrings.milestonesTitle),
+                          label: Text(AppStrings.milestonesTitle),
                         ),
                       ),
                       const SizedBox(height: AppSizes.xl),

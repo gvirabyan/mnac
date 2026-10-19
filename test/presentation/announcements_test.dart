@@ -1,10 +1,13 @@
 import 'dart:async';
 
 import 'package:depitun/core/di/providers.dart';
+import 'package:depitun/core/l10n/app_language.dart';
 import 'package:depitun/domain/entities/announcement.dart';
+import 'package:depitun/domain/entities/app_settings.dart';
 import 'package:depitun/domain/repositories/announcements_repository.dart';
 import 'package:depitun/presentation/announcements/announcements_screen.dart';
 import 'package:depitun/presentation/shared/state/announcements_provider.dart';
+import 'package:depitun/services/push_arrivals.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -13,27 +16,41 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class _FakeRepo implements AnnouncementsRepository {
   final recent = StreamController<List<Announcement>>.broadcast();
-  final latest = StreamController<LatestAnnouncement>.broadcast();
-  int latestListens = 0;
+  final latest = StreamController<Announcement?>.broadcast();
 
   @override
   Stream<List<Announcement>> watchRecent({int limit = 50}) => recent.stream;
 
   @override
-  Stream<LatestAnnouncement> watchLatest() {
-    latestListens++;
-    return latest.stream;
+  Stream<Announcement?> watchLatest() => latest.stream;
+}
+
+class _FakePush implements PushArrivals {
+  final Set<String> arrived = {};
+  final controller = StreamController<String>.broadcast();
+  Set<String> tray = {};
+
+  @override
+  Set<String> get arrivedIds => arrived;
+
+  @override
+  Stream<String> get arrivals => controller.stream;
+
+  @override
+  Future<Set<String>> deliveredKeys() async => tray;
+
+  void arrive(String id) {
+    arrived.add(id);
+    controller.add(id);
   }
-
-  void server(Announcement? a) =>
-      latest.add(LatestAnnouncement(a, isConfirmed: true));
-
-  void cache(Announcement? a) =>
-      latest.add(LatestAnnouncement(a, isConfirmed: false));
 }
 
 Announcement _a(String id, DateTime at) =>
-    Announcement(id: id, title: 'T$id', body: 'B$id', sentAt: at);
+    Announcement(
+      id: id,
+      texts: {AppLanguage.hy: AnnouncementText(title: 'T$id', body: 'B$id')},
+      sentAt: at,
+    );
 
 Future<void> _settle() => Future<void>.delayed(Duration.zero);
 
@@ -41,25 +58,33 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(() => GoogleFonts.config.allowRuntimeFetching = false);
 
-  final t1 = DateTime(2026, 10, 1, 10);
-  final t2 = DateTime(2026, 10, 2, 10);
-  final a1 = _a('1', t1);
-  final a2 = _a('2', t2);
+  // "Now" is 21:05; a1 went out yesterday, a2 two minutes ago.
+  final t0 = DateTime(2026, 10, 9, 21, 5);
+  final a1 = _a('1', DateTime(2026, 10, 8, 22, 43));
+  final a2 = _a('2', DateTime(2026, 10, 9, 21, 3));
 
   late _FakeRepo repo;
-  late StreamController<String> arrivals;
+  late _FakePush push;
+  late DateTime clock;
   late ProviderContainer c;
 
-  Future<void> start([Map<String, Object> prefsValues = const {}]) async {
+  Future<void> start(
+    Map<String, Object> prefsValues, {
+    Set<String> arrivedBefore = const {},
+  }) async {
     SharedPreferences.setMockInitialValues(prefsValues);
     final prefs = await SharedPreferences.getInstance();
     repo = _FakeRepo();
-    arrivals = StreamController<String>.broadcast();
+    push = _FakePush()..arrived.addAll(arrivedBefore);
+    clock = t0;
     c = ProviderContainer(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
+        initialSettingsProvider.overrideWithValue(AppSettings.defaults),
+        initialActiveIdProvider.overrideWithValue(null),
         announcementsRepositoryProvider.overrideWithValue(repo),
-        announcementArrivalsProvider.overrideWithValue(arrivals.stream),
+        pushArrivalsProvider.overrideWithValue(push),
+        announcementClockProvider.overrideWithValue(() => clock),
       ],
     );
     addTearDown(c.dispose);
@@ -68,120 +93,105 @@ void main() {
     await _settle();
   }
 
-  List<String>? visibleIds() => c
-      .read(announcementsProvider)
-      .value
-      ?.where((a) => !c.read(announcementGateProvider).holds(a))
-      .map((a) => a.id)
-      .toList();
+  bool dot() => c.read(hasUnreadAnnouncementsProvider);
+
+  List<String>? visibleIds() {
+    final list = c.read(announcementsProvider).value;
+    if (list == null) return null;
+    return c
+        .read(announcementGateProvider)
+        .visible(list)
+        .map((a) => a.id)
+        .toList();
+  }
+
+  Future<void> publish(List<Announcement> newestFirst) async {
+    repo.latest.add(newestFirst.first);
+    repo.recent.add(newestFirst);
+    await _settle();
+  }
+
+  final seenA1 = {'announcements_seen_v1': a1.sentAt.millisecondsSinceEpoch};
 
   group('bell dot', () {
     test('no dot while there are no announcements', () async {
-      await start();
-      repo.server(null);
+      await start({});
+      repo.latest.add(null);
       await _settle();
-      expect(c.read(hasUnreadAnnouncementsProvider), isFalse);
+      expect(dot(), isFalse);
     });
 
     test('shows for an unseen announcement, clears once seen', () async {
-      await start();
-      repo.server(a1);
-      await _settle();
-      expect(c.read(hasUnreadAnnouncementsProvider), isTrue);
+      await start({});
+      await publish([a1]);
+      expect(dot(), isTrue);
 
-      await c.read(announcementsSeenProvider.notifier).markSeen(t1);
-      expect(c.read(hasUnreadAnnouncementsProvider), isFalse);
+      await c.read(announcementsSeenProvider.notifier).markSeen(a1.sentAt);
+      expect(dot(), isFalse);
     });
 
     test('seen time persists and never moves backwards', () async {
-      await start({'announcements_seen_v1': t2.millisecondsSinceEpoch});
-      expect(c.read(announcementsSeenProvider), t2);
-      await c.read(announcementsSeenProvider.notifier).markSeen(t1);
-      expect(c.read(announcementsSeenProvider), t2);
+      await start({'announcements_seen_v1': a2.sentAt.millisecondsSinceEpoch});
+      expect(c.read(announcementsSeenProvider), a2.sentAt);
+      await c.read(announcementsSeenProvider.notifier).markSeen(a1.sentAt);
+      expect(c.read(announcementsSeenProvider), a2.sentAt);
     });
   });
 
-  group('gate', () {
-    test('sent while the app is open: hidden until its push arrives',
+  group('waits for the push', () {
+    test('a fresh one stays hidden until its push arrives', () async {
+      await start(seenA1);
+      await publish([a2, a1]);
+      expect(dot(), isFalse);
+      expect(visibleIds(), ['1']);
+
+      push.arrive('2');
+      await _settle();
+      expect(dot(), isTrue);
+      expect(visibleIds(), ['2', '1']);
+    });
+
+    test('also when the app opens while the push is still on its way',
         () async {
-      await start({'announcements_seen_v1': t1.millisecondsSinceEpoch});
-      repo.server(a1);
-      repo.recent.add([a1]);
-      await _settle();
-      expect(c.read(hasUnreadAnnouncementsProvider), isFalse);
+      // What slipped through before: the app opened just after the send.
+      await start(seenA1);
+      await publish([a2, a1]);
+      await c.read(announcementGateProvider.notifier).refresh();
+      expect(visibleIds(), ['1']);
+      expect(dot(), isFalse);
+    });
 
-      // Firestore learns of it first: still nothing in the app.
-      repo.server(a2);
-      repo.recent.add([a2, a1]);
-      await _settle();
-      expect(c.read(hasUnreadAnnouncementsProvider), isFalse);
+    test('a push that came while the app was away is found in the tray',
+        () async {
+      await start(seenA1);
+      await publish([a2, a1]);
+      push.tray = {deliveryKey('T2', 'B2')};
+      await c.read(announcementGateProvider.notifier).refresh();
+      expect(visibleIds(), ['2', '1']);
+      expect(dot(), isTrue);
+    });
+
+    test('a push that opened the app counts as arrived', () async {
+      await start(seenA1, arrivedBefore: {'2'});
+      await publish([a2, a1]);
+      expect(visibleIds(), ['2', '1']);
+    });
+
+    test('old ones never wait', () async {
+      await start({});
+      await publish([a1]);
+      expect(visibleIds(), ['1']);
+    });
+
+    test('shows anyway once the backstop passes without a push', () async {
+      await start(seenA1);
+      await publish([a2, a1]);
       expect(visibleIds(), ['1']);
 
-      // The push lands: dot and list update together.
-      arrivals.add('2');
-      await _settle();
-      expect(c.read(hasUnreadAnnouncementsProvider), isTrue);
+      clock = a2.sentAt.add(announcementPushGrace);
+      await c.read(announcementGateProvider.notifier).refresh();
       expect(visibleIds(), ['2', '1']);
-    });
-
-    test('push arriving before Firestore shows it straight away', () async {
-      await start({'announcements_seen_v1': t1.millisecondsSinceEpoch});
-      repo.server(a1);
-      await _settle();
-
-      arrivals.add('2');
-      await _settle();
-      repo.server(a2);
-      repo.recent.add([a2, a1]);
-      await _settle();
-      expect(c.read(hasUnreadAnnouncementsProvider), isTrue);
-      expect(visibleIds(), ['2', '1']);
-    });
-
-    test('sent while the app was closed is never held', () async {
-      await start({'announcements_seen_v1': t1.millisecondsSinceEpoch});
-      // Stale cache first, then the server reports the newer one.
-      repo.cache(a1);
-      await _settle();
-      repo.server(a2);
-      repo.recent.add([a2, a1]);
-      await _settle();
-      expect(c.read(hasUnreadAnnouncementsProvider), isTrue);
-      expect(visibleIds(), ['2', '1']);
-    });
-
-    test('returning from the background releases what is held', () async {
-      await start({'announcements_seen_v1': t1.millisecondsSinceEpoch});
-      repo.server(a1);
-      await _settle();
-      repo.server(a2);
-      repo.recent.add([a2, a1]);
-      await _settle();
-      expect(visibleIds(), ['1']);
-      final listensBefore = repo.latestListens;
-
-      // Background and back, one legal step at a time.
-      final binding = TestWidgetsFlutterBinding.instance;
-      for (final state in const [
-        AppLifecycleState.resumed,
-        AppLifecycleState.inactive,
-        AppLifecycleState.hidden,
-        AppLifecycleState.paused,
-        AppLifecycleState.hidden,
-        AppLifecycleState.inactive,
-        AppLifecycleState.resumed,
-      ]) {
-        binding.handleAppLifecycleStateChanged(state);
-      }
-      await _settle();
-
-      // Listens afresh and nothing is held until a new baseline exists.
-      expect(repo.latestListens, listensBefore + 1);
-      expect(visibleIds(), ['2', '1']);
-      repo.server(a2);
-      await _settle();
-      expect(visibleIds(), ['2', '1']);
-      expect(c.read(hasUnreadAnnouncementsProvider), isTrue);
+      expect(dot(), isTrue);
     });
   });
 
@@ -198,7 +208,10 @@ void main() {
         ProviderScope(
           overrides: [
             sharedPreferencesProvider.overrideWithValue(prefs),
+            initialSettingsProvider.overrideWithValue(AppSettings.defaults),
+            initialActiveIdProvider.overrideWithValue(null),
             announcementsRepositoryProvider.overrideWithValue(repo),
+            announcementClockProvider.overrideWithValue(() => t0),
           ],
           child: Consumer(
             builder: (context, ref, _) {
@@ -211,18 +224,32 @@ void main() {
       return (container, repo, prefs);
     }
 
+    final old = _a('0', DateTime(2026, 10, 7, 9));
+
     testWidgets('lists announcements and marks them seen', (tester) async {
       final (container, repo, prefs) = await pump(tester, {
-        'announcements_seen_v1': t1.millisecondsSinceEpoch,
+        'announcements_seen_v1': old.sentAt.millisecondsSinceEpoch,
       });
-      repo.recent.add([a2, a1]);
+      repo.recent.add([a1, old]);
       await tester.pump();
       await tester.pump();
 
-      expect(find.text('T2'), findsOneWidget);
-      expect(find.text('B1'), findsOneWidget);
-      expect(container.read(announcementsSeenProvider), t2);
-      expect(prefs.getInt('announcements_seen_v1'), t2.millisecondsSinceEpoch);
+      expect(find.text('T1'), findsOneWidget);
+      expect(find.text('B0'), findsOneWidget);
+      expect(container.read(announcementsSeenProvider), a1.sentAt);
+      expect(
+        prefs.getInt('announcements_seen_v1'),
+        a1.sentAt.millisecondsSinceEpoch,
+      );
+    });
+
+    testWidgets('leaves out one still waiting for its push', (tester) async {
+      final (_, repo, _) = await pump(tester, {});
+      repo.recent.add([a2, a1]);
+      await tester.pump();
+      await tester.pump();
+      expect(find.text('T2'), findsNothing);
+      expect(find.text('T1'), findsOneWidget);
     });
 
     testWidgets('shows the empty state', (tester) async {

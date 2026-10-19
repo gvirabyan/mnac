@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Mnac</string>
+    <!-- Widget placeholders until the app first writes its own labels. -->
+    <string name="widget_days_unit">" days"</string>
+    <string name="widget_until_home">until home</string>
+</resources>

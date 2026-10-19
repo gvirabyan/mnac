@@ -91,7 +91,7 @@ class _ShareCardScreenState extends State<ShareCardScreen> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text(AppStrings.shareFailed)),
+          SnackBar(content: Text(AppStrings.shareFailed)),
         );
       }
     } finally {
@@ -102,7 +102,7 @@ class _ShareCardScreenState extends State<ShareCardScreen> {
   @override
   Widget build(BuildContext context) {
     return GradientScaffold(
-      appBar: AppBar(title: const Text(AppStrings.shareTitle)),
+      appBar: AppBar(title: Text(AppStrings.shareTitle)),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(AppSizes.screenPadding),
@@ -149,7 +149,7 @@ class _ShareCardScreenState extends State<ShareCardScreen> {
                     onPressed: _busy ? null : _share,
                     icon: const Icon(Icons.ios_share_rounded,
                         size: AppSizes.iconSm),
-                    label: const Text(AppStrings.shareButton),
+                    label: Text(AppStrings.shareButton),
                   ),
                 ),
               ] else

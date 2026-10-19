@@ -68,7 +68,7 @@ class _SoldierSwitcherSheet extends ConsumerWidget {
                       .push(appPageRoute(const SoldierFormScreen()));
                 },
                 icon: const Icon(Icons.person_add_alt_1_rounded),
-                label: const Text(AppStrings.soldiersAdd),
+                label: Text(AppStrings.soldiersAdd),
               ),
             ),
           ],
@@ -88,19 +88,19 @@ class _SoldierRow extends ConsumerWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text(AppStrings.soldierDeleteTitle),
-        content: const Text(AppStrings.soldierDeleteBody),
+        title: Text(AppStrings.soldierDeleteTitle),
+        content: Text(AppStrings.soldierDeleteBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text(AppStrings.cancel),
+            child: Text(AppStrings.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: FilledButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.error,
             ),
-            child: const Text(AppStrings.delete),
+            child: Text(AppStrings.delete),
           ),
         ],
       ),

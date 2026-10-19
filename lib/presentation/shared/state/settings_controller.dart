@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/di/providers.dart';
+import '../../../core/l10n/app_language.dart';
+import '../../../core/l10n/app_strings.dart';
 import '../../../domain/entities/app_settings.dart';
 
 /// Holds the live [AppSettings] and persists changes.
@@ -19,6 +21,7 @@ class SettingsController extends Notifier<AppSettings> {
         () => ref.read(settingsRepositoryProvider).save(migrated),
       );
     }
+    AppStrings.language = migrated.language;
     return migrated;
   }
 
@@ -43,12 +46,16 @@ class SettingsController extends Notifier<AppSettings> {
   }
 
   Future<void> _persist(AppSettings next) async {
+    AppStrings.language = next.language;
     state = next;
     await ref.read(settingsRepositoryProvider).save(next);
   }
 
   Future<void> update(AppSettings Function(AppSettings current) transform) =>
       _persist(transform(state));
+
+  Future<void> setLanguage(AppLanguage language) =>
+      _persist(state.copyWith(language: language));
 
   Future<void> setThemeMode(AppThemeMode mode) =>
       _persist(state.copyWith(themeMode: mode));
@@ -79,11 +86,15 @@ class SettingsController extends Notifier<AppSettings> {
 
   /// Re-reads settings from storage (used after a restore).
   Future<void> reload() async {
-    state = await ref.read(settingsRepositoryProvider).load();
+    final next = await ref.read(settingsRepositoryProvider).load();
+    AppStrings.language = next.language;
+    state = next;
   }
 
-  /// Resets settings to defaults (used by the app reset flow).
-  Future<void> resetToDefaults() => _persist(AppSettings.defaults);
+  /// Resets settings to defaults (used by the app reset flow). The language
+  /// stays: wiping the data is no reason to switch what the user reads.
+  Future<void> resetToDefaults() =>
+      _persist(AppSettings.defaults.copyWith(language: state.language));
 }
 
 final settingsControllerProvider =

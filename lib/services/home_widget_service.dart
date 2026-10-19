@@ -64,10 +64,11 @@ class HomeWidgetService {
         items.add({
           'title': soldier.name ?? AppStrings.appName,
           'days': '${progress.daysRemaining}',
-          'percent': '${AppStrings.homeServedSoFar}՝ ${progress.percentInt}%',
+          'percent': AppStrings.labeled(
+              AppStrings.homeServedSoFar, '${progress.percentInt}%'),
           'discharge':
-              '${AppStrings.homeDischargeDate}՝ '
-              '${AppDateUtils.formatLong(progress.end)}',
+              AppStrings.labeled(AppStrings.homeDischargeDate,
+              AppDateUtils.formatLong(progress.end)),
           'photoPath': photoPath,
         });
       }
@@ -75,6 +76,15 @@ class HomeWidgetService {
       await HomeWidget.saveWidgetData<String>(
         'widget_soldiers',
         jsonEncode(items),
+      );
+      // The widget's own fixed text, in the app's language.
+      await HomeWidget.saveWidgetData<String>(
+        'widget_labels',
+        jsonEncode({
+          'appName': AppStrings.appName,
+          'daysUnit': AppStrings.widgetDaysUnit,
+          'untilHome': AppStrings.widgetUntilHome,
+        }),
       );
       await HomeWidget.updateWidget(
         androidName: _androidProvider,

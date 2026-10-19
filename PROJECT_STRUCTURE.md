@@ -48,7 +48,7 @@
   - `epochDayProvider` (day ordinal, re-emits at local midnight), **`quoteOfTheDayProvider`** (deterministic quote-of-the-day; advances at 00:00) — used by `QuoteBanner`
 - **Milestones** — `presentation/milestones/milestones_controller.dart`
   - `milestonesProvider` (list), `pendingCelebrationProvider` (int? threshold to celebrate)
-- **Push history** — `announcementsRepositoryProvider` (DI) → `announcementsProvider` (autoDispose, up to 50 docs, unfiltered — history screen only, filter via `gate.visible`), **`announcementGateProvider`** (`AnnouncementGate`: holds an announcement sent while the app is open until its push arrives via `announcementArrivalsProvider` ← `PushService.announcementArrivals`; baseline = server-confirmed newest at launch / return from background; watches 1 doc), `announcementsSeenProvider` (prefs `announcements_seen_v1`), `hasUnreadAnnouncementsProvider` (bell dot)
+- **Push history** — `announcementsRepositoryProvider` (DI) → `announcementsProvider` (autoDispose, up to 50 docs, unfiltered — history screen only, filter via `gate.visible`), **`announcementGateProvider`** (`AnnouncementGate`: hides a fresh announcement until its push is seen on this device — arrived in the open app / tapped (`PushService` via `pushArrivalsProvider`) / found in the system tray (checked at launch + every resume); backstop `announcementPushGrace` = 10 min after send; watches 1 doc), `announcementsSeenProvider` (prefs `announcements_seen_v1`), `hasUnreadAnnouncementsProvider` (bell dot)
 - **Services** — `notificationServiceProvider` (overridden in main with initialized instance), `imageStorageServiceProvider`
 
 ---

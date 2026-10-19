@@ -16,8 +16,7 @@ class _NoAnnouncements implements AnnouncementsRepository {
       Stream.value(const []);
 
   @override
-  Stream<LatestAnnouncement> watchLatest() =>
-      Stream.value(const LatestAnnouncement(null, isConfirmed: true));
+  Stream<Announcement?> watchLatest() => Stream.value(null);
 }
 
 void main() {

@@ -1,13 +1,14 @@
-import 'dart:convert';
+import 'dart:ui';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app/app.dart';
 import 'core/di/providers.dart';
+import 'core/l10n/app_language.dart';
+import 'core/l10n/app_strings.dart';
 import 'core/utils/app_files.dart';
 import 'data/datasources/local_prefs_data_source.dart';
 import 'data/repositories/settings_repository_impl.dart';
@@ -30,9 +31,20 @@ Future<void> main() async {
   final prefs = await SharedPreferences.getInstance();
   await AppFiles.init();
   final dataSource = LocalPrefsDataSource(prefs);
-  final settings = await SettingsRepositoryImpl(dataSource).load();
+  final settingsRepo = SettingsRepositoryImpl(dataSource);
+  // Nothing saved yet means a fresh install, which follows the phone's
+  // language rather than the Armenian default of [AppSettings].
+  final isFreshInstall = dataSource.readSettingsJson() == null;
+  var settings = await settingsRepo.load();
+  if (isFreshInstall) {
+    settings = settings.copyWith(
+      language: AppLanguage.fromLocales(PlatformDispatcher.instance.locales),
+    );
+  }
   final soldiersRepo = SoldiersRepositoryImpl(dataSource);
   final soldiers = await soldiersRepo.loadAll();
+
+  AppStrings.language = settings.language;
   final activeId = await soldiersRepo.loadActiveId();
 
   final notifications = NotificationService();
@@ -55,10 +67,7 @@ Future<void> main() async {
   // Guarded so a malformed asset degrades to lazy loading instead of crashing.
   List<String>? quotes;
   try {
-    final quotesRaw = await rootBundle.loadString(
-      'assets/quotes/quotes_hy.json',
-    );
-    quotes = (jsonDecode(quotesRaw) as List).cast<String>();
+    quotes = await loadQuotes(settings.language);
   } catch (_) {
     quotes = null;
   }
@@ -72,11 +81,12 @@ Future<void> main() async {
         initialActiveIdProvider.overrideWithValue(activeId),
         notificationServiceProvider.overrideWithValue(notifications),
         pushServiceProvider.overrideWithValue(push),
-        announcementArrivalsProvider.overrideWithValue(
-          push.announcementArrivals,
-        ),
+        pushArrivalsProvider.overrideWithValue(push),
         interstitialAdServiceProvider.overrideWithValue(interstitialAds),
-        if (quotes != null) quotesProvider.overrideWith((ref) => quotes!),
+        if (quotes != null)
+          preloadedQuotesProvider.overrideWithValue(
+            (language: settings.language, quotes: quotes),
+          ),
       ],
       child: const DepiTunApp(),
     ),

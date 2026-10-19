@@ -1,13 +1,27 @@
 import 'package:intl/intl.dart';
 
-/// Date formatting helpers using the Armenian locale.
+import '../l10n/app_language.dart';
+import '../l10n/app_strings.dart';
+
+/// Date formatting helpers in the app's current language.
 abstract final class AppDateUtils {
   AppDateUtils._();
 
-  static const String locale = 'hy';
+  /// Month names (nominative) in the current language.
+  static List<String> get monthNames => switch (AppStrings.language) {
+        AppLanguage.hy => _monthsHy,
+        AppLanguage.ru => _monthsRu,
+        AppLanguage.en => _monthsEn,
+      };
 
-  /// Armenian month names (nominative).
-  static const List<String> monthNames = [
+  /// Short weekday names, Monday-first, in the current language.
+  static List<String> get weekdayShort => switch (AppStrings.language) {
+        AppLanguage.hy => _weekdaysHy,
+        AppLanguage.ru => const ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
+        AppLanguage.en => const ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+      };
+
+  static const List<String> _monthsHy = [
     'Հունվար',
     'Փետրվար',
     'Մարտ',
@@ -22,8 +36,23 @@ abstract final class AppDateUtils {
     'Դեկտեմբեր',
   ];
 
-  /// Short Armenian weekday names, Monday-first.
-  static const List<String> weekdayShort = [
+  static const List<String> _monthsRu = [
+    'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+    'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь',
+  ];
+
+  /// Russian months after a day number: "5 марта".
+  static const List<String> _monthsRuGenitive = [
+    'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
+    'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря',
+  ];
+
+  static const List<String> _monthsEn = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
+  ];
+
+  static const List<String> _weekdaysHy = [
     'Երկ',
     'Երք',
     'Չրք',
@@ -47,9 +76,13 @@ abstract final class AppDateUtils {
     return DateTime(year, month, day, date.hour, date.minute, date.second);
   }
 
-  /// e.g. "5 Մարտ 2026".
-  static String formatLong(DateTime d) =>
-      '${d.day} ${monthNames[d.month - 1]} ${d.year}';
+  /// e.g. "5 Մարտ 2026", "5 марта 2026", "5 March 2026".
+  static String formatLong(DateTime d) {
+    final month = AppStrings.language == AppLanguage.ru
+        ? _monthsRuGenitive[d.month - 1]
+        : monthNames[d.month - 1];
+    return '${d.day} $month ${d.year}';
+  }
 
   /// e.g. "Մարտ 2026".
   static String formatMonthYear(DateTime d) =>

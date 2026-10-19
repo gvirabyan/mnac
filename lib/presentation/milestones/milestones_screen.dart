@@ -18,7 +18,7 @@ class MilestonesScreen extends ConsumerWidget {
     final milestones = ref.watch(milestonesProvider);
 
     return GradientScaffold(
-      appBar: AppBar(title: const Text(AppStrings.milestonesTitle)),
+      appBar: AppBar(title: Text(AppStrings.milestonesTitle)),
       body: milestones.isEmpty
           ? const AppLoading()
           : ListView.separated(

@@ -1,16 +1,24 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../core/l10n/app_language.dart';
+import '../core/l10n/app_strings.dart';
 
 /// Loads and shows full-screen interstitial ads on app open.
 ///
 /// Shows on every launch, including the first. The ad is preloaded ahead of
 /// time via [preload] so [maybeShowOnLaunch] can show it immediately,
 /// instead of stalling on a network load.
+///
+/// Never while the app is in Armenian: Google's publisher policies forbid ads
+/// on screens whose content is in an unsupported language, and Armenian is
+/// one. Checked both before the request and again before showing, so a
+/// language switch during the launch delay is respected either way.
 class InterstitialAdService {
   InterstitialAdService(this._prefs);
 
@@ -52,6 +60,10 @@ class InterstitialAdService {
   static String get _adUnitId =>
       Platform.isIOS ? _iosAdUnitId : _androidAdUnitId;
 
+  /// False while the app is in Armenian; nothing ad-related may run then,
+  /// the SDK's own start-up included.
+  static bool get adsAllowed => AppStrings.language != AppLanguage.hy;
+
   InterstitialAd? _ad;
   bool _loading = false;
 
@@ -63,6 +75,10 @@ class InterstitialAdService {
   /// [maybeShowOnLaunch] needs it. Safe to call repeatedly (no-op while a
   /// load is in flight or an ad is already cached).
   void preload() {
+    if (!adsAllowed) {
+      debugPrint('[ADS] no request: app is in Armenian'); // TEMP
+      return;
+    }
     if (_loading || _ad != null) return;
     _loading = true;
     _loadSettled = Completer<void>();
@@ -75,13 +91,17 @@ class InterstitialAdService {
           _ad = ad;
           _loading = false;
           // Which network actually filled the request. With mediation on this
-          // is the only way to tell an AdMob-served ad from a Unity-served one
-          // — the Unity adapter reports a class name containing "Unity".
+          // is the only way to tell an AdMob-served ad from a Unity- or
+          // InMobi-served one — each adapter's class name carries its network.
           final adapter =
               ad.responseInfo?.mediationAdapterClassName ?? 'unknown adapter';
+          debugPrint('[ADS] loaded by $adapter'); // TEMP
+          _logNetworks(ad.responseInfo); // TEMP
           if (!settled.isCompleted) settled.complete();
         },
         onAdFailedToLoad: (error) {
+          debugPrint('[ADS] load failed: ${error.code} ${error.message}'); // TEMP
+          _logNetworks(error.responseInfo); // TEMP
           _loading = false;
           // Code 3 is "no fill" — the request itself was fine, nobody had an
           // ad to serve at the configured floor. That distinguishes a broken
@@ -90,6 +110,16 @@ class InterstitialAdService {
         },
       ),
     );
+  }
+
+  // TEMP: mediation check — remove. One line per network AdMob tried, in
+  // order, with what each answered.
+  static void _logNetworks(ResponseInfo? info) {
+    for (final r in info?.adapterResponses ?? const <AdapterResponseInfo>[]) {
+      debugPrint('[ADS]   ${r.adSourceName} (${r.adapterClassName}): '
+          '${r.adError == null ? 'filled' : 'error ${r.adError!.code} ${r.adError!.message}'}'
+          ' ${r.latencyMillis}ms');
+    }
   }
 
   /// Bumps the launch counter and, if this launch lands on the cadence and a
@@ -114,6 +144,10 @@ class InterstitialAdService {
       return;
     }
     _ad = null;
+    if (!adsAllowed) {
+      ad.dispose();
+      return;
+    }
 
     // No preload for a next ad here: one ad per launch, and the next launch
     // starts a fresh process that loads its own, so an ad fetched now would

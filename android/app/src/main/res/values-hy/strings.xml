@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Մնաց</string>
+    <string name="widget_days_unit">" օր"</string>
+    <string name="widget_until_home">մինչև տուն</string>
+</resources>

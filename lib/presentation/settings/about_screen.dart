@@ -56,7 +56,7 @@ class AboutScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     return GradientScaffold(
-      appBar: AppBar(title: const Text(AppStrings.settingsAbout)),
+      appBar: AppBar(title: Text(AppStrings.settingsAbout)),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(
           AppSizes.screenPadding,
@@ -83,7 +83,7 @@ class AboutScreen extends ConsumerWidget {
                     return GestureDetector(
                       onLongPress: () => _showPushDiagnostics(context, ref),
                       child: Text(
-                        '${AppStrings.aboutVersionLabel}՝ $version',
+                        AppStrings.labeled(AppStrings.aboutVersionLabel, version),
                         style: theme.textTheme.bodySmall,
                       ),
                     );
@@ -93,7 +93,7 @@ class AboutScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: AppSizes.xl),
-          const SectionHeader(title: AppStrings.settingsPrivacy),
+          SectionHeader(title: AppStrings.settingsPrivacy),
           const SizedBox(height: AppSizes.md),
           GlassCard(
             child: Text(AppStrings.privacyBody, style: theme.textTheme.bodyMedium),

@@ -10,6 +10,7 @@ import '../../services/home_widget_service.dart';
 import '../../services/interstitial_ad_service.dart';
 import '../../services/notification_service.dart';
 import '../../services/push_service.dart';
+import '../../services/rate_app_service.dart';
 import '../calendar/calendar_screen.dart';
 import '../home/home_controller.dart';
 import '../home/home_screen.dart';
@@ -39,6 +40,10 @@ class _MainShellState extends ConsumerState<MainShell>
   int _index = 0;
   bool _celebrating = false;
 
+  /// Set once a milestone has been shown this launch, so the rating ask
+  /// does not pile a second dialog onto it.
+  bool _celebratedThisLaunch = false;
+
   static const _screens = [
     HomeScreen(),
     StatisticsScreen(),
@@ -54,11 +59,18 @@ class _MainShellState extends ConsumerState<MainShell>
       _syncBackground();
       // Cold-start only — deliberately not repeated on resume, so the ad
       // cadence tracks app opens rather than every foreground/background flip.
-      // The milestone dialog waits for the ad to be done with the screen.
+      // The milestone dialog waits for the ad to be done with the screen,
+      // and the rating ask for both.
+      final rating = ref.read(rateAppServiceProvider);
+      final launchRecorded = rating.recordLaunch();
       ref
           .read(interstitialAdServiceProvider)
           .maybeShowOnLaunch()
-          .whenComplete(_maybeShowTodaysMilestone);
+          .whenComplete(() async {
+        await _maybeShowTodaysMilestone();
+        await launchRecorded;
+        await _maybeAskForRating();
+      });
     });
   }
 
@@ -167,6 +179,7 @@ class _MainShellState extends ConsumerState<MainShell>
   }) async {
     if (_celebrating) return;
     _celebrating = true;
+    _celebratedThisLaunch = true;
 
     // Persist every milestone currently unlocked, not just the one being
     // celebrated: several can land on the same day, and the rest would
@@ -195,6 +208,40 @@ class _MainShellState extends ConsumerState<MainShell>
       alreadyReached: alreadyReached,
     );
     _celebrating = false;
+  }
+
+  /// Asks for a store rating when [RateAppService] says it is time.
+  Future<void> _maybeAskForRating() async {
+    if (_celebratedThisLaunch || _celebrating || !mounted) return;
+    final rating = ref.read(rateAppServiceProvider);
+    if (!rating.shouldAsk) return;
+
+    await rating.markAsked();
+    if (!rating.usesOwnDialog) {
+      await rating.requestSystemReview();
+      return;
+    }
+    if (!mounted) return;
+    final rate = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            icon: const Icon(Icons.star_rounded),
+            title: Text(AppStrings.rateTitle),
+            content: Text(AppStrings.rateBody),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: Text(AppStrings.rateLater),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: Text(AppStrings.rateNow),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (rate) await rating.rate();
   }
 
   /// Identifies one showing: this milestone, for this soldier, today.
@@ -250,6 +297,16 @@ class _MainShellState extends ConsumerState<MainShell>
       (_, _) => _syncBackground(),
     );
 
+    // A language switch brings new quotes; once they are in, the reminders
+    // and the home widget are rewritten in the new language.
+    ref.listen(quotesProvider, (previous, next) {
+      if (next.hasValue && previous?.value != next.value) _syncBackground();
+    });
+    // Pushes come per language, so a switch moves the user to that topic.
+    ref.listen(settingsControllerProvider.select((s) => s.language), (_, _) {
+      unawaited(ref.read(pushServiceProvider).ensureSubscribed());
+    });
+
     // Hide the navigation bar while the home screen is in immersive mode.
     final immersive = ref.watch(immersiveProvider);
 
@@ -262,7 +319,7 @@ class _MainShellState extends ConsumerState<MainShell>
           : GlassNavBar(
               currentIndex: _index,
               onTap: (i) => setState(() => _index = i),
-              items: const [
+              items: [
                 GlassNavItem(
                   icon: Icons.home_outlined,
                   selectedIcon: Icons.home_rounded,

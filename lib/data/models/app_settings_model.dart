@@ -1,3 +1,4 @@
+import '../../core/l10n/app_language.dart';
 import '../../core/utils/app_files.dart';
 import '../../domain/entities/app_settings.dart';
 
@@ -9,6 +10,7 @@ class AppSettingsModel {
 
   Map<String, dynamic> toJson() => {
         'themeMode': settings.themeMode.id,
+        'language': settings.language.id,
         'accentColorId': settings.accentColorId,
         'fontScaleId': settings.fontScaleId,
         'animationLevel': settings.animationLevel.id,
@@ -60,6 +62,10 @@ class AppSettingsModel {
     return AppSettingsModel(
       AppSettings(
         themeMode: AppThemeMode.fromId(json['themeMode'] as String?),
+        // Settings saved before the app was translated belong to someone
+        // who has been using it in Armenian.
+        language: AppLanguage.tryFromId(json['language'] as String?) ??
+            AppLanguage.hy,
         accentColorId: json['accentColorId'] as String? ?? 'apricot',
         fontScaleId: json['fontScaleId'] as String? ?? 'medium',
         animationLevel: AnimationLevel.fromId(json['animationLevel'] as String?),

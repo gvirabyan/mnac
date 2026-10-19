@@ -25,7 +25,11 @@ class ComputeServiceProgress {
 
     final daysServed =
         cappedNow.difference(start).inDays.clamp(0, totalDays);
-    final daysRemaining = (totalDays - daysServed).clamp(0, totalDays);
+    // Whole days still ahead, rounded down like the home countdown: with
+    // 104 days and 11 hours to go this is 104, not 105. Served + remaining is
+    // therefore one short of the total for most of the day.
+    final daysRemaining =
+        end.difference(cappedNow).inDays.clamp(0, totalDays);
 
     return ServiceProgress(
       start: start,

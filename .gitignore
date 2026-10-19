@@ -54,3 +54,6 @@ functions/node_modules/
 
 # Firebase service account keys - full admin access, never committed
 tool/*firebase-adminsdk*.json
+
+# Fonts downloaded for store screenshots (tool/fetch_store_fonts.py)
+tool/.cache/

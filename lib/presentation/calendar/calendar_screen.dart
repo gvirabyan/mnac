@@ -44,9 +44,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     }
 
     return GradientScaffold(
-      appBar: AppBar(title: const Text(AppStrings.calendarTitle)),
+      appBar: AppBar(title: Text(AppStrings.calendarTitle)),
       body: profile == null
-          ? const EmptyState(
+          ? EmptyState(
               icon: Icons.calendar_today_outlined,
               title: AppStrings.homeNoSoldierTitle,
               subtitle: AppStrings.homeNoSoldierSubtitle,

@@ -26,6 +26,17 @@ void main() {
     expect(progress.isComplete, isFalse);
   });
 
+  test('days remaining rounds down partial days, matching the countdown', () {
+    final start = DateTime(2025, 1, 23);
+    final p = profile(start: start); // ends 2027-01-23 00:00
+
+    expect(compute(p, DateTime(2026, 10, 10)).daysRemaining, 105);
+    expect(compute(p, DateTime(2026, 10, 10, 22, 12)).daysRemaining, 104);
+    expect(compute(p, DateTime(2026, 10, 10, 22, 12)).daysServed, 625);
+    expect(compute(p, DateTime(2027, 1, 22, 10)).daysRemaining, 0);
+    expect(compute(p, DateTime(2027, 1, 22)).daysRemaining, 1);
+  });
+
   test('before start clamps to zero progress', () {
     final now = DateTime(2026, 1, 1);
     final start = now.add(const Duration(days: 10));

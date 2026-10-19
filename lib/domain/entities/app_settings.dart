@@ -1,3 +1,5 @@
+import '../../core/l10n/app_language.dart';
+
 /// How the app resolves light/dark appearance.
 enum AppThemeMode {
   system('system'),
@@ -31,6 +33,7 @@ enum AnimationLevel {
 class AppSettings {
   const AppSettings({
     this.themeMode = AppThemeMode.system,
+    this.language = AppLanguage.hy,
     this.accentColorId = 'apricot',
     this.fontScaleId = 'medium',
     this.animationLevel = AnimationLevel.full,
@@ -43,6 +46,10 @@ class AppSettings {
   });
 
   final AppThemeMode themeMode;
+
+  /// UI language. A fresh install starts from the phone's language (see
+  /// main); after that it only changes when the user picks another.
+  final AppLanguage language;
   final String accentColorId;
   final String fontScaleId;
   final AnimationLevel animationLevel;
@@ -76,6 +83,7 @@ class AppSettings {
 
   AppSettings copyWith({
     AppThemeMode? themeMode,
+    AppLanguage? language,
     String? accentColorId,
     String? fontScaleId,
     AnimationLevel? animationLevel,
@@ -89,6 +97,7 @@ class AppSettings {
   }) {
     return AppSettings(
       themeMode: themeMode ?? this.themeMode,
+      language: language ?? this.language,
       accentColorId: accentColorId ?? this.accentColorId,
       fontScaleId: fontScaleId ?? this.fontScaleId,
       animationLevel: animationLevel ?? this.animationLevel,

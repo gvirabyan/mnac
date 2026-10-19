@@ -53,9 +53,9 @@ class _AnnouncementsScreenState extends ConsumerState<AnnouncementsScreen> {
     final announcements = ref.watch(announcementsProvider).whenData(gate.visible);
 
     return GradientScaffold(
-      appBar: AppBar(title: const Text(AppStrings.announcementsTitle)),
+      appBar: AppBar(title: Text(AppStrings.announcementsTitle)),
       body: switch (announcements) {
-        AsyncData(value: final list) when list.isEmpty => const EmptyState(
+        AsyncData(value: final list) when list.isEmpty => EmptyState(
           icon: Icons.notifications_none_rounded,
           title: AppStrings.announcementsEmpty,
           subtitle: AppStrings.announcementsEmptySubtitle,
@@ -78,7 +78,7 @@ class _AnnouncementsScreenState extends ConsumerState<AnnouncementsScreen> {
             );
           },
         ),
-        AsyncError() => const EmptyState(
+        AsyncError() => EmptyState(
           icon: Icons.cloud_off_rounded,
           title: AppStrings.announcementsError,
           subtitle: AppStrings.announcementsErrorSubtitle,
@@ -99,6 +99,9 @@ class _AnnouncementCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final sentAt = announcement.sentAt;
+    // Never null here: the gate keeps out announcements with no text in the
+    // app's language.
+    final text = announcement.textIn(AppStrings.language)!;
 
     return GlassCard(
       child: Column(
@@ -128,18 +131,18 @@ class _AnnouncementCard extends StatelessWidget {
               ),
             ],
           ),
-          if (announcement.title.isNotEmpty) ...[
+          if (text.title.isNotEmpty) ...[
             const SizedBox(height: AppSizes.sm),
             Text(
-              announcement.title,
+              text.title,
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
             ),
           ],
-          if (announcement.body.isNotEmpty) ...[
+          if (text.body.isNotEmpty) ...[
             const SizedBox(height: AppSizes.xs),
-            Text(announcement.body, style: theme.textTheme.bodyMedium),
+            Text(text.body, style: theme.textTheme.bodyMedium),
           ],
         ],
       ),

@@ -84,16 +84,16 @@ class _CartoonScreenState extends ConsumerState<CartoonScreen> {
     final consent = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text(AppStrings.cartoonTitle),
-        content: const Text(AppStrings.cartoonConsentBody),
+        title: Text(AppStrings.cartoonTitle),
+        content: Text(AppStrings.cartoonConsentBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text(AppStrings.cancel),
+            child: Text(AppStrings.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text(AppStrings.cartoonContinue),
+            child: Text(AppStrings.cartoonContinue),
           ),
         ],
       ),
@@ -136,7 +136,7 @@ class _CartoonScreenState extends ConsumerState<CartoonScreen> {
         .addOrUpdate(soldier.copyWith(photoPath: result));
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text(AppStrings.cartoonApplied)),
+      SnackBar(content: Text(AppStrings.cartoonApplied)),
     );
     Navigator.of(context).pop();
   }
@@ -156,7 +156,7 @@ class _CartoonScreenState extends ConsumerState<CartoonScreen> {
     final shown = hasResult && !_showOriginal ? _resultPath : _sourcePath;
 
     return GradientScaffold(
-      appBar: AppBar(title: const Text(AppStrings.cartoonTitle)),
+      appBar: AppBar(title: Text(AppStrings.cartoonTitle)),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(AppSizes.screenPadding),
@@ -186,7 +186,7 @@ class _CartoonScreenState extends ConsumerState<CartoonScreen> {
               const SizedBox(height: AppSizes.md),
               if (hasResult && !_busy) ...[
                 SegmentedButton<bool>(
-                  segments: const [
+                  segments: [
                     ButtonSegment(
                       value: true,
                       label: Text(AppStrings.cartoonOriginal),
@@ -214,7 +214,7 @@ class _CartoonScreenState extends ConsumerState<CartoonScreen> {
                         onPressed: _share,
                         icon: const Icon(Icons.ios_share_rounded,
                             size: AppSizes.iconSm),
-                        label: const Text(AppStrings.shareTitle),
+                        label: Text(AppStrings.shareTitle),
                       ),
                     ),
                     const SizedBox(width: AppSizes.sm),
@@ -223,7 +223,7 @@ class _CartoonScreenState extends ConsumerState<CartoonScreen> {
                         onPressed: _generate,
                         icon: const Icon(Icons.refresh_rounded,
                             size: AppSizes.iconSm),
-                        label: const Text(AppStrings.cartoonRetry),
+                        label: Text(AppStrings.cartoonRetry),
                       ),
                     ),
                   ],
@@ -247,7 +247,7 @@ class _CartoonScreenState extends ConsumerState<CartoonScreen> {
                     onPressed: _pickPhoto,
                     icon: const Icon(Icons.photo_library_outlined,
                         size: AppSizes.iconSm),
-                    label: const Text(AppStrings.cartoonOtherPhoto),
+                    label: Text(AppStrings.cartoonOtherPhoto),
                   ),
                 ),
               ],

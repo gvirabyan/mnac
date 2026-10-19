@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../app/router/app_router.dart';
 import '../../core/constants/app_sizes.dart';
 import '../../core/di/providers.dart';
+import '../../core/l10n/app_language.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../domain/entities/app_settings.dart';
 import '../../services/notification_service.dart';
@@ -20,7 +21,7 @@ import 'about_screen.dart';
 import 'widgets/option_segments.dart';
 import 'widgets/settings_tile.dart';
 
-/// Settings tab: theme, notifications, local backup/restore/reset,
+/// Settings tab: language, theme, notifications, local backup/restore/reset,
 /// privacy/about, and feedback.
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -67,19 +68,19 @@ class SettingsScreen extends ConsumerWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text(AppStrings.resetConfirmTitle),
-        content: const Text(AppStrings.resetConfirmBody),
+        title: Text(AppStrings.resetConfirmTitle),
+        content: Text(AppStrings.resetConfirmBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text(AppStrings.cancel),
+            child: Text(AppStrings.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: FilledButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.error,
             ),
-            child: const Text(AppStrings.delete),
+            child: Text(AppStrings.delete),
           ),
         ],
       ),
@@ -103,7 +104,7 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return GradientScaffold(
-      appBar: AppBar(title: const Text(AppStrings.settingsTitle)),
+      appBar: AppBar(title: Text(AppStrings.settingsTitle)),
       body: ListView(
         // Extra bottom inset so the last tile scrolls clear of the floating
         // glass nav bar (the shell uses extendBody: true).
@@ -114,6 +115,8 @@ class SettingsScreen extends ConsumerWidget {
           AppSizes.xxl + MediaQuery.paddingOf(context).bottom,
         ),
         children: [
+          const _LanguageGroup(),
+          const SizedBox(height: AppSizes.lg),
           const _ThemeGroup(),
           const SizedBox(height: AppSizes.lg),
           const _NotificationsGroup(),
@@ -188,10 +191,50 @@ class _ThemeGroup extends ConsumerWidget {
             selected: mode,
             onChanged:
                 ref.read(settingsControllerProvider.notifier).setThemeMode,
-            options: const [
+            options: [
               SegmentOption(AppThemeMode.system, AppStrings.persThemeSystem),
               SegmentOption(AppThemeMode.light, AppStrings.persThemeLight),
               SegmentOption(AppThemeMode.dark, AppStrings.persThemeDark),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Language picker. The choice is stored and kept from then on; only a fresh
+/// install follows the phone's language.
+class _LanguageGroup extends ConsumerWidget {
+  const _LanguageGroup();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final language =
+        ref.watch(settingsControllerProvider.select((s) => s.language));
+
+    return GlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.translate_rounded,
+                  color: theme.colorScheme.primary, size: AppSizes.iconMd),
+              const SizedBox(width: AppSizes.md),
+              Text(AppStrings.settingsLanguage,
+                  style: theme.textTheme.titleMedium),
+            ],
+          ),
+          const SizedBox(height: AppSizes.md),
+          OptionSegments<AppLanguage>(
+            selected: language,
+            onChanged:
+                ref.read(settingsControllerProvider.notifier).setLanguage,
+            options: [
+              for (final l in AppLanguage.values)
+                SegmentOption(l, AppStrings.languageName(l)),
             ],
           ),
         ],
@@ -300,16 +343,16 @@ class _NotificationsGroup extends ConsumerWidget {
     final open = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text(AppStrings.notifBlockedTitle),
-            content: const Text(AppStrings.notifBlockedBody),
+            title: Text(AppStrings.notifBlockedTitle),
+            content: Text(AppStrings.notifBlockedBody),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
-                child: const Text(AppStrings.cancel),
+                child: Text(AppStrings.cancel),
               ),
               FilledButton(
                 onPressed: () => Navigator.of(context).pop(true),
-                child: const Text(AppStrings.notifOpenSettings),
+                child: Text(AppStrings.notifOpenSettings),
               ),
             ],
           ),
@@ -329,7 +372,7 @@ class _NotificationsGroup extends ConsumerWidget {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
-        const SnackBar(content: Text(AppStrings.notifSettingsUnavailable)),
+        SnackBar(content: Text(AppStrings.notifSettingsUnavailable)),
       );
   }
 
@@ -346,7 +389,7 @@ class _NotificationsGroup extends ConsumerWidget {
           Icons.notifications_outlined,
           color: Theme.of(context).colorScheme.primary,
         ),
-        title: const Text(AppStrings.notifEnable),
+        title: Text(AppStrings.notifEnable),
         value: enabled,
         onChanged: (v) => _toggle(context, ref, v),
       ),

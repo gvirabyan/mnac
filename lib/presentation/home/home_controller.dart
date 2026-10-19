@@ -4,7 +4,9 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/di/providers.dart';
+import '../../core/l10n/app_language.dart';
 import '../../domain/entities/service_progress.dart';
+import '../shared/state/settings_controller.dart';
 import '../shared/state/soldiers_controller.dart';
 
 /// Emits the current time once per second to drive the live countdown.
@@ -27,10 +29,28 @@ final serviceProgressProvider = Provider.autoDispose<ServiceProgress?>((ref) {
   return ref.watch(computeServiceProgressProvider)(profile, now);
 });
 
-/// Loads the motivational Armenian quotes from the bundled asset once.
-final quotesProvider = FutureProvider<List<String>>((ref) async {
-  final raw = await rootBundle.loadString('assets/quotes/quotes_hy.json');
+/// Reads the motivational quotes for [language] from the bundled asset.
+Future<List<String>> loadQuotes(AppLanguage language) async {
+  final raw =
+      await rootBundle.loadString('assets/quotes/quotes_${language.id}.json');
   return (jsonDecode(raw) as List).cast<String>();
+}
+
+/// Quotes main() read before the first frame, so the home quote shows at
+/// once. Null when that failed.
+final preloadedQuotesProvider =
+    Provider<({AppLanguage language, List<String> quotes})?>((ref) => null);
+
+/// The motivational quotes in the current language. Returns the preloaded
+/// list synchronously when it matches, and loads the asset otherwise.
+final quotesProvider = FutureProvider<List<String>>((ref) {
+  final language =
+      ref.watch(settingsControllerProvider.select((s) => s.language));
+  final preloaded = ref.watch(preloadedQuotesProvider);
+  if (preloaded != null && preloaded.language == language) {
+    return preloaded.quotes;
+  }
+  return loadQuotes(language);
 });
 
 /// Ordinal of the current local day. Emits immediately, then re-emits just

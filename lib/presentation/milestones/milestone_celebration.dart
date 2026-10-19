@@ -225,7 +225,7 @@ class _MilestoneCelebrationState extends ConsumerState<_MilestoneCelebration> {
                   const SizedBox(height: AppSizes.xxs),
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    child: const Text(AppStrings.milestoneClose),
+                    child: Text(AppStrings.milestoneClose),
                   ),
                 ],
               ),

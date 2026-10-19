@@ -31,8 +31,6 @@ class NotificationService {
   bool _initialized = false;
 
   static const String _channelId = 'depitun_reminders';
-  static const String _channelName = 'Հիշեցումներ';
-  static const String _channelDesc = 'Մնաց հիշեցումներ';
 
   static const int _dailyBase = 1000;
   static const int _dailyWindow = 60; // reserved id range to cancel
@@ -75,10 +73,10 @@ class NotificationService {
           .resolvePlatformSpecificImplementation<
               AndroidFlutterLocalNotificationsPlugin>()
           ?.createNotificationChannel(
-        const AndroidNotificationChannel(
+        AndroidNotificationChannel(
           _channelId,
-          _channelName,
-          description: _channelDesc,
+          AppStrings.notifChannelName,
+          description: AppStrings.notifChannelDescription,
           importance: Importance.high,
         ),
       );
@@ -269,17 +267,32 @@ class NotificationService {
     }
   }
 
+  /// Title and body of every notification of this app now in the system
+  /// tray — local ones and pushes the OS drew while the app was away alike.
+  /// Empty if the platform cannot tell.
+  Future<List<({String title, String body})>> delivered() async {
+    if (!_initialized) await init();
+    try {
+      final active = await _plugin.getActiveNotifications();
+      return [
+        for (final n in active) (title: n.title ?? '', body: n.body ?? ''),
+      ];
+    } catch (_) {
+      return const [];
+    }
+  }
+
   Future<void> _cancelRange(int base, int count) async {
     for (var i = 0; i < count; i++) {
       await _plugin.cancel(id: base + i);
     }
   }
 
-  NotificationDetails get _details => const NotificationDetails(
+  NotificationDetails get _details => NotificationDetails(
         android: AndroidNotificationDetails(
           _channelId,
-          _channelName,
-          channelDescription: _channelDesc,
+          AppStrings.notifChannelName,
+          channelDescription: AppStrings.notifChannelDescription,
           importance: Importance.high,
           priority: Priority.high,
         ),

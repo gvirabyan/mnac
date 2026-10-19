@@ -23,6 +23,8 @@ enum FontScale {
 ///
 /// Display/headline styles use Noto Serif Armenian for an elegant, editorial
 /// feel; body/label styles use Noto Sans Armenian for clean readability.
+/// The Armenian faces carry Latin but no Cyrillic, so each style falls back
+/// to plain Noto Serif / Noto Sans of the same weight for Russian.
 abstract final class AppTypography {
   AppTypography._();
 
@@ -38,19 +40,28 @@ abstract final class AppTypography {
         (base ?? const TextStyle()).copyWith(
           fontSize: size * scale,
           fontWeight: weight,
+          fontFamilyFallback: [
+            GoogleFonts.notoSerif(fontWeight: weight).fontFamily!,
+          ],
           color: onSurface,
           height: 1.05,
           letterSpacing: -0.5,
         );
 
-    TextStyle body(TextStyle? base, double size, FontWeight weight,
-            {Color? color}) =>
-        (base ?? const TextStyle()).copyWith(
-          fontSize: size * scale,
-          fontWeight: weight,
-          color: color ?? onSurface,
-          height: 1.35,
-        );
+    TextStyle body(
+      TextStyle? base,
+      double size,
+      FontWeight weight, {
+      Color? color,
+    }) => (base ?? const TextStyle()).copyWith(
+      fontSize: size * scale,
+      fontWeight: weight,
+      fontFamilyFallback: [
+        GoogleFonts.notoSans(fontWeight: weight).fontFamily!,
+      ],
+      color: color ?? onSurface,
+      height: 1.35,
+    );
 
     return TextTheme(
       displayLarge: display(serif.displayLarge, 57, FontWeight.w700),

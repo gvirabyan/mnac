@@ -34,9 +34,9 @@ class StatisticsScreen extends ConsumerWidget {
         AnimationLevel.none;
 
     return GradientScaffold(
-      appBar: AppBar(title: const Text(AppStrings.statsTitle)),
+      appBar: AppBar(title: Text(AppStrings.statsTitle)),
       body: progress == null
-          ? const EmptyState(
+          ? EmptyState(
               icon: Icons.insights_outlined,
               title: AppStrings.homeNoSoldierTitle,
               subtitle: AppStrings.homeNoSoldierSubtitle,
@@ -53,11 +53,11 @@ class StatisticsScreen extends ConsumerWidget {
               children: [
                 _StatGrid(progress: progress),
                 const SizedBox(height: AppSizes.xl),
-                const SectionHeader(title: AppStrings.statsProgress),
+                SectionHeader(title: AppStrings.statsProgress),
                 const SizedBox(height: AppSizes.md),
                 _ProgressCard(progress: progress, animate: animate),
                 const SizedBox(height: AppSizes.xl),
-                const SectionHeader(title: AppStrings.statsMilestonesPeek),
+                SectionHeader(title: AppStrings.statsMilestonesPeek),
                 const SizedBox(height: AppSizes.md),
                 _MilestonePeek(progress: progress, ref: ref),
               ],

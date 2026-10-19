@@ -225,8 +225,10 @@ class ShareCard extends StatelessWidget {
                         color: gold, size: AppSizes.iconSm),
                     const SizedBox(width: AppSizes.xs),
                     Text(
-                      '${AppStrings.shareDischargeLabel}՝ '
-                      '${AppDateUtils.formatLong(profile.dischargeDate)}',
+                      AppStrings.labeled(
+                        AppStrings.shareDischargeLabel,
+                        AppDateUtils.formatLong(profile.dischargeDate),
+                      ),
                       style: theme.textTheme.bodyLarge?.copyWith(
                         fontSize: 15,
                         color: onDark.withValues(alpha: 0.9),

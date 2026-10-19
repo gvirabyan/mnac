@@ -5,40 +5,67 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/l10n/app_language.dart';
+import '../core/l10n/app_strings.dart';
 import 'notification_service.dart';
+import 'push_arrivals.dart';
 
 /// Firebase Cloud Messaging: receives broadcasts sent to every user.
 ///
-/// Everyone is subscribed to a single [broadcastTopic], so a message published
-/// to that topic — from the Firebase console or the FCM API — reaches the whole
-/// install base without the app ever uploading device tokens anywhere.
+/// Every install is subscribed to the topic of its app language
+/// ([topicFor]), so a message published to the three of them — from the FCM
+/// API, see `functions/index.js` — reaches the whole install base, each user
+/// in their own language, without the app ever uploading device tokens.
 ///
 /// The OS draws the notification itself while the app is backgrounded or shut;
 /// a message that lands with the app open is handed to Dart instead, and is
 /// re-shown through [NotificationService] so it isn't silently swallowed.
-class PushService {
+class PushService implements PushArrivals {
   PushService(this._notifications, [FirebaseMessaging? messaging])
       : _messaging = messaging ?? FirebaseMessaging.instance;
 
   final NotificationService _notifications;
   final FirebaseMessaging _messaging;
 
-  final StreamController<String> _announcementArrivals =
+  final StreamController<String> _arrivals =
       StreamController<String>.broadcast();
+  final Set<String> _arrivedIds = {};
 
-  /// Ids of announcements whose push has just reached the open app — the
-  /// moment its banner is shown. The push history holds a fresh announcement
-  /// back until then, so it never shows in the app ahead of its push.
-  Stream<String> get announcementArrivals => _announcementArrivals.stream;
+  @override
+  Set<String> get arrivedIds => Set.unmodifiable(_arrivedIds);
+
+  @override
+  Stream<String> get arrivals => _arrivals.stream;
+
+  @override
+  Future<Set<String>> deliveredKeys() async => {
+    for (final n in await _notifications.delivered())
+      deliveryKey(n.title, n.body),
+  };
+
+  /// Notes that the push for an announcement reached this device. The push
+  /// history holds a fresh announcement back until then, so it never shows
+  /// in the app ahead of its push.
+  void _recordArrival(RemoteMessage message) {
+    final id = message.data['announcementId'];
+    if (id is! String || !_arrivedIds.add(id)) return;
+    _arrivals.add(id);
+  }
 
   /// Native side of [diagnostics] on iOS: what the app delegate saw APNs do,
   /// which Dart is never told about.
   static const MethodChannel _iosDiagnostics =
       MethodChannel('com.virabyan.mnac/diagnostics');
 
-  /// The topic every install subscribes to. Sending to it is how a message
-  /// reaches all users; keep it in step with what the console targets.
+  /// The topic app versions from before translated pushes subscribe to; it
+  /// carries the Armenian text. Left on joining a language topic, so a phone
+  /// never gets the same push twice.
   static const String broadcastTopic = 'all';
+
+  /// The topic for users reading the app in [language], e.g. `all_ru`. Keep
+  /// in step with what `functions/index.js` sends to.
+  static String topicFor(AppLanguage language) =>
+      '${broadcastTopic}_${language.id}';
 
   /// How long to wait for APNs. Generous because it covers a cold start on
   /// a slow network; nothing is blocked on it, the wait runs in the
@@ -54,6 +81,14 @@ class PushService {
   void init() {
     try {
       FirebaseMessaging.onMessage.listen(_showForegroundMessage);
+      // A tapped push opened the app: it has arrived, whether or not it is
+      // still in the tray.
+      FirebaseMessaging.onMessageOpenedApp.listen(_recordArrival);
+      unawaited(
+        _messaging.getInitialMessage().then((m) {
+          if (m != null) _recordArrival(m);
+        }),
+      );
       if (Platform.isIOS) unawaited(_registerWithApns());
     } catch (_) {
       // Push is an extra, never a reason for startup to fail.
@@ -92,19 +127,25 @@ class PushService {
     final body = notification.body;
     if (title == null && body == null) return;
     _notifications.showNow(title: title ?? '', body: body ?? '');
-
-    final announcementId = message.data['announcementId'];
-    if (announcementId is String) _announcementArrivals.add(announcementId);
+    _recordArrival(message);
   }
 
-  /// Joins [broadcastTopic].
+  /// Joins the topic of the current app language and leaves every other one,
+  /// [broadcastTopic] included.
   ///
   /// iOS cannot subscribe before APNs has handed Firebase a device token, so
   /// this waits for one rather than giving up on the first look — see
   /// [_awaitApnsToken]. Android has no such step and subscribes straight away.
   Future<void> _subscribeToBroadcasts() async {
     if (Platform.isIOS && !await _awaitApnsToken()) return;
-    await _messaging.subscribeToTopic(broadcastTopic);
+    final language = AppStrings.language;
+    await _messaging.subscribeToTopic(topicFor(language));
+    await _messaging.unsubscribeFromTopic(broadcastTopic);
+    for (final other in AppLanguage.values) {
+      if (other != language) {
+        await _messaging.unsubscribeFromTopic(topicFor(other));
+      }
+    }
   }
 
   /// Waits for APNs to issue this device a token, up to [_apnsTokenTimeout].
@@ -172,11 +213,12 @@ class PushService {
       lines.add('fcm token: FAILED ($e)');
     }
 
+    final topic = topicFor(AppStrings.language);
     try {
-      await _messaging.subscribeToTopic(broadcastTopic);
-      lines.add('topic $broadcastTopic: subscribed');
+      await _messaging.subscribeToTopic(topic);
+      lines.add('topic $topic: subscribed');
     } catch (e) {
-      lines.add('topic $broadcastTopic: FAILED ($e)');
+      lines.add('topic $topic: FAILED ($e)');
     }
 
     return lines.join('\n');
@@ -186,7 +228,8 @@ class PushService {
   ///
   /// Also worth calling after the user grants notification permission: on iOS
   /// that is what finally lets APNs issue a token, so an attempt made earlier
-  /// may have timed out.
+  /// may have timed out. And after a language switch, which moves the user to
+  /// another topic.
   Future<void> ensureSubscribed() async {
     try {
       await _subscribeToBroadcasts();

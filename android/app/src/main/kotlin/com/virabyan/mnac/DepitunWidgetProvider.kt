@@ -13,6 +13,7 @@ import android.widget.RemoteViews
 import es.antonborri.home_widget.HomeWidgetLaunchIntent
 import es.antonborri.home_widget.HomeWidgetProvider
 import org.json.JSONArray
+import org.json.JSONObject
 import java.io.File
 
 /**
@@ -31,6 +32,7 @@ class DepitunWidgetProvider : HomeWidgetProvider() {
         private const val DATA_PREFS = "HomeWidgetPreferences"
         private const val STATE_PREFS = "DepitunWidgetState"
         private const val KEY_SOLDIERS = "widget_soldiers"
+        private const val KEY_LABELS = "widget_labels"
         private const val KEY_INDEX = "index"
 
         // Mirrors the palette baked into depitun_widget.xml and the iOS view.
@@ -83,9 +85,14 @@ class DepitunWidgetProvider : HomeWidgetProvider() {
             state.edit().putInt(KEY_INDEX, 0).apply()
         }
 
+        val labels = parseLabels(widgetData)
+        val appName = labels.optString("appName", context.getString(R.string.app_name))
+
         val views = RemoteViews(context.packageName, R.layout.depitun_widget).apply {
+            setTextViewText(R.id.widget_days_unit, " " + labels.optString("daysUnit", context.getString(R.string.widget_days_unit).trim()))
+            setTextViewText(R.id.widget_subtitle, labels.optString("untilHome", context.getString(R.string.widget_until_home)))
             if (count == 0) {
-                setTextViewText(R.id.widget_title, "Մնաց")
+                setTextViewText(R.id.widget_title, appName)
                 setTextViewText(R.id.widget_days, "—")
                 setTextViewText(R.id.widget_percent, "")
                 setTextViewText(R.id.widget_discharge, "")
@@ -95,7 +102,7 @@ class DepitunWidgetProvider : HomeWidgetProvider() {
                 applyTextColors(overPhoto = false)
             } else {
                 val s = soldiers.getJSONObject(index)
-                setTextViewText(R.id.widget_title, s.optString("title", "Մնաց"))
+                setTextViewText(R.id.widget_title, s.optString("title", appName))
                 setTextViewText(R.id.widget_days, s.optString("days", "—"))
                 setTextViewText(R.id.widget_percent, s.optString("percent", ""))
                 setTextViewText(R.id.widget_discharge, s.optString("discharge", ""))
@@ -151,6 +158,16 @@ class DepitunWidgetProvider : HomeWidgetProvider() {
         setTextColor(R.id.widget_subtitle, primary)
         setTextColor(R.id.widget_percent, primary)
         setTextColor(R.id.widget_discharge, secondary)
+    }
+
+    /** The widget's fixed text in the app's language; empty before the app first syncs. */
+    private fun parseLabels(prefs: SharedPreferences): JSONObject {
+        val raw = prefs.getString(KEY_LABELS, "{}") ?: "{}"
+        return try {
+            JSONObject(raw)
+        } catch (_: Throwable) {
+            JSONObject()
+        }
     }
 
     private fun parseSoldiers(prefs: SharedPreferences): JSONArray {

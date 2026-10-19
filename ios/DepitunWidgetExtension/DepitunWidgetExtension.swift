@@ -10,6 +10,7 @@ import WidgetKit
 private let appGroupId = "group.com.virabyan.mnac.widget"
 private let widgetDataKey = "widget_soldiers"
 private let widgetIndexKey = "widget_soldier_index"
+private let widgetLabelsKey = "widget_labels"
 private let widgetKind = "DepitunWidgetExtension"
 
 struct DepitunEntry: TimelineEntry {
@@ -20,6 +21,30 @@ struct DepitunEntry: TimelineEntry {
   let discharge: String
   let photoPath: String?
   let soldierCount: Int
+  var labels: WidgetLabels = WidgetLabels.load()
+}
+
+/// The widget's fixed text, written by the app in its current language.
+/// Armenian until the app has synced once.
+struct WidgetLabels {
+  var appName = "Մնաց"
+  var daysUnit = "օր"
+  var untilHome = "մինչև տուն"
+
+  static func load() -> WidgetLabels {
+    var labels = WidgetLabels()
+    guard
+      let raw = UserDefaults(suiteName: appGroupId)?.string(forKey: widgetLabelsKey),
+      let data = raw.data(using: .utf8),
+      let map = try? JSONSerialization.jsonObject(with: data) as? [String: String]
+    else {
+      return labels
+    }
+    labels.appName = map["appName"] ?? labels.appName
+    labels.daysUnit = map["daysUnit"] ?? labels.daysUnit
+    labels.untilHome = map["untilHome"] ?? labels.untilHome
+    return labels
+  }
 }
 
 private func loadSoldiers() -> [[String: String]] {
@@ -37,7 +62,7 @@ private func loadSoldiers() -> [[String: String]] {
 /// list shrank since the index was last advanced).
 private func loadEntry() -> DepitunEntry {
   let placeholder = DepitunEntry(
-    date: Date(), title: "Մնաց", days: "—", percent: "", discharge: "", photoPath: nil,
+    date: Date(), title: WidgetLabels.load().appName, days: "—", percent: "", discharge: "", photoPath: nil,
     soldierCount: 0)
 
   let items = loadSoldiers()
@@ -87,7 +112,7 @@ struct NextSoldierIntent: AppIntent {
 struct Provider: TimelineProvider {
   func placeholder(in context: Context) -> DepitunEntry {
     DepitunEntry(
-      date: Date(), title: "Մնաց", days: "—", percent: "", discharge: "", photoPath: nil,
+      date: Date(), title: WidgetLabels.load().appName, days: "—", percent: "", discharge: "", photoPath: nil,
       soldierCount: 0)
   }
 
@@ -181,12 +206,12 @@ struct DepitunWidgetEntryView: View {
         Text(entry.days)
           .font(.system(size: 34, weight: .bold))
           .foregroundColor(Self.accent)
-        Text("օր")
+        Text(entry.labels.daysUnit)
           .font(.system(size: 14))
           .foregroundColor(hasPhoto ? .white : Self.ink)
       }
 
-      Text("մինչև տուն")
+      Text(entry.labels.untilHome)
         .font(.system(size: 12))
         .foregroundColor(hasPhoto ? .white : Self.ink)
 

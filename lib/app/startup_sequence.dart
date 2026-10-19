@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:app_tracking_transparency/app_tracking_transparency.dart';
@@ -57,9 +58,19 @@ Future<void> runStartupSequence(WidgetRef ref) async {
     await const AdConsentService().apply(personalised: personalised);
   }
 
-  await MobileAds.instance.initialize();
-  interstitialAds.setPersonalisedAds(personalised: personalised);
-  interstitialAds.preload();
+  // In Armenian the ad SDK is not even started, so no network — mediated
+  // ones included — is ever asked for an ad. A switch to Russian or English
+  // brings ads from the next launch on.
+  if (InterstitialAdService.adsAllowed) {
+    final adsStatus = await MobileAds.instance.initialize();
+    // TEMP: mediation check — remove.
+    adsStatus.adapterStatuses.forEach((name, status) {
+      debugPrint('[ADS] adapter $name: ${status.state.name} '
+          '${status.description} (${status.latency}ms)');
+    });
+    interstitialAds.setPersonalisedAds(personalised: personalised);
+    interstitialAds.preload();
+  }
 
   await push.ensureSubscribed();
 }

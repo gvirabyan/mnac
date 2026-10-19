@@ -73,7 +73,6 @@ class _SoldierFormScreenState extends ConsumerState<SoldierFormScreen> {
       // The picker needs bounds; these are far enough not to limit anyone.
       firstDate: DateTime(1950),
       lastDate: now,
-      locale: const Locale('hy'),
     );
     if (picked != null) {
       setState(() {
@@ -95,7 +94,6 @@ class _SoldierFormScreenState extends ConsumerState<SoldierFormScreen> {
       initialDate: initial,
       firstDate: _startDate.add(const Duration(days: 1)),
       lastDate: DateTime(2100),
-      locale: const Locale('hy'),
     );
     if (picked != null) setState(() => _endDate = picked);
   }
@@ -104,13 +102,13 @@ class _SoldierFormScreenState extends ConsumerState<SoldierFormScreen> {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(AppStrings.errNameRequired)),
+        SnackBar(content: Text(AppStrings.errNameRequired)),
       );
       return;
     }
     if (!_endDate.isAfter(_startDate)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(AppStrings.errEndBeforeStart)),
+        SnackBar(content: Text(AppStrings.errEndBeforeStart)),
       );
       return;
     }
@@ -163,15 +161,15 @@ class _SoldierFormScreenState extends ConsumerState<SoldierFormScreen> {
             ),
           ),
           const SizedBox(height: AppSizes.xl),
-          const SectionHeader(title: AppStrings.formNameTitle),
+          SectionHeader(title: AppStrings.formNameTitle),
           const SizedBox(height: AppSizes.md),
           _NameField(controller: _nameController, onSubmitted: (_) => _save()),
           const SizedBox(height: AppSizes.xl),
-          const SectionHeader(title: AppStrings.formStartTitle),
+          SectionHeader(title: AppStrings.formStartTitle),
           const SizedBox(height: AppSizes.md),
           _DateField(date: _startDate, onTap: _pickStartDate),
           const SizedBox(height: AppSizes.xl),
-          const SectionHeader(title: AppStrings.formEndTitle),
+          SectionHeader(title: AppStrings.formEndTitle),
           const SizedBox(height: AppSizes.md),
           _DateField(
             date: _endDate,
@@ -207,7 +205,7 @@ class _NameField extends StatelessWidget {
               textInputAction: TextInputAction.done,
               onSubmitted: onSubmitted,
               style: theme.textTheme.titleMedium,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 isCollapsed: true,
                 border: InputBorder.none,
                 hintText: AppStrings.formNameHint,

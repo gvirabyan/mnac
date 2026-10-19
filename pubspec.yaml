@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.2.1+35
+version: 1.2.4+38
 
 environment:
   sdk: ^3.10.4
@@ -58,6 +58,11 @@ dependencies:
   # adapter on both platforms; the Game ID / Placement ID live in the AdMob
   # console (mediation group), not in this app.
   gma_mediation_unity: ^1.9.0
+  # AdMob mediation adapter for InMobi, same arrangement as Unity: the SDK
+  # comes with it, the account / placement IDs live in the AdMob console.
+  # Unlike Unity, InMobi raises no consent dialog of its own, so it needs
+  # nothing in AdConsentService.
+  gma_mediation_inmobi: ^2.3.3
   # iOS App Tracking Transparency. The prompt must be answered before the
   # Mobile Ads SDK initializes, otherwise the first session serves
   # non-personalized inventory only. No-op on Android.
@@ -71,6 +76,7 @@ dependencies:
   cloud_firestore: ^6.10.0
   http: ^1.6.0
   http_parser: ^4.1.2
+  in_app_review: ^2.0.12
 
 dev_dependencies:
   flutter_test:
@@ -152,9 +158,7 @@ flutter:
 
   assets:
     - assets/quotes/
-    - assets/lottie/
     - assets/images/
-    - assets/images/textures/
     - assets/svg/
     # Bundled so the splash can draw the very same file the launcher icon is
     # generated from — replace the logo once and both follow.
