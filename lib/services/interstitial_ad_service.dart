@@ -15,10 +15,11 @@ import '../core/l10n/app_strings.dart';
 /// time via [preload] so [maybeShowOnLaunch] can show it immediately,
 /// instead of stalling on a network load.
 ///
-/// Never while the app is in Armenian: Google's publisher policies forbid ads
-/// on screens whose content is in an unsupported language, and Armenian is
-/// one. Checked both before the request and again before showing, so a
-/// language switch during the launch delay is respected either way.
+/// On Android, never while the app is in Armenian: Google's publisher policies
+/// forbid ads on screens whose content is in an unsupported language, and
+/// Armenian is one. Checked both before the request and again before showing,
+/// so a language switch during the launch delay is respected either way. iOS
+/// shows ads in every language.
 class InterstitialAdService {
   InterstitialAdService(this._prefs);
 
@@ -60,9 +61,10 @@ class InterstitialAdService {
   static String get _adUnitId =>
       Platform.isIOS ? _iosAdUnitId : _androidAdUnitId;
 
-  /// False while the app is in Armenian; nothing ad-related may run then,
-  /// the SDK's own start-up included.
-  static bool get adsAllowed => AppStrings.language != AppLanguage.hy;
+  /// False on Android while the app is in Armenian; nothing ad-related may
+  /// run then, the SDK's own start-up included. Always true on iOS.
+  static bool get adsAllowed =>
+      Platform.isIOS || AppStrings.language != AppLanguage.hy;
 
   InterstitialAd? _ad;
   bool _loading = false;
@@ -76,7 +78,7 @@ class InterstitialAdService {
   /// load is in flight or an ad is already cached).
   void preload() {
     if (!adsAllowed) {
-      debugPrint('[ADS] no request: app is in Armenian'); // TEMP
+      debugPrint('[ADS] no request: Android app is in Armenian'); // TEMP
       return;
     }
     if (_loading || _ad != null) return;

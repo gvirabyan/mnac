@@ -58,9 +58,9 @@ Future<void> runStartupSequence(WidgetRef ref) async {
     await const AdConsentService().apply(personalised: personalised);
   }
 
-  // In Armenian the ad SDK is not even started, so no network — mediated
-  // ones included — is ever asked for an ad. A switch to Russian or English
-  // brings ads from the next launch on.
+  // On Android in Armenian the ad SDK is not even started, so no network —
+  // mediated ones included — is ever asked for an ad. A switch to Russian or
+  // English brings ads from the next launch on. iOS always starts it.
   if (InterstitialAdService.adsAllowed) {
     final adsStatus = await MobileAds.instance.initialize();
     // TEMP: mediation check — remove.
