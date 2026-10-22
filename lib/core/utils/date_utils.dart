@@ -96,6 +96,12 @@ abstract final class AppDateUtils {
   static String formatTime(DateTime d) => DateFormat('HH:mm').format(d);
 
   /// Whole calendar days between two dates (ignoring time of day).
-  static int daysBetween(DateTime from, DateTime to) =>
-      dateOnly(to).difference(dateOnly(from)).inDays;
+  ///
+  /// Counted on UTC dates: between local midnights a daylight-saving change
+  /// leaves a day 23 hours long, which `inDays` would round away.
+  static int daysBetween(DateTime from, DateTime to) => DateTime.utc(
+    to.year,
+    to.month,
+    to.day,
+  ).difference(DateTime.utc(from.year, from.month, from.day)).inDays;
 }

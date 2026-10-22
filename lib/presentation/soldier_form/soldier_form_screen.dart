@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../core/constants/app_sizes.dart';
+import '../../core/di/providers.dart';
 import '../../core/constants/service_constants.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/utils/date_utils.dart';
 import '../../domain/entities/soldier_profile.dart';
+import '../shared/state/settings_controller.dart';
 import '../shared/state/soldiers_controller.dart';
 import '../shared/widgets/glass_card.dart';
 import '../shared/widgets/gradient_scaffold.dart';
@@ -112,7 +114,10 @@ class _SoldierFormScreenState extends ConsumerState<SoldierFormScreen> {
       );
       return;
     }
-    final durationDays = _endDate.difference(_startDate).inDays;
+    // Calendar days, not elapsed ones: a start carrying a time of day (the
+    // form's default is "now") would otherwise lose a day on every save, and
+    // the discharge date would creep backwards.
+    final durationDays = AppDateUtils.daysBetween(_startDate, _endDate);
 
     final SoldierProfile profile;
     if (_isEdit) {
@@ -135,6 +140,25 @@ class _SoldierFormScreenState extends ConsumerState<SoldierFormScreen> {
     }
 
     await ref.read(soldiersControllerProvider.notifier).addOrUpdate(profile);
+    final existing = widget.existing;
+    if (existing != null &&
+        (existing.serviceStart != profile.serviceStart ||
+            existing.serviceDurationDays != profile.serviceDurationDays)) {
+      // New dates can put already-celebrated milestones back in the future;
+      // forget those, or they would pass unannounced when they come round.
+      // Done after saving: against the old dates, the pruned set would make
+      // the milestones still reached there look new for a moment.
+      final progress = ref.read(computeServiceProgressProvider)(
+        profile,
+        DateTime.now(),
+      );
+      await ref
+          .read(settingsControllerProvider.notifier)
+          .forgetMilestonesNotReached(
+            profile.id,
+            ref.read(computeMilestonesProvider).unlockedIds(progress),
+          );
+    }
     if (mounted) Navigator.of(context).pop();
   }
 

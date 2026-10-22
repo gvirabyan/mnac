@@ -63,19 +63,19 @@ final todaysMilestoneProvider = Provider.autoDispose<Milestone?>((ref) {
 /// The furthest milestone that has just been reached but not yet celebrated,
 /// or null.
 ///
-/// Progress ticks once a second, so this recomputes only when one of the three
-/// quantities a milestone can turn on — the whole percent, days served, days
-/// left — actually changes, and the celebration listener fires at most once
-/// per crossing.
+/// Progress ticks once a second, so this recomputes only when the number of
+/// milestones reached changes — the very moment one opens, whatever its kind
+/// — and the celebration listener fires at most once per crossing. (Keying
+/// on the rounded percent instead missed a percentage reached while the app
+/// was open: the rounded value had already turned half a percent earlier.)
 final pendingCelebrationProvider = Provider.autoDispose<Milestone?>((ref) {
-  final counts = ref.watch(
+  final compute = ref.watch(computeMilestonesProvider);
+  final reached = ref.watch(
     serviceProgressProvider.select(
-      (p) => p == null
-          ? null
-          : (percent: p.percentInt, served: p.daysServed, left: p.daysRemaining),
+      (p) => p == null ? null : compute.unlockedIds(p).length,
     ),
   );
-  if (counts == null) return null;
+  if (reached == null) return null;
 
   final progress = ref.read(serviceProgressProvider);
   if (progress == null) return null;
@@ -87,8 +87,9 @@ final pendingCelebrationProvider = Provider.autoDispose<Milestone?>((ref) {
 
   // The list is date-ordered, so the last pending entry is the furthest one
   // reached — the one worth celebrating when several land together.
-  final newly = ref
-      .read(computeMilestonesProvider)(progress, alreadyUnlocked: unlocked)
-      .where((m) => m.justUnlocked);
+  final newly = compute(
+    progress,
+    alreadyUnlocked: unlocked,
+  ).where((m) => m.justUnlocked);
   return newly.isEmpty ? null : newly.last;
 });

@@ -84,6 +84,24 @@ class SettingsController extends Notifier<AppSettings> {
     );
   }
 
+  /// Forgets the milestones [soldierId] celebrated that are not among
+  /// [reached] — after its dates were edited, say — so each is celebrated
+  /// again when it is actually reached.
+  Future<void> forgetMilestonesNotReached(
+    String soldierId,
+    Set<String> reached,
+  ) {
+    final current = state.milestonesOf(soldierId);
+    final kept = current.intersection(reached);
+    if (kept.length == current.length) return Future.value();
+
+    return _persist(
+      state.copyWith(
+        unlockedMilestones: {...state.unlockedMilestones, soldierId: kept},
+      ),
+    );
+  }
+
   /// Re-reads settings from storage (used after a restore).
   Future<void> reload() async {
     final next = await ref.read(settingsRepositoryProvider).load();

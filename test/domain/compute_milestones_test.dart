@@ -114,4 +114,39 @@ void main() {
     expect(computeMilestones.unlockedIds(progress), isEmpty);
     expect(MilestoneCatalog.all.length, 18);
   });
+
+  test('a countdown milestone opens on the day its card names', () {
+    // Discharge at midnight on 2 July; "100 days left" is what the home
+    // countdown (rounding down) first reads from 00:00 on 23 March.
+    final start = DateTime(2025, 1, 1);
+    final p = profile(start, days: 547);
+    Milestone left100(DateTime now) => computeMilestones(
+      computeProgress(p, now),
+    ).firstWhere((m) => m.id == 'left100');
+
+    final eve = left100(DateTime(2026, 3, 22, 23, 59));
+    expect(eve.unlocked, isFalse);
+
+    final day = left100(DateTime(2026, 3, 23, 0, 1));
+    expect(day.unlocked, isTrue);
+    expect(computeProgress(p, DateTime(2026, 3, 23, 0, 1)).daysRemaining, 100);
+    expect(
+      (day.estimatedDate.year, day.estimatedDate.month, day.estimatedDate.day),
+      (2026, 3, 23),
+    );
+  });
+
+  test('every milestone counts as reached exactly from its date', () {
+    final start = DateTime(2025, 1, 1);
+    final p = profile(start, days: 547);
+    for (final m in computeMilestones(computeProgress(p, start))) {
+      final at = m.estimatedDate;
+      bool reached(DateTime now) => computeMilestones(
+        computeProgress(p, now),
+      ).firstWhere((x) => x.id == m.id).unlocked;
+      expect(reached(at.subtract(const Duration(seconds: 1))), isFalse,
+          reason: m.id);
+      expect(reached(at), isTrue, reason: m.id);
+    }
+  });
 }

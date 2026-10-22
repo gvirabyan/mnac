@@ -70,15 +70,13 @@ class ComputeMilestones {
   static bool _applies(MilestoneDefinition def, int totalDays) =>
       def.kind == MilestoneKind.percent || def.value < totalDays;
 
+  /// Reached once its date has come. One rule for every kind, so a card
+  /// never shows as opened on a day still ahead, and the notification and
+  /// the day's celebration land on the day it actually opened. Guarded on
+  /// hasStarted so a profile whose service is still in the future does not
+  /// count its full term as "few days left".
   static bool _isUnlocked(MilestoneDefinition def, ServiceProgress progress) =>
-      switch (def.kind) {
-        MilestoneKind.percent => progress.percent * 100 >= def.value,
-        MilestoneKind.daysServed => progress.daysServed >= def.value,
-        // Guarded on hasStarted so a profile whose service is still in the
-        // future does not count its full term as "few days left".
-        MilestoneKind.daysRemaining =>
-          progress.hasStarted && progress.daysRemaining <= def.value,
-      };
+      progress.hasStarted && !progress.now.isBefore(_dateOf(def, progress));
 
   static DateTime _dateOf(MilestoneDefinition def, ServiceProgress progress) =>
       switch (def.kind) {
@@ -92,7 +90,9 @@ class ComputeMilestones {
           ),
         MilestoneKind.daysServed =>
           progress.start.add(Duration(days: def.value)),
+        // The day the countdown first reads [value]: it rounds down, so
+        // "100 days left" shows from the moment less than 101 remain.
         MilestoneKind.daysRemaining =>
-          progress.end.subtract(Duration(days: def.value)),
+          progress.end.subtract(Duration(days: def.value + 1)),
       };
 }
