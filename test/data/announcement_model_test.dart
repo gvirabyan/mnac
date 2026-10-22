@@ -19,6 +19,29 @@ void main() {
       expect(a.sentAt.toUtc(), at);
     });
 
+    test('a "sent_<language>" status is shown to that language only', () {
+      final a = AnnouncementModel.fromDoc('x', {
+        'title_ru': 'Привет',
+        'sendAt': Timestamp.now(),
+        'status': 'sent_ru',
+      })!;
+      expect(a.audience, AppLanguage.ru);
+      expect(a.textIn(AppLanguage.ru)?.title, 'Привет');
+      // Without the audience, Armenian and English would fall back to it.
+      expect(a.textIn(AppLanguage.hy), isNull);
+      expect(a.textIn(AppLanguage.en), isNull);
+    });
+
+    test('a plain "sent" status goes to everyone', () {
+      final a = AnnouncementModel.fromDoc('x', {
+        'title_ru': 'Привет',
+        'sendAt': Timestamp.now(),
+        'status': 'sent',
+      })!;
+      expect(a.audience, isNull);
+      expect(a.textIn(AppLanguage.hy)?.title, 'Привет');
+    });
+
     test('skips a document without a sendAt timestamp', () {
       expect(AnnouncementModel.fromDoc('x', {'title': 't'}), isNull);
       expect(

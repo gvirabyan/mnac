@@ -6,6 +6,7 @@
  *   title_hy, body_hy:  string   Armenian
  *   title_ru, body_ru:  string   Russian
  *   title_en, body_en:  string   English
+ *   audience: "all" | "hy" | "ru" | "en"   who gets it; absent = "all"
  *   sendAt: timestamp   when it should go out
  *   status: "scheduled" → "sending" → "sent"   (or "failed" / "expired")
  *
@@ -21,6 +22,12 @@
  * before translation. The app lists only documents
  * whose status is "sent", so a scheduled one stays invisible until its push
  * has actually gone out.
+ *
+ * With `audience` set to one language, only that language's topic gets the
+ * push (and, for Armenian, the bare topic), and the document ends up as
+ * "sent_<language>" instead of "sent". The app reads "sent" plus its own
+ * language's status, so only those users see it in the history; app
+ * versions that know only "sent" never show it.
  *
  * Old pushes sent from the console can be backfilled for the history by
  * adding them with status "sent" directly — this function never looks at
@@ -60,6 +67,13 @@ const MAX_LATENESS_MS = 6 * 60 * 60 * 1000;
 const COLLECTION = "announcements";
 
 const LANGUAGES = ["hy", "ru", "en"];
+
+/** The languages [data] goes to, or null for an unknown `audience`. */
+function audienceOf(data) {
+  const audience = data.audience ?? "all";
+  if (audience === "all") return LANGUAGES;
+  return LANGUAGES.includes(audience) ? [audience] : null;
+}
 
 /**
  * Which languages stand in for a missing one, best first. Must match
@@ -135,14 +149,27 @@ async function sendOne(doc, topic, now) {
     return;
   }
 
+  const languages = audienceOf(data);
+  if (!languages) {
+    await doc.ref.update({
+      status: "failed",
+      error: `unknown audience "${data.audience}"`,
+    });
+    return;
+  }
+  // Everyone's pushes are "sent"; one language's are kept apart so that
+  // only that language lists them.
+  const sentStatus =
+    languages.length === 1 ? `sent_${languages[0]}` : "sent";
+
   // One message per topic. The Armenian one also goes to the bare topic,
   // which only app versions from before translation are on.
   const targets = [];
-  for (const lang of LANGUAGES) {
+  for (const lang of languages) {
     const text = textFor(data, lang);
     if (text) targets.push({ topic: `${topic}_${lang}`, text });
   }
-  const armenian = textFor(data, "hy");
+  const armenian = languages.includes("hy") ? textFor(data, "hy") : null;
   if (armenian) targets.push({ topic, text: armenian });
 
   if (targets.length === 0) {
@@ -186,7 +213,7 @@ async function sendOne(doc, topic, now) {
     // Topics that did get it must not get it again, so a partial failure is
     // still "sent", with what failed recorded next to it.
     await doc.ref.update({
-      status: "sent",
+      status: sentStatus,
       sentAt: FieldValue.serverTimestamp(),
       topics: sentTo,
       ...(Object.keys(errors).length ? { errors } : {}),

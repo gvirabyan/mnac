@@ -133,8 +133,11 @@ class AnnouncementGate extends Notifier<AnnouncementGateState> {
     _push = ref.watch(pushArrivalsProvider);
     _clock = ref.watch(announcementClockProvider);
     final repository = ref.watch(announcementsRepositoryProvider);
+    final language = ref.watch(
+      settingsControllerProvider.select((s) => s.language),
+    );
 
-    final latest = repository.watchLatest().listen(
+    final latest = repository.watchLatest(language).listen(
       (a) => _update((s) => s.copyWith(latest: a)),
     );
     final arrivals = _push.arrivals.listen(
@@ -189,12 +192,20 @@ final announcementGateProvider =
 /// The push history, newest first, unfiltered — pass it through
 /// [AnnouncementGateState.visible] before showing it.
 ///
-/// Reads up to 50 documents each time it is first watched, so only the
-/// history screen should watch it — the home bell goes through
-/// [hasUnreadAnnouncementsProvider], which reads one.
-final announcementsProvider = StreamProvider.autoDispose<List<Announcement>>(
-  (ref) => ref.watch(announcementsRepositoryProvider).watchRecent(),
-);
+/// Shows the copy saved on the phone at once and asks the server only for
+/// what is newer — one query each time it is first watched, and again when
+/// the bell hears of a newer announcement while the screen is open. Only the
+/// history screen should watch it; the home bell goes through
+/// [hasUnreadAnnouncementsProvider].
+final announcementsProvider = StreamProvider.autoDispose<List<Announcement>>((
+  ref,
+) {
+  final language = ref.watch(
+    settingsControllerProvider.select((s) => s.language),
+  );
+  ref.watch(announcementGateProvider.select((s) => s.latest?.id));
+  return ref.watch(announcementsRepositoryProvider).watchRecent(language);
+});
 
 /// Send time of the newest announcement the user has already seen in the
 /// history screen; null if they have never opened it. Stored locally.

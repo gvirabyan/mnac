@@ -20,6 +20,7 @@ class Announcement {
     required this.id,
     required this.texts,
     required this.sentAt,
+    this.audience,
   });
 
   final String id;
@@ -30,6 +31,9 @@ class Announcement {
   /// When the push actually went out (server time). Backfilled console
   /// pushes carry no send record and use the date entered by hand.
   final DateTime sentAt;
+
+  /// The one language it was sent to; null when it went to everyone.
+  final AppLanguage? audience;
 
   /// Which languages stand in for a missing one, best first. Russian and
   /// English never fall back to Armenian: AdMob does not support it, and ads
@@ -44,6 +48,7 @@ class Announcement {
   /// What a user reading the app in [language] gets; null when there is
   /// nothing for them, in which case the announcement is not shown at all.
   AnnouncementText? textIn(AppLanguage language) {
+    if (audience != null && audience != language) return null;
     for (final l in fallbacks[language]!) {
       final text = texts[l];
       if (text != null) return text;

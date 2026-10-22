@@ -58,9 +58,10 @@ final backupRepositoryProvider = Provider<BackupRepository>(
   (ref) => BackupRepositoryImpl(ref.watch(localPrefsDataSourceProvider)),
 );
 
-/// Broadcast push history, read from Firestore. Overridden in tests.
+/// Broadcast push history, read from Firestore and saved on the phone.
+/// Overridden in tests.
 final announcementsRepositoryProvider = Provider<AnnouncementsRepository>(
-  (ref) => AnnouncementsRepositoryImpl(),
+  (ref) => AnnouncementsRepositoryImpl(ref.watch(localPrefsDataSourceProvider)),
 );
 
 // Use cases (stateless, const).

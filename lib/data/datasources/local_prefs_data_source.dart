@@ -14,6 +14,7 @@ class LocalPrefsDataSource {
   static const String activeSoldierKey = 'active_soldier_v1';
   static const String settingsKey = 'settings_v1';
   static const String announcementsSeenKey = 'announcements_seen_v1';
+  static const String announcementsKey = 'announcements_v1';
 
   // Legacy single profile (migration source only).
   String? readProfileJson() => _prefs.getString(profileKey);
@@ -47,4 +48,10 @@ class LocalPrefsDataSource {
 
   Future<void> writeAnnouncementsSeenAt(int epochMs) =>
       _prefs.setInt(announcementsSeenKey, epochMs);
+
+  // Push history saved from Firestore, so only what is new gets fetched.
+  String? readAnnouncementsJson() => _prefs.getString(announcementsKey);
+
+  Future<void> writeAnnouncementsJson(String json) =>
+      _prefs.setString(announcementsKey, json);
 }

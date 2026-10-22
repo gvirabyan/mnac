@@ -19,10 +19,22 @@ class _FakeRepo implements AnnouncementsRepository {
   final latest = StreamController<Announcement?>.broadcast();
 
   @override
-  Stream<List<Announcement>> watchRecent({int limit = 50}) => recent.stream;
+  Stream<List<Announcement>> watchRecent(AppLanguage language, {int limit = 50}) =>
+      Stream.multi((listener) {
+        // Like the real one: a new listen starts with the saved copy.
+        if (_last case final last?) listener.add(last);
+        final sub = recent.stream.listen(listener.add);
+        listener.onCancel = sub.cancel;
+      });
+
+  List<Announcement>? _last;
+
+  _FakeRepo() {
+    recent.stream.listen((list) => _last = list);
+  }
 
   @override
-  Stream<Announcement?> watchLatest() => latest.stream;
+  Stream<Announcement?> watchLatest(AppLanguage language) => latest.stream;
 }
 
 class _FakePush implements PushArrivals {

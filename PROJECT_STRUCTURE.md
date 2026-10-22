@@ -72,7 +72,7 @@ lib/
 │   ├── repositories/             # soldiers_repository, settings_repository, backup_repository (interfaces)
 │   └── usecases/                 # compute_service_progress, compute_milestones, backup_data, restore_data
 ├── data/
-│   ├── datasources/local_prefs_data_source.dart  # keys: soldiers_v1, active_soldier_v1, settings_v1, announcements_seen_v1, profile_v1(legacy)
+│   ├── datasources/local_prefs_data_source.dart  # keys: soldiers_v1, active_soldier_v1, settings_v1, announcements_seen_v1, announcements_v1 (push history saved from Firestore + per-language 'since' send time, so opening history fetches only newer docs), profile_v1(legacy)
 │   ├── models/                   # soldier_profile_model, app_settings_model (JSON <-> entity)
 │   └── repositories/             # soldiers_repository_impl (migrates legacy profile), settings_repository_impl, backup_repository_impl
 ├── presentation/
@@ -110,8 +110,8 @@ lib/
     ├── cartoon_avatar_service.dart # OpenAI image edit: photo -> cartoon soldier portrait (key in git-ignored core/config/secrets.dart; Codemagic writes it from OPENAI_API_KEY)
     └── widget_to_image.dart      # captureBoundaryToPng(): RepaintBoundary -> PNG in temp dir (for share card)
 
-functions/index.js   # Cloud Function, every 5 min: announcements with status "scheduled" & sendAt<=now -> FCM topic (PUSH_TOPIC in functions/.env) -> status "sent"; >6h late -> "expired"
-firestore.rules      # clients may read announcements only where status == 'sent'; no client writes
+functions/index.js   # Cloud Function, every 5 min: announcements with status "scheduled" & sendAt<=now -> FCM topic (PUSH_TOPIC in functions/.env) -> status "sent"; >6h late -> "expired". Optional `audience: "hy"|"ru"|"en"` sends to that language's topic only and ends as status "sent_<lang>", listed only by that language
+firestore.rules      # clients may read announcements only where status is 'sent' or 'sent_<lang>'; no client writes
 
 android/app/src/main/kotlin/com/virabyan/mnac/DepitunWidgetProvider.kt  # native widget (RemoteViews) + tap-to-open  (app id: com.virabyan.mnac)
 android/app/src/main/res/{layout/depitun_widget.xml, xml/depitun_widget_info.xml, drawable/widget_background.xml}

@@ -1,4 +1,5 @@
 import 'package:depitun/core/di/providers.dart';
+import 'package:depitun/core/l10n/app_language.dart';
 import 'package:depitun/domain/entities/announcement.dart';
 import 'package:depitun/domain/entities/app_settings.dart';
 import 'package:depitun/domain/repositories/announcements_repository.dart';
@@ -13,11 +14,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// The home bell reads Firestore; tests run without Firebase.
 class _NoAnnouncements implements AnnouncementsRepository {
   @override
-  Stream<List<Announcement>> watchRecent({int limit = 50}) =>
+  Stream<List<Announcement>> watchRecent(AppLanguage language, {int limit = 50}) =>
       Stream.value(const []);
 
   @override
-  Stream<Announcement?> watchLatest() => Stream.value(null);
+  Stream<Announcement?> watchLatest(AppLanguage language) => Stream.value(null);
 }
 
 void main() {

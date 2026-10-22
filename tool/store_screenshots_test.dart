@@ -208,11 +208,11 @@ List<Announcement> get messages => [
 
 class _Messages implements AnnouncementsRepository {
   @override
-  Stream<List<Announcement>> watchRecent({int limit = 50}) =>
+  Stream<List<Announcement>> watchRecent(AppLanguage language, {int limit = 50}) =>
       Stream.value(messages);
 
   @override
-  Stream<Announcement?> watchLatest() => Stream.value(messages.first);
+  Stream<Announcement?> watchLatest(AppLanguage language) => Stream.value(messages.first);
 }
 
 /// The app's MaterialApp around [home], themed exactly as the real one.
