@@ -44,6 +44,10 @@ class _MainShellState extends ConsumerState<MainShell>
   /// does not pile a second dialog onto it.
   bool _celebratedThisLaunch = false;
 
+  /// How long the launch ad holds off after the day's milestone was shown,
+  /// so the celebration is not chased straight off the screen by an ad.
+  static const _adDelayAfterMilestone = Duration(minutes: 2);
+
   static const _screens = [
     HomeScreen(),
     StatisticsScreen(),
@@ -59,12 +63,22 @@ class _MainShellState extends ConsumerState<MainShell>
       _syncBackground();
       // Cold-start only — deliberately not repeated on resume, so the ad
       // cadence tracks app opens rather than every foreground/background flip.
-      // One thing on screen at a time: the day's milestone first, the ad once
-      // it is closed, and the rating ask once the ad is.
+      // One thing on screen at a time: the day's milestone first, the ad
+      // a while after it is closed, and the rating ask once the ad is.
       final rating = ref.read(rateAppServiceProvider);
       final ads = ref.read(interstitialAdServiceProvider);
       final launchRecorded = rating.recordLaunch();
       _maybeShowTodaysMilestone().whenComplete(() async {
+        if (_celebratedThisLaunch) {
+          await Future<void>.delayed(_adDelayAfterMilestone);
+          // Someone who has left the app by then is not followed by the ad:
+          // shown in the background it would greet them on their return.
+          if (!mounted ||
+              WidgetsBinding.instance.lifecycleState !=
+                  AppLifecycleState.resumed) {
+            return;
+          }
+        }
         await ads.maybeShowOnLaunch();
         await launchRecorded;
         await _maybeAskForRating();
