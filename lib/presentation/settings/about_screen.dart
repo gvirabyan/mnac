@@ -8,6 +8,7 @@ import '../../core/l10n/app_strings.dart';
 import '../shared/widgets/glass_card.dart';
 import '../shared/widgets/gradient_scaffold.dart';
 import '../../services/home_widget_service.dart';
+import '../../services/interstitial_ad_service.dart';
 import '../../services/push_service.dart';
 import '../shared/widgets/section_header.dart';
 
@@ -17,7 +18,8 @@ class AboutScreen extends ConsumerWidget {
 
   /// Shows why push does or doesn't reach this device, and why the home
   /// widget is or isn't showing data, for diagnosing the two things that fail
-  /// silently and out of sight. Deliberately unlabelled and behind a long
+  /// silently and out of sight. Also the way into the Ad Inspector, for the
+  /// third: a mediation network that never fills. Deliberately unlabelled and behind a long
   /// press on the version line: it is a support tool, not a feature, and
   /// means nothing to a user who isn't being walked through it.
   Future<void> _showPushDiagnostics(BuildContext context, WidgetRef ref) async {
@@ -36,6 +38,17 @@ class AboutScreen extends ConsumerWidget {
           ),
         ),
         actions: [
+          TextButton(
+            onPressed: () async {
+              final messenger = ScaffoldMessenger.of(context);
+              Navigator.of(context).pop();
+              final error = await InterstitialAdService.openAdInspector();
+              if (error != null) {
+                messenger.showSnackBar(SnackBar(content: Text(error)));
+              }
+            },
+            child: const Text('Ads'),
+          ),
           TextButton(
             onPressed: () async {
               await Clipboard.setData(ClipboardData(text: report));

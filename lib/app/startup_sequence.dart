@@ -68,6 +68,10 @@ Future<void> runStartupSequence(WidgetRef ref) async {
       debugPrint('[ADS] adapter $name: ${status.state.name} '
           '${status.description} (${status.latency}ms)');
     });
+    final metaStarted = adsStatus.adapterStatuses.entries.any((e) =>
+        InterstitialAdService.isMetaAdapter(e.key) &&
+        e.value.state == AdapterInitializationState.ready);
+    debugPrint('[ADS] Meta adapter: ${metaStarted ? 'ready' : 'NOT ready'}');
     interstitialAds.setPersonalisedAds(personalised: personalised);
     interstitialAds.preload();
   }

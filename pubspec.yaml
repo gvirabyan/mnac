@@ -63,6 +63,12 @@ dependencies:
   # Unlike Unity, InMobi raises no consent dialog of its own, so it needs
   # nothing in AdConsentService.
   gma_mediation_inmobi: ^2.3.3
+  # AdMob mediation adapter for Meta Audience Network, same arrangement again:
+  # the SDK comes with it, the placement IDs live in the AdMob console (Meta
+  # serves through bidding only). Meta reads the ATT answer itself, so it
+  # needs nothing in AdConsentService either; its SKAdNetwork IDs are already
+  # in Google's list in Info.plist.
+  gma_mediation_meta: ^1.7.1
   # iOS App Tracking Transparency. The prompt must be answered before the
   # Mobile Ads SDK initializes, otherwise the first session serves
   # non-personalized inventory only. No-op on Android.

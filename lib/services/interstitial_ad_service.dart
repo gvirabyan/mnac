@@ -66,6 +66,23 @@ class InterstitialAdService {
   static bool get adsAllowed =>
       Platform.isIOS || AppStrings.language != AppLanguage.hy;
 
+  /// Opens Google's Ad Inspector, which shows each mediation network's
+  /// setup and how it answered the latest requests. Completes once it is
+  /// closed: null when all went well, otherwise why it would not open — it
+  /// only opens on a device registered as a test device in the AdMob console.
+  static Future<String?> openAdInspector() {
+    if (!adsAllowed) {
+      return Future.value('Ads are off: the Android app is in Armenian');
+    }
+    final closed = Completer<String?>();
+    MobileAds.instance.openAdInspector((error) {
+      closed.complete(
+        error == null ? null : 'Ad Inspector: ${error.code} ${error.message}',
+      );
+    });
+    return closed.future;
+  }
+
   InterstitialAd? _ad;
   bool _loading = false;
 
@@ -117,11 +134,25 @@ class InterstitialAdService {
   // TEMP: mediation check — remove. One line per network AdMob tried, in
   // order, with what each answered.
   static void _logNetworks(ResponseInfo? info) {
-    for (final r in info?.adapterResponses ?? const <AdapterResponseInfo>[]) {
+    final responses = info?.adapterResponses ?? const <AdapterResponseInfo>[];
+    for (final r in responses) {
       debugPrint('[ADS]   ${r.adSourceName} (${r.adapterClassName}): '
           '${r.adError == null ? 'filled' : 'error ${r.adError!.code} ${r.adError!.message}'}'
           ' ${r.latencyMillis}ms');
     }
+    // Meta on a line of its own, "not asked" included: an adapter AdMob never
+    // calls is the one failure that otherwise leaves no trace at all.
+    final meta = responses.where((r) => isMetaAdapter(r.adapterClassName));
+    debugPrint(meta.isEmpty
+        ? '[ADS] Meta: not asked for this request'
+        : '[ADS] Meta: ${meta.map((r) => r.adError == null ? 'filled' : 'error ${r.adError!.code} ${r.adError!.message}').join('; ')}');
+  }
+
+  /// Meta's adapter class, on either platform: `FacebookMediationAdapter` on
+  /// Android, `GADMediationAdapterMeta` (formerly `...Facebook`) on iOS.
+  static bool isMetaAdapter(String name) {
+    final n = name.toLowerCase();
+    return n.contains('facebook') || n.contains('meta');
   }
 
   /// Bumps the launch counter and, if this launch lands on the cadence and a
