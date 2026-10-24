@@ -17,6 +17,7 @@ import '../shared/state/settings_controller.dart';
 import '../shared/state/soldiers_controller.dart';
 import '../shared/widgets/glass_card.dart';
 import '../shared/widgets/gradient_scaffold.dart';
+import '../shared/widgets/instagram_glyph.dart';
 import 'about_screen.dart';
 import 'widgets/option_segments.dart';
 import 'widgets/settings_tile.dart';
@@ -162,7 +163,8 @@ class SettingsScreen extends ConsumerWidget {
             if (AppStrings.instagramUrl case final url?) ...[
               const _Divider(),
               SettingsTile(
-                icon: Icons.photo_camera_outlined,
+                leading: (color, size) =>
+                    InstagramGlyph(color: color, size: size),
                 title: AppStrings.settingsInstagram,
                 onTap: () => _openInstagram(url),
               ),

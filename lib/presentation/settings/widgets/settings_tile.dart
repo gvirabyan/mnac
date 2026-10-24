@@ -7,15 +7,19 @@ import '../../../core/constants/app_sizes.dart';
 class SettingsTile extends StatelessWidget {
   const SettingsTile({
     super.key,
-    required this.icon,
+    this.icon,
+    this.leading,
     required this.title,
     this.subtitle,
     this.trailing,
     this.onTap,
     this.destructive = false,
-  });
+  }) : assert((icon == null) != (leading == null));
 
-  final IconData icon;
+  /// What leads the row: [icon], or [leading] for a glyph that is not a
+  /// Material icon. Exactly one of the two.
+  final IconData? icon;
+  final Widget Function(Color color, double size)? leading;
   final String title;
   final String? subtitle;
   final Widget? trailing;
@@ -38,7 +42,8 @@ class SettingsTile extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(icon, color: iconColor, size: AppSizes.iconMd),
+            leading?.call(iconColor, AppSizes.iconMd) ??
+                Icon(icon, color: iconColor, size: AppSizes.iconMd),
             const SizedBox(width: AppSizes.md),
             Expanded(
               child: Column(
