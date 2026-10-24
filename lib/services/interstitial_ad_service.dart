@@ -157,7 +157,8 @@ class InterstitialAdService {
 
   /// Bumps the launch counter and, if this launch lands on the cadence and a
   /// preloaded ad is ready, shows it. Best-effort: never throws — a missing
-  /// or unready ad just means no ad this launch.
+  /// or unready ad just means no ad this launch. When an ad is shown, the
+  /// future completes only after it is closed.
   Future<void> maybeShowOnLaunch() async {
     final count = (_prefs.getInt(_launchCountKey) ?? 0) + 1;
     await _prefs.setInt(_launchCountKey, count);
@@ -187,11 +188,22 @@ class InterstitialAdService {
     // never be shown — just a second request per launch that halves the show
     // rate in AdMob. Bring the preload back if ads ever show more than once
     // in a session.
+    // Completes only once the ad has left the screen. `show()` itself returns
+    // as soon as the ad is presented, and the caller's dialogs (milestone,
+    // rating) would then land on top of the ad instead of after it.
+    final gone = Completer<void>();
     ad.fullScreenContentCallback = FullScreenContentCallback(
-      onAdDismissedFullScreenContent: (ad) => ad.dispose(),
-      onAdFailedToShowFullScreenContent: (ad, error) => ad.dispose(),
+      onAdDismissedFullScreenContent: (ad) {
+        ad.dispose();
+        if (!gone.isCompleted) gone.complete();
+      },
+      onAdFailedToShowFullScreenContent: (ad, error) {
+        ad.dispose();
+        if (!gone.isCompleted) gone.complete();
+      },
     );
     await ad.show();
+    await gone.future;
   }
 
   void dispose() {
