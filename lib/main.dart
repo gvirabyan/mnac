@@ -33,7 +33,8 @@ Future<void> main() async {
   final dataSource = LocalPrefsDataSource(prefs);
   final settingsRepo = SettingsRepositoryImpl(dataSource);
   // Nothing saved yet means a fresh install, which follows the phone's
-  // language rather than the Armenian default of [AppSettings].
+  // language rather than the Armenian default of [AppSettings] — preselected
+  // in the language picker shown after the splash.
   final isFreshInstall = dataSource.readSettingsJson() == null;
   var settings = await settingsRepo.load();
   if (isFreshInstall) {
@@ -77,6 +78,7 @@ Future<void> main() async {
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         initialSettingsProvider.overrideWithValue(settings),
+        languageChoicePendingProvider.overrideWithValue(isFreshInstall),
         initialSoldiersProvider.overrideWithValue(soldiers),
         initialActiveIdProvider.overrideWithValue(activeId),
         notificationServiceProvider.overrideWithValue(notifications),

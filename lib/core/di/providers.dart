@@ -36,6 +36,11 @@ final initialSettingsProvider = Provider<AppSettings>(
   (ref) => throw UnimplementedError('initialSettingsProvider must be overridden'),
 );
 
+/// Whether the first-launch language picker still has to be shown: true on a
+/// fresh install, until a language is picked and the settings get saved.
+/// Overridden in `main`.
+final languageChoicePendingProvider = Provider<bool>((ref) => false);
+
 /// Soldiers loaded once at startup; overridden in `main`.
 final initialSoldiersProvider = Provider<List<SoldierProfile>>(
   (ref) => throw UnimplementedError('initialSoldiersProvider must be overridden'),

@@ -36,6 +36,13 @@ abstract final class AppStrings {
         AppLanguage.ru => 'Русский',
         AppLanguage.en => 'English',
       };
+  static String languageFlag(AppLanguage l) => switch (l) {
+        AppLanguage.hy => '🇦🇲',
+        AppLanguage.ru => '🇷🇺',
+        AppLanguage.en => '🇬🇧',
+      };
+  static String get chooseLanguageTitle =>
+      _t('Ընտրեք լեզուն', 'Выберите язык', 'Choose your language');
 
   // Bottom navigation.
   static String get navHome => _t('Գլխավոր', 'Главная', 'Home');

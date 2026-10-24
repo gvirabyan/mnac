@@ -60,7 +60,7 @@ lib/
 ├── main.dart                     # bootstrap: prefs, load soldiers/settings, init NotificationService, ProviderScope overrides
 ├── app/
 │   ├── app.dart                  # MaterialApp, Armenian locale, theme wiring, home: RootGate
-│   └── router/app_router.dart    # RootGate (always MainShell — no onboarding) + appPageRoute() transition
+│   └── router/app_router.dart    # RootGate (splash → MainShell; fresh install: language picker first) + appPageRoute() transition
 ├── core/
 │   ├── constants/                # app_sizes, app_durations, service_constants
 │   ├── l10n/app_strings.dart     # ALL Armenian UI strings + helpers (daysLeftBody, milestoneTitle/Message)
@@ -76,6 +76,7 @@ lib/
 │   ├── models/                   # soldier_profile_model, app_settings_model (JSON <-> entity)
 │   └── repositories/             # soldiers_repository_impl (migrates legacy profile), settings_repository_impl, backup_repository_impl
 ├── presentation/
+│   ├── language/language_picker_dialog.dart  # first-launch language picker (flag + name in itself); shown while languageChoicePendingProvider (fresh install)
 │   ├── shell/
 │   │   ├── main_shell.dart        # 4 tabs (extendBody) + app-wide listeners: milestone celebration + notif/widget sync (lifecycle); hides nav in immersive
 │   │   └── glass_nav_bar.dart     # custom glassmorphic floating bottom nav (blur + gradient, selected = accent pill w/ label)

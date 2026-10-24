@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/di/providers.dart';
+import '../../presentation/language/language_picker_dialog.dart';
 import '../../presentation/shell/main_shell.dart';
 import '../../presentation/splash/splash_screen.dart';
 import '../startup_sequence.dart';
@@ -11,6 +13,8 @@ import '../startup_sequence.dart';
 ///
 /// The splash finishing is also what releases the startup consent prompts:
 /// raised any earlier they would cover the splash. See [runStartupSequence].
+/// On a fresh install the language picker comes first, so those prompts and
+/// the ad SDK (which depends on the language) follow the user's choice.
 class RootGate extends ConsumerStatefulWidget {
   const RootGate({super.key});
 
@@ -21,8 +25,12 @@ class RootGate extends ConsumerStatefulWidget {
 class _RootGateState extends ConsumerState<RootGate> {
   bool _showSplash = true;
 
-  void _onSplashFinished() {
+  Future<void> _onSplashFinished() async {
     setState(() => _showSplash = false);
+    if (ref.read(languageChoicePendingProvider)) {
+      await showLanguagePicker(context);
+      if (!mounted) return;
+    }
     // Not awaited: the shell is already on screen and nothing it shows waits
     // on the outcome.
     runStartupSequence(ref);
