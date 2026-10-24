@@ -46,7 +46,7 @@ class _MainShellState extends ConsumerState<MainShell>
 
   /// How long the launch ad holds off after the day's milestone was shown,
   /// so the celebration is not chased straight off the screen by an ad.
-  static const _adDelayAfterMilestone = Duration(minutes: 2);
+  static const _adDelayAfterMilestone = Duration(seconds: 10);
 
   static const _screens = [
     HomeScreen(),
