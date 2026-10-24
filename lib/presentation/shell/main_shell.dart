@@ -59,15 +59,13 @@ class _MainShellState extends ConsumerState<MainShell>
       _syncBackground();
       // Cold-start only — deliberately not repeated on resume, so the ad
       // cadence tracks app opens rather than every foreground/background flip.
-      // The milestone dialog waits for the ad to be done with the screen,
-      // and the rating ask for both.
+      // One thing on screen at a time: the day's milestone first, the ad once
+      // it is closed, and the rating ask once the ad is.
       final rating = ref.read(rateAppServiceProvider);
+      final ads = ref.read(interstitialAdServiceProvider);
       final launchRecorded = rating.recordLaunch();
-      ref
-          .read(interstitialAdServiceProvider)
-          .maybeShowOnLaunch()
-          .whenComplete(() async {
-        await _maybeShowTodaysMilestone();
+      _maybeShowTodaysMilestone().whenComplete(() async {
+        await ads.maybeShowOnLaunch();
         await launchRecorded;
         await _maybeAskForRating();
       });

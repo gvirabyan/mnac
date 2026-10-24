@@ -25,6 +25,10 @@ class InterstitialAdService {
 
   final SharedPreferences _prefs;
 
+  /// Started with the service in `main`, so [_minDelay] counts from launch
+  /// rather than from whenever [maybeShowOnLaunch] is reached.
+  final Stopwatch _sinceLaunch = Stopwatch()..start();
+
   /// Whether the ad request may be personalised. Starts out false so a request
   /// fired before the App Tracking Transparency answer is in errs towards no
   /// tracking; [setPersonalisedAds] raises it once the user has authorised.
@@ -38,7 +42,7 @@ class InterstitialAdService {
   static const _launchCountKey = 'interstitial_launch_count';
   static const _showEveryNLaunches = 1;
 
-  /// Floor on how soon an ad may cover the app after launch. Deliberately not
+  /// Floor on how soon after launch an ad may cover the app. Deliberately not
   /// as early as the ad could be shown: landing an interstitial on someone a
   /// second into the app reads as broken, so the launch is given room first.
   static const _minDelay = Duration(seconds: 15);
@@ -164,7 +168,10 @@ class InterstitialAdService {
     await _prefs.setInt(_launchCountKey, count);
     if (count % _showEveryNLaunches != 0) return;
 
-    await Future.delayed(_minDelay);
+    // Only what is left of it: time spent on the day's milestone dialog,
+    // shown first, already counts.
+    final remaining = _minDelay - _sinceLaunch.elapsed;
+    if (remaining > Duration.zero) await Future.delayed(remaining);
 
     if (_ad == null && _loading) {
       await _loadSettled?.future.timeout(_maxWait, onTimeout: () {});
