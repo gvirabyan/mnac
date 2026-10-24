@@ -448,6 +448,17 @@ abstract final class AppStrings {
       _t('Ծրագրի մասին', 'О приложении', 'About');
   static String get settingsFeedback =>
       _t('Հետադարձ կապ', 'Обратная связь', 'Feedback');
+
+  // Our Instagram, one account per audience: Armenian and Russian only, so
+  // English has no link and the settings row is left out.
+  static String get settingsInstagram =>
+      _t('Մենք ինստագրամում', 'Мы в Instagram', 'Instagram');
+  static String? get instagramUrl => switch (language) {
+        AppLanguage.hy => 'https://www.instagram.com/mnac.app/',
+        AppLanguage.ru => 'https://www.instagram.com/mnac.ru/',
+        AppLanguage.en => null,
+      };
+
   static String get settingsEditProfile =>
       _t('Խմբագրել տվյալները', 'Изменить данные', 'Edit details');
 

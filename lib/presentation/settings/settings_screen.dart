@@ -101,6 +101,10 @@ class SettingsScreen extends ConsumerWidget {
     }
   }
 
+  /// Opened outside the app, so the Instagram app takes it when installed.
+  Future<void> _openInstagram(String url) =>
+      launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return GradientScaffold(
@@ -155,6 +159,14 @@ class SettingsScreen extends ConsumerWidget {
               title: AppStrings.settingsFeedback,
               onTap: _feedback,
             ),
+            if (AppStrings.instagramUrl case final url?) ...[
+              const _Divider(),
+              SettingsTile(
+                icon: Icons.photo_camera_outlined,
+                title: AppStrings.settingsInstagram,
+                onTap: () => _openInstagram(url),
+              ),
+            ],
           ]),
         ],
       ),
