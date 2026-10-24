@@ -163,8 +163,8 @@ class SettingsScreen extends ConsumerWidget {
             if (AppStrings.instagramUrl case final url?) ...[
               const _Divider(),
               SettingsTile(
-                leading: (color, size) =>
-                    InstagramGlyph(color: color, size: size),
+                // In Instagram's own colours, not the theme's.
+                leading: (_, size) => InstagramGlyph(size: size),
                 title: AppStrings.settingsInstagram,
                 onTap: () => _openInstagram(url),
               ),
