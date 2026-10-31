@@ -19,5 +19,11 @@ class MainActivity : FlutterActivity() {
         ).setMethodCallHandler { call, result ->
             AppSettingsChannel.handle(this, call, result)
         }
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            UnityAdsChannel.CHANNEL,
+        ).setMethodCallHandler { call, result ->
+            UnityAdsChannel.handle(this, call, result)
+        }
     }
 }

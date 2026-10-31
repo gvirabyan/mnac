@@ -26,7 +26,8 @@ const String _notificationsAskedKey = 'notifications_permission_asked';
 ///  2. Notifications, immediately after, so a first launch presents its two
 ///     prompts back to back rather than spread across the session.
 ///  3. The ad SDK, now that tracking has been answered — with the answer
-///     handed to Unity first, before its adapter starts it.
+///     handed to Unity first, before its adapter starts it. (Android in
+///     Armenian starts Unity directly instead; there is no ATT there.)
 ///  4. The broadcast topic, which on iOS registers with APNs — itself a source
 ///     of the notification prompt, hence strictly after step 2.
 ///
@@ -50,7 +51,8 @@ Future<void> runStartupSequence(WidgetRef ref) async {
   // the request timed out) counts as a refusal — the IDFA is unavailable
   // either way, so there is nothing to gain by assuming otherwise.
   final asked = tracking != TrackingStatus.notSupported;
-  final personalised = tracking == TrackingStatus.authorized ||
+  final personalised =
+      tracking == TrackingStatus.authorized ||
       tracking == TrackingStatus.notSupported;
   // Only where ATT actually ran: asserting consent to Unity on Android would
   // be claiming an answer nobody gave.
@@ -58,23 +60,28 @@ Future<void> runStartupSequence(WidgetRef ref) async {
     await const AdConsentService().apply(personalised: personalised);
   }
 
-  // On Android in Armenian the ad SDK is not even started, so no network —
-  // mediated ones included — is ever asked for an ad. A switch to Russian or
-  // English brings ads from the next launch on. iOS always starts it.
-  if (InterstitialAdService.adsAllowed) {
+  // On Android in Armenian the AdMob SDK is not even started, so neither
+  // AdMob nor any network mediated behind it is ever asked for an ad; Unity
+  // serves directly instead (see InterstitialAdService). A language switch
+  // takes effect from the next launch on. iOS always starts AdMob.
+  if (InterstitialAdService.admobAllowed) {
     final adsStatus = await MobileAds.instance.initialize();
     // TEMP: mediation check — remove.
     adsStatus.adapterStatuses.forEach((name, status) {
-      debugPrint('[ADS] adapter $name: ${status.state.name} '
-          '${status.description} (${status.latency}ms)');
+      debugPrint(
+        '[ADS] adapter $name: ${status.state.name} '
+        '${status.description} (${status.latency}ms)',
+      );
     });
-    final metaStarted = adsStatus.adapterStatuses.entries.any((e) =>
-        InterstitialAdService.isMetaAdapter(e.key) &&
-        e.value.state == AdapterInitializationState.ready);
+    final metaStarted = adsStatus.adapterStatuses.entries.any(
+      (e) =>
+          InterstitialAdService.isMetaAdapter(e.key) &&
+          e.value.state == AdapterInitializationState.ready,
+    );
     debugPrint('[ADS] Meta adapter: ${metaStarted ? 'ready' : 'NOT ready'}');
-    interstitialAds.setPersonalisedAds(personalised: personalised);
-    interstitialAds.preload();
   }
+  interstitialAds.setPersonalisedAds(personalised: personalised);
+  interstitialAds.preload();
 
   await push.ensureSubscribed();
 }
