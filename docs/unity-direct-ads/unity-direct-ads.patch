@@ -1,0 +1,584 @@
+From c2cb44b1d1f0e29aa96c191976b37dd60a29e9e7 Mon Sep 17 00:00:00 2001
+From: gvirabyan21 <gvirabyan21@gmail.com>
+Date: Sat, 31 Oct 2026 19:53:32 +0400
+Subject: [PATCH] Serve Unity Ads directly in the Android app's Armenian mode
+
+AdMob's policies forbid ads beside Armenian content, so the Android app
+in Armenian showed no ads at all. It now leaves AdMob unstarted and
+calls Unity Ads directly through a small Android-only method channel,
+on an interstitial placement of its own. Russian, English and all of
+iOS keep AdMob with its mediated networks, unchanged.
+
+A hand-written channel rather than a Flutter plugin: the plugins ship an
+iOS copy of the Unity SDK via Swift Package Manager, which would clash
+with the CocoaPods one the AdMob Unity adapter already brings. The app
+depends on the same Unity SDK version as that adapter.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ android/app/build.gradle.kts                  |   3 +
+ .../kotlin/com/virabyan/mnac/MainActivity.kt  |   6 +
+ .../com/virabyan/mnac/UnityAdsChannel.kt      | 150 ++++++++++++++++++
+ lib/app/startup_sequence.dart                 |  33 ++--
+ lib/services/interstitial_ad_service.dart     | 150 ++++++++++++++----
+ lib/services/unity_direct_ads.dart            |  42 +++++
+ 6 files changed, 338 insertions(+), 46 deletions(-)
+ create mode 100644 android/app/src/main/kotlin/com/virabyan/mnac/UnityAdsChannel.kt
+ create mode 100644 lib/services/unity_direct_ads.dart
+
+diff --git a/android/app/build.gradle.kts b/android/app/build.gradle.kts
+index 24ed2e0..59377a7 100644
+--- a/android/app/build.gradle.kts
++++ b/android/app/build.gradle.kts
+@@ -57,4 +57,7 @@ flutter {
+ }
+ dependencies {
+     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
++    // Unity Ads, called directly in Armenian mode (UnityAdsChannel). Same
++    // version the gma_mediation_unity adapter pulls in — bump them together.
++    implementation("com.unity3d.ads:unity-ads:4.17.0")
+ }
+\ No newline at end of file
+diff --git a/android/app/src/main/kotlin/com/virabyan/mnac/MainActivity.kt b/android/app/src/main/kotlin/com/virabyan/mnac/MainActivity.kt
+index f79ca9a..a1b6433 100644
+--- a/android/app/src/main/kotlin/com/virabyan/mnac/MainActivity.kt
++++ b/android/app/src/main/kotlin/com/virabyan/mnac/MainActivity.kt
+@@ -19,5 +19,11 @@ class MainActivity : FlutterActivity() {
+         ).setMethodCallHandler { call, result ->
+             AppSettingsChannel.handle(this, call, result)
+         }
++        MethodChannel(
++            flutterEngine.dartExecutor.binaryMessenger,
++            UnityAdsChannel.CHANNEL,
++        ).setMethodCallHandler { call, result ->
++            UnityAdsChannel.handle(this, call, result)
++        }
+     }
+ }
+diff --git a/android/app/src/main/kotlin/com/virabyan/mnac/UnityAdsChannel.kt b/android/app/src/main/kotlin/com/virabyan/mnac/UnityAdsChannel.kt
+new file mode 100644
+index 0000000..6857f95
+--- /dev/null
++++ b/android/app/src/main/kotlin/com/virabyan/mnac/UnityAdsChannel.kt
+@@ -0,0 +1,150 @@
++package com.virabyan.mnac
++
++import android.app.Activity
++import android.util.Log
++import com.unity3d.ads.IUnityAdsInitializationListener
++import com.unity3d.ads.IUnityAdsLoadListener
++import com.unity3d.ads.IUnityAdsShowListener
++import com.unity3d.ads.UnityAds
++import com.unity3d.ads.UnityAdsShowOptions
++import io.flutter.plugin.common.MethodCall
++import io.flutter.plugin.common.MethodChannel
++
++/**
++ * Unity Ads called directly, without AdMob in between.
++ *
++ * Used only while the app is in Armenian: AdMob's policies forbid ads beside
++ * Armenian content, so in that mode the Mobile Ads SDK is never started and
++ * Unity serves on its own. Every other language keeps going through AdMob,
++ * with Unity as one of its mediated networks.
++ *
++ * The Unity Ads SDK itself is the one the AdMob Unity adapter already pulls
++ * in; the app depends on the same version so Gradle doesn't have to choose.
++ * A hand-written channel rather than a Flutter plugin because every plugin for
++ * it also ships an iOS copy of the SDK, which would clash with the one the
++ * adapter brings there — and this mode doesn't exist on iOS at all.
++ *
++ * Each call answers only once Unity has: `initialize` and `load` with null on
++ * success or the error text, `show` once the ad has left the screen.
++ */
++object UnityAdsChannel {
++    const val CHANNEL = "com.virabyan.mnac/unity_ads"
++    private const val TAG = "UnityAdsChannel"
++
++    fun handle(activity: Activity, call: MethodCall, result: MethodChannel.Result) {
++        when (call.method) {
++            "initialize" -> initialize(activity, call, result)
++            "load" -> load(call, result)
++            "show" -> show(activity, call, result)
++            else -> result.notImplemented()
++        }
++    }
++
++    private fun initialize(activity: Activity, call: MethodCall, result: MethodChannel.Result) {
++        val gameId = call.argument<String>("gameId")
++        if (gameId.isNullOrBlank()) {
++            result.success("gameId is required")
++            return
++        }
++        if (UnityAds.isInitialized) {
++            result.success(null)
++            return
++        }
++        val testMode = call.argument<Boolean>("testMode") ?: false
++        val reply = OneShot(result)
++        try {
++            UnityAds.initialize(
++                activity.applicationContext,
++                gameId,
++                testMode,
++                object : IUnityAdsInitializationListener {
++                    override fun onInitializationComplete() = reply.send(null)
++
++                    override fun onInitializationFailed(
++                        error: UnityAds.UnityAdsInitializationError?,
++                        message: String?,
++                    ) = reply.send("init failed: $error $message")
++                },
++            )
++        } catch (e: Exception) {
++            Log.w(TAG, "initialize threw", e)
++            reply.send("init threw: ${e.message}")
++        }
++    }
++
++    private fun load(call: MethodCall, result: MethodChannel.Result) {
++        val placementId = call.argument<String>("placementId")
++        if (placementId.isNullOrBlank()) {
++            result.success("placementId is required")
++            return
++        }
++        val reply = OneShot(result)
++        try {
++            UnityAds.load(
++                placementId,
++                object : IUnityAdsLoadListener {
++                    override fun onUnityAdsAdLoaded(placementId: String?) = reply.send(null)
++
++                    override fun onUnityAdsFailedToLoad(
++                        placementId: String?,
++                        error: UnityAds.UnityAdsLoadError?,
++                        message: String?,
++                    ) = reply.send("load failed: $error $message")
++                },
++            )
++        } catch (e: Exception) {
++            Log.w(TAG, "load threw", e)
++            reply.send("load threw: ${e.message}")
++        }
++    }
++
++    private fun show(activity: Activity, call: MethodCall, result: MethodChannel.Result) {
++        val placementId = call.argument<String>("placementId")
++        if (placementId.isNullOrBlank()) {
++            result.success("placementId is required")
++            return
++        }
++        val reply = OneShot(result)
++        try {
++            UnityAds.show(
++                activity,
++                placementId,
++                UnityAdsShowOptions(),
++                object : IUnityAdsShowListener {
++                    override fun onUnityAdsShowFailure(
++                        placementId: String?,
++                        error: UnityAds.UnityAdsShowError?,
++                        message: String?,
++                    ) = reply.send("show failed: $error $message")
++
++                    override fun onUnityAdsShowStart(placementId: String?) {}
++
++                    override fun onUnityAdsShowClick(placementId: String?) {}
++
++                    // Fires once the ad is closed, whether watched through or skipped.
++                    override fun onUnityAdsShowComplete(
++                        placementId: String?,
++                        state: UnityAds.UnityAdsShowCompletionState?,
++                    ) = reply.send(null)
++                },
++            )
++        } catch (e: Exception) {
++            Log.w(TAG, "show threw", e)
++            reply.send("show threw: ${e.message}")
++        }
++    }
++
++    /**
++     * A channel result answers at most once, and Unity's listeners are not
++     * guaranteed to be called exactly once — a second answer would crash.
++     */
++    private class OneShot(private val result: MethodChannel.Result) {
++        private var sent = false
++
++        fun send(error: String?) {
++            if (sent) return
++            sent = true
++            result.success(error)
++        }
++    }
++}
+diff --git a/lib/app/startup_sequence.dart b/lib/app/startup_sequence.dart
+index 1b9349b..12e605b 100644
+--- a/lib/app/startup_sequence.dart
++++ b/lib/app/startup_sequence.dart
+@@ -26,7 +26,8 @@ const String _notificationsAskedKey = 'notifications_permission_asked';
+ ///  2. Notifications, immediately after, so a first launch presents its two
+ ///     prompts back to back rather than spread across the session.
+ ///  3. The ad SDK, now that tracking has been answered — with the answer
+-///     handed to Unity first, before its adapter starts it.
++///     handed to Unity first, before its adapter starts it. (Android in
++///     Armenian starts Unity directly instead; there is no ATT there.)
+ ///  4. The broadcast topic, which on iOS registers with APNs — itself a source
+ ///     of the notification prompt, hence strictly after step 2.
+ ///
+@@ -50,7 +51,8 @@ Future<void> runStartupSequence(WidgetRef ref) async {
+   // the request timed out) counts as a refusal — the IDFA is unavailable
+   // either way, so there is nothing to gain by assuming otherwise.
+   final asked = tracking != TrackingStatus.notSupported;
+-  final personalised = tracking == TrackingStatus.authorized ||
++  final personalised =
++      tracking == TrackingStatus.authorized ||
+       tracking == TrackingStatus.notSupported;
+   // Only where ATT actually ran: asserting consent to Unity on Android would
+   // be claiming an answer nobody gave.
+@@ -58,23 +60,28 @@ Future<void> runStartupSequence(WidgetRef ref) async {
+     await const AdConsentService().apply(personalised: personalised);
+   }
+ 
+-  // On Android in Armenian the ad SDK is not even started, so no network —
+-  // mediated ones included — is ever asked for an ad. A switch to Russian or
+-  // English brings ads from the next launch on. iOS always starts it.
+-  if (InterstitialAdService.adsAllowed) {
++  // On Android in Armenian the AdMob SDK is not even started, so neither
++  // AdMob nor any network mediated behind it is ever asked for an ad; Unity
++  // serves directly instead (see InterstitialAdService). A language switch
++  // takes effect from the next launch on. iOS always starts AdMob.
++  if (InterstitialAdService.admobAllowed) {
+     final adsStatus = await MobileAds.instance.initialize();
+     // TEMP: mediation check — remove.
+     adsStatus.adapterStatuses.forEach((name, status) {
+-      debugPrint('[ADS] adapter $name: ${status.state.name} '
+-          '${status.description} (${status.latency}ms)');
++      debugPrint(
++        '[ADS] adapter $name: ${status.state.name} '
++        '${status.description} (${status.latency}ms)',
++      );
+     });
+-    final metaStarted = adsStatus.adapterStatuses.entries.any((e) =>
+-        InterstitialAdService.isMetaAdapter(e.key) &&
+-        e.value.state == AdapterInitializationState.ready);
++    final metaStarted = adsStatus.adapterStatuses.entries.any(
++      (e) =>
++          InterstitialAdService.isMetaAdapter(e.key) &&
++          e.value.state == AdapterInitializationState.ready,
++    );
+     debugPrint('[ADS] Meta adapter: ${metaStarted ? 'ready' : 'NOT ready'}');
+-    interstitialAds.setPersonalisedAds(personalised: personalised);
+-    interstitialAds.preload();
+   }
++  interstitialAds.setPersonalisedAds(personalised: personalised);
++  interstitialAds.preload();
+ 
+   await push.ensureSubscribed();
+ }
+diff --git a/lib/services/interstitial_ad_service.dart b/lib/services/interstitial_ad_service.dart
+index 812415c..29eae95 100644
+--- a/lib/services/interstitial_ad_service.dart
++++ b/lib/services/interstitial_ad_service.dart
+@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
+ 
+ import '../core/l10n/app_language.dart';
+ import '../core/l10n/app_strings.dart';
++import 'unity_direct_ads.dart';
+ 
+ /// Loads and shows full-screen interstitial ads on app open.
+ ///
+@@ -15,15 +16,26 @@ import '../core/l10n/app_strings.dart';
+ /// time via [preload] so [maybeShowOnLaunch] can show it immediately,
+ /// instead of stalling on a network load.
+ ///
+-/// On Android, never while the app is in Armenian: Google's publisher policies
+-/// forbid ads on screens whose content is in an unsupported language, and
+-/// Armenian is one. Checked both before the request and again before showing,
+-/// so a language switch during the launch delay is respected either way. iOS
+-/// shows ads in every language.
++/// Two networks, chosen per launch by language:
++///
++/// - **AdMob** (with Unity, InMobi and Meta mediated behind it) everywhere
++///   except the Android app in Armenian. Google's publisher policies forbid
++///   ads on screens whose content is in an unsupported language, and Armenian
++///   is one. iOS shows AdMob in every language.
++/// - **Unity Ads directly** ([UnityDirectAds]) on Android in Armenian, so
++///   that mode isn't ad-free; AdMob is never even started there.
++///
++/// An AdMob ad is re-checked before showing, so a switch to Armenian during
++/// the launch delay discards it. A Unity ad has no such restriction and is
++/// shown whatever the language has become.
+ class InterstitialAdService {
+-  InterstitialAdService(this._prefs);
++  InterstitialAdService(
++    this._prefs, {
++    UnityDirectAds unity = const UnityDirectAds(),
++  }) : _unity = unity;
+ 
+   final SharedPreferences _prefs;
++  final UnityDirectAds _unity;
+ 
+   /// Started with the service in `main`, so [_minDelay] counts from launch
+   /// rather than from whenever [maybeShowOnLaunch] is reached.
+@@ -59,24 +71,28 @@ class InterstitialAdService {
+ 
+   static const String _androidAdUnitId =
+       'ca-app-pub-9425467580147795/9664465505';
+-  static const String _iosAdUnitId =
+-      'ca-app-pub-9425467580147795/1307056819';
++  static const String _iosAdUnitId = 'ca-app-pub-9425467580147795/1307056819';
+ 
+   static String get _adUnitId =>
+       Platform.isIOS ? _iosAdUnitId : _androidAdUnitId;
+ 
+-  /// False on Android while the app is in Armenian; nothing ad-related may
++  /// Android in Armenian: Unity serves directly and AdMob stays off.
++  static bool get unityDirect =>
++      Platform.isAndroid && AppStrings.language == AppLanguage.hy;
++
++  /// False on Android while the app is in Armenian; nothing AdMob-related may
+   /// run then, the SDK's own start-up included. Always true on iOS.
+-  static bool get adsAllowed =>
+-      Platform.isIOS || AppStrings.language != AppLanguage.hy;
++  static bool get admobAllowed => !unityDirect;
+ 
+   /// Opens Google's Ad Inspector, which shows each mediation network's
+   /// setup and how it answered the latest requests. Completes once it is
+   /// closed: null when all went well, otherwise why it would not open — it
+   /// only opens on a device registered as a test device in the AdMob console.
+   static Future<String?> openAdInspector() {
+-    if (!adsAllowed) {
+-      return Future.value('Ads are off: the Android app is in Armenian');
++    if (!admobAllowed) {
++      return Future.value(
++        'AdMob is off: the Android app is in Armenian (Unity serves directly)',
++      );
+     }
+     final closed = Completer<String?>();
+     MobileAds.instance.openAdInspector((error) {
+@@ -87,7 +103,7 @@ class InterstitialAdService {
+     return closed.future;
+   }
+ 
+-  InterstitialAd? _ad;
++  _ReadyAd? _ad;
+   bool _loading = false;
+ 
+   /// Completes when the in-flight load settles, either way. Lets a waiting
+@@ -98,11 +114,35 @@ class InterstitialAdService {
+   /// [maybeShowOnLaunch] needs it. Safe to call repeatedly (no-op while a
+   /// load is in flight or an ad is already cached).
+   void preload() {
+-    if (!adsAllowed) {
+-      debugPrint('[ADS] no request: Android app is in Armenian'); // TEMP
++    if (_loading || _ad != null) return;
++    if (unityDirect) {
++      _preloadUnity();
++    } else {
++      _preloadAdMob();
++    }
++  }
++
++  void _preloadUnity() {
++    if (!UnityDirectAds.configured) {
++      debugPrint('[ADS] Unity direct: no Game ID / Placement ID yet'); // TEMP
+       return;
+     }
+-    if (_loading || _ad != null) return;
++    _loading = true;
++    final settled = _loadSettled = Completer<void>();
++    () async {
++      final error = await _unity.initialize() ?? await _unity.load();
++      _loading = false;
++      if (error == null) {
++        _ad = _UnityAd(_unity);
++        debugPrint('[ADS] loaded by Unity (direct)'); // TEMP
++      } else {
++        debugPrint('[ADS] Unity direct: $error'); // TEMP
++      }
++      if (!settled.isCompleted) settled.complete();
++    }();
++  }
++
++  void _preloadAdMob() {
+     _loading = true;
+     _loadSettled = Completer<void>();
+     final settled = _loadSettled!;
+@@ -111,7 +151,7 @@ class InterstitialAdService {
+       request: AdRequest(nonPersonalizedAds: !_personalised),
+       adLoadCallback: InterstitialAdLoadCallback(
+         onAdLoaded: (ad) {
+-          _ad = ad;
++          _ad = _AdMobAd(ad);
+           _loading = false;
+           // Which network actually filled the request. With mediation on this
+           // is the only way to tell an AdMob-served ad from a Unity- or
+@@ -123,7 +163,9 @@ class InterstitialAdService {
+           if (!settled.isCompleted) settled.complete();
+         },
+         onAdFailedToLoad: (error) {
+-          debugPrint('[ADS] load failed: ${error.code} ${error.message}'); // TEMP
++          debugPrint(
++            '[ADS] load failed: ${error.code} ${error.message}',
++          ); // TEMP
+           _logNetworks(error.responseInfo); // TEMP
+           _loading = false;
+           // Code 3 is "no fill" — the request itself was fine, nobody had an
+@@ -140,16 +182,20 @@ class InterstitialAdService {
+   static void _logNetworks(ResponseInfo? info) {
+     final responses = info?.adapterResponses ?? const <AdapterResponseInfo>[];
+     for (final r in responses) {
+-      debugPrint('[ADS]   ${r.adSourceName} (${r.adapterClassName}): '
+-          '${r.adError == null ? 'filled' : 'error ${r.adError!.code} ${r.adError!.message}'}'
+-          ' ${r.latencyMillis}ms');
++      debugPrint(
++        '[ADS]   ${r.adSourceName} (${r.adapterClassName}): '
++        '${r.adError == null ? 'filled' : 'error ${r.adError!.code} ${r.adError!.message}'}'
++        ' ${r.latencyMillis}ms',
++      );
+     }
+     // Meta on a line of its own, "not asked" included: an adapter AdMob never
+     // calls is the one failure that otherwise leaves no trace at all.
+     final meta = responses.where((r) => isMetaAdapter(r.adapterClassName));
+-    debugPrint(meta.isEmpty
+-        ? '[ADS] Meta: not asked for this request'
+-        : '[ADS] Meta: ${meta.map((r) => r.adError == null ? 'filled' : 'error ${r.adError!.code} ${r.adError!.message}').join('; ')}');
++    debugPrint(
++      meta.isEmpty
++          ? '[ADS] Meta: not asked for this request'
++          : '[ADS] Meta: ${meta.map((r) => r.adError == null ? 'filled' : 'error ${r.adError!.code} ${r.adError!.message}').join('; ')}',
++    );
+   }
+ 
+   /// Meta's adapter class, on either platform: `FacebookMediationAdapter` on
+@@ -185,7 +231,7 @@ class InterstitialAdService {
+       return;
+     }
+     _ad = null;
+-    if (!adsAllowed) {
++    if (ad is _AdMobAd && !admobAllowed) {
+       ad.dispose();
+       return;
+     }
+@@ -195,11 +241,33 @@ class InterstitialAdService {
+     // never be shown — just a second request per launch that halves the show
+     // rate in AdMob. Bring the preload back if ads ever show more than once
+     // in a session.
+-    // Completes only once the ad has left the screen. `show()` itself returns
+-    // as soon as the ad is presented, and the caller's dialogs (milestone,
+-    // rating) would then land on top of the ad instead of after it.
++    await ad.show();
++  }
++
++  void dispose() {
++    _ad?.dispose();
++  }
++}
++
++/// An ad loaded and waiting to be shown, from either network.
++sealed class _ReadyAd {
++  /// Completes only once the ad has left the screen. Returning as soon as it
++  /// is presented would let the caller's dialogs (milestone, rating) land on
++  /// top of the ad instead of after it.
++  Future<void> show();
++
++  void dispose();
++}
++
++class _AdMobAd extends _ReadyAd {
++  _AdMobAd(this._ad);
++
++  final InterstitialAd _ad;
++
++  @override
++  Future<void> show() async {
+     final gone = Completer<void>();
+-    ad.fullScreenContentCallback = FullScreenContentCallback(
++    _ad.fullScreenContentCallback = FullScreenContentCallback(
+       onAdDismissedFullScreenContent: (ad) {
+         ad.dispose();
+         if (!gone.isCompleted) gone.complete();
+@@ -209,13 +277,29 @@ class InterstitialAdService {
+         if (!gone.isCompleted) gone.complete();
+       },
+     );
+-    await ad.show();
++    await _ad.show();
+     await gone.future;
+   }
+ 
+-  void dispose() {
+-    _ad?.dispose();
++  @override
++  void dispose() => _ad.dispose();
++}
++
++class _UnityAd extends _ReadyAd {
++  _UnityAd(this._unity);
++
++  final UnityDirectAds _unity;
++
++  @override
++  Future<void> show() async {
++    // The channel answers only after the ad is closed.
++    final error = await _unity.show();
++    if (error != null) debugPrint('[ADS] Unity direct: $error'); // TEMP
+   }
++
++  // Nothing to release: a loaded Unity placement is held by the SDK itself.
++  @override
++  void dispose() {}
+ }
+ 
+ final interstitialAdServiceProvider = Provider<InterstitialAdService>(
+diff --git a/lib/services/unity_direct_ads.dart b/lib/services/unity_direct_ads.dart
+new file mode 100644
+index 0000000..0a0ef7c
+--- /dev/null
++++ b/lib/services/unity_direct_ads.dart
+@@ -0,0 +1,42 @@
++import 'package:flutter/foundation.dart';
++import 'package:flutter/services.dart';
++
++/// Unity Ads called directly, without AdMob — Android, Armenian mode only.
++///
++/// A thin bridge to `UnityAdsChannel.kt`. Every call answers with null on
++/// success or the reason it failed, and never throws: an ad that can't be had
++/// just means no ad this launch.
++class UnityDirectAds {
++  const UnityDirectAds();
++
++  static const _channel = MethodChannel('com.virabyan.mnac/unity_ads');
++
++  // From Unity Dashboard: the Android Game ID (iOS is 6170644 — not used
++  // here) and an interstitial ad unit of its own, kept apart from the one
++  // AdMob mediates so the Armenian mode's revenue shows separately. Emptying
++  // either turns the Armenian mode back to ad-free.
++  static const String _gameId = '6170645';
++  static const String _placementId = 'Interstitial_Android_Direct';
++
++  static bool get configured => _gameId.isNotEmpty && _placementId.isNotEmpty;
++
++  /// Debug builds ask Unity for test ads, so development never serves (or
++  /// clicks) real ones. Release builds get real ads.
++  Future<String?> initialize() =>
++      _call('initialize', {'gameId': _gameId, 'testMode': kDebugMode});
++
++  Future<String?> load() => _call('load', {'placementId': _placementId});
++
++  /// Completes once the ad has been closed (or failed to show).
++  Future<String?> show() => _call('show', {'placementId': _placementId});
++
++  static Future<String?> _call(String method, Map<String, Object?> args) async {
++    try {
++      return await _channel.invokeMethod<String>(method, args);
++    } on PlatformException catch (e) {
++      return '$method: ${e.code} ${e.message}';
++    } on MissingPluginException {
++      return '$method: no Unity channel on this platform';
++    }
++  }
++}
+-- 
+2.48.1.windows.1
+
