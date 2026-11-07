@@ -57,7 +57,4 @@ flutter {
 }
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
-    // Unity Ads, called directly in Armenian mode (UnityAdsChannel). Same
-    // version the gma_mediation_unity adapter pulls in — bump them together.
-    implementation("com.unity3d.ads:unity-ads:4.17.0")
 }
