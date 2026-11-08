@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/l10n/app_language.dart';
 import '../core/l10n/app_strings.dart';
+import 'unity_direct_ads.dart';
 
 /// Loads and shows full-screen interstitial ads on app open.
 ///
@@ -15,15 +16,26 @@ import '../core/l10n/app_strings.dart';
 /// time via [preload] so [maybeShowOnLaunch] can show it immediately,
 /// instead of stalling on a network load.
 ///
-/// On Android, never while the app is in Armenian: Google's publisher policies
-/// forbid ads on screens whose content is in an unsupported language, and
-/// Armenian is one. Checked both before the request and again before showing,
-/// so a language switch during the launch delay is respected either way. iOS
-/// shows ads in every language.
+/// Two networks, chosen per launch by language:
+///
+/// - **AdMob** (with Unity, InMobi and Meta mediated behind it) everywhere
+///   except the Android app in Armenian. Google's publisher policies forbid
+///   ads on screens whose content is in an unsupported language, and Armenian
+///   is one. iOS shows AdMob in every language.
+/// - **Unity Ads directly** ([UnityDirectAds]) on Android in Armenian, so
+///   that mode isn't ad-free; AdMob is never even started there.
+///
+/// An AdMob ad is re-checked before showing, so a switch to Armenian during
+/// the launch delay discards it. A Unity ad has no such restriction and is
+/// shown whatever the language has become.
 class InterstitialAdService {
-  InterstitialAdService(this._prefs);
+  InterstitialAdService(
+    this._prefs, {
+    UnityDirectAds unity = const UnityDirectAds(),
+  }) : _unity = unity;
 
   final SharedPreferences _prefs;
+  final UnityDirectAds _unity;
 
   /// Started with the service in `main`, so [_minDelay] counts from launch
   /// rather than from whenever [maybeShowOnLaunch] is reached.
@@ -59,24 +71,28 @@ class InterstitialAdService {
 
   static const String _androidAdUnitId =
       'ca-app-pub-9425467580147795/9664465505';
-  static const String _iosAdUnitId =
-      'ca-app-pub-9425467580147795/1307056819';
+  static const String _iosAdUnitId = 'ca-app-pub-9425467580147795/1307056819';
 
   static String get _adUnitId =>
       Platform.isIOS ? _iosAdUnitId : _androidAdUnitId;
 
-  /// False on Android while the app is in Armenian; nothing ad-related may
+  /// Android in Armenian: Unity serves directly and AdMob stays off.
+  static bool get unityDirect =>
+      Platform.isAndroid && AppStrings.language == AppLanguage.hy;
+
+  /// False on Android while the app is in Armenian; nothing AdMob-related may
   /// run then, the SDK's own start-up included. Always true on iOS.
-  static bool get adsAllowed =>
-      Platform.isIOS || AppStrings.language != AppLanguage.hy;
+  static bool get admobAllowed => !unityDirect;
 
   /// Opens Google's Ad Inspector, which shows each mediation network's
   /// setup and how it answered the latest requests. Completes once it is
   /// closed: null when all went well, otherwise why it would not open — it
   /// only opens on a device registered as a test device in the AdMob console.
   static Future<String?> openAdInspector() {
-    if (!adsAllowed) {
-      return Future.value('Ads are off: the Android app is in Armenian');
+    if (!admobAllowed) {
+      return Future.value(
+        'AdMob is off: the Android app is in Armenian (Unity serves directly)',
+      );
     }
     final closed = Completer<String?>();
     MobileAds.instance.openAdInspector((error) {
@@ -87,7 +103,7 @@ class InterstitialAdService {
     return closed.future;
   }
 
-  InterstitialAd? _ad;
+  _ReadyAd? _ad;
   bool _loading = false;
 
   /// Completes when the in-flight load settles, either way. Lets a waiting
@@ -98,11 +114,35 @@ class InterstitialAdService {
   /// [maybeShowOnLaunch] needs it. Safe to call repeatedly (no-op while a
   /// load is in flight or an ad is already cached).
   void preload() {
-    if (!adsAllowed) {
-      debugPrint('[ADS] no request: Android app is in Armenian'); // TEMP
+    if (_loading || _ad != null) return;
+    if (unityDirect) {
+      _preloadUnity();
+    } else {
+      _preloadAdMob();
+    }
+  }
+
+  void _preloadUnity() {
+    if (!UnityDirectAds.configured) {
+      debugPrint('[ADS] Unity direct: no Game ID / Placement ID yet'); // TEMP
       return;
     }
-    if (_loading || _ad != null) return;
+    _loading = true;
+    final settled = _loadSettled = Completer<void>();
+    () async {
+      final error = await _unity.initialize() ?? await _unity.load();
+      _loading = false;
+      if (error == null) {
+        _ad = _UnityAd(_unity);
+        debugPrint('[ADS] loaded by Unity (direct)'); // TEMP
+      } else {
+        debugPrint('[ADS] Unity direct: $error'); // TEMP
+      }
+      if (!settled.isCompleted) settled.complete();
+    }();
+  }
+
+  void _preloadAdMob() {
     _loading = true;
     _loadSettled = Completer<void>();
     final settled = _loadSettled!;
@@ -111,7 +151,7 @@ class InterstitialAdService {
       request: AdRequest(nonPersonalizedAds: !_personalised),
       adLoadCallback: InterstitialAdLoadCallback(
         onAdLoaded: (ad) {
-          _ad = ad;
+          _ad = _AdMobAd(ad);
           _loading = false;
           // Which network actually filled the request. With mediation on this
           // is the only way to tell an AdMob-served ad from a Unity- or
@@ -123,7 +163,9 @@ class InterstitialAdService {
           if (!settled.isCompleted) settled.complete();
         },
         onAdFailedToLoad: (error) {
-          debugPrint('[ADS] load failed: ${error.code} ${error.message}'); // TEMP
+          debugPrint(
+            '[ADS] load failed: ${error.code} ${error.message}',
+          ); // TEMP
           _logNetworks(error.responseInfo); // TEMP
           _loading = false;
           // Code 3 is "no fill" — the request itself was fine, nobody had an
@@ -140,16 +182,20 @@ class InterstitialAdService {
   static void _logNetworks(ResponseInfo? info) {
     final responses = info?.adapterResponses ?? const <AdapterResponseInfo>[];
     for (final r in responses) {
-      debugPrint('[ADS]   ${r.adSourceName} (${r.adapterClassName}): '
-          '${r.adError == null ? 'filled' : 'error ${r.adError!.code} ${r.adError!.message}'}'
-          ' ${r.latencyMillis}ms');
+      debugPrint(
+        '[ADS]   ${r.adSourceName} (${r.adapterClassName}): '
+        '${r.adError == null ? 'filled' : 'error ${r.adError!.code} ${r.adError!.message}'}'
+        ' ${r.latencyMillis}ms',
+      );
     }
     // Meta on a line of its own, "not asked" included: an adapter AdMob never
     // calls is the one failure that otherwise leaves no trace at all.
     final meta = responses.where((r) => isMetaAdapter(r.adapterClassName));
-    debugPrint(meta.isEmpty
-        ? '[ADS] Meta: not asked for this request'
-        : '[ADS] Meta: ${meta.map((r) => r.adError == null ? 'filled' : 'error ${r.adError!.code} ${r.adError!.message}').join('; ')}');
+    debugPrint(
+      meta.isEmpty
+          ? '[ADS] Meta: not asked for this request'
+          : '[ADS] Meta: ${meta.map((r) => r.adError == null ? 'filled' : 'error ${r.adError!.code} ${r.adError!.message}').join('; ')}',
+    );
   }
 
   /// Meta's adapter class, on either platform: `FacebookMediationAdapter` on
@@ -185,7 +231,7 @@ class InterstitialAdService {
       return;
     }
     _ad = null;
-    if (!adsAllowed) {
+    if (ad is _AdMobAd && !admobAllowed) {
       ad.dispose();
       return;
     }
@@ -195,11 +241,33 @@ class InterstitialAdService {
     // never be shown — just a second request per launch that halves the show
     // rate in AdMob. Bring the preload back if ads ever show more than once
     // in a session.
-    // Completes only once the ad has left the screen. `show()` itself returns
-    // as soon as the ad is presented, and the caller's dialogs (milestone,
-    // rating) would then land on top of the ad instead of after it.
+    await ad.show();
+  }
+
+  void dispose() {
+    _ad?.dispose();
+  }
+}
+
+/// An ad loaded and waiting to be shown, from either network.
+sealed class _ReadyAd {
+  /// Completes only once the ad has left the screen. Returning as soon as it
+  /// is presented would let the caller's dialogs (milestone, rating) land on
+  /// top of the ad instead of after it.
+  Future<void> show();
+
+  void dispose();
+}
+
+class _AdMobAd extends _ReadyAd {
+  _AdMobAd(this._ad);
+
+  final InterstitialAd _ad;
+
+  @override
+  Future<void> show() async {
     final gone = Completer<void>();
-    ad.fullScreenContentCallback = FullScreenContentCallback(
+    _ad.fullScreenContentCallback = FullScreenContentCallback(
       onAdDismissedFullScreenContent: (ad) {
         ad.dispose();
         if (!gone.isCompleted) gone.complete();
@@ -209,13 +277,29 @@ class InterstitialAdService {
         if (!gone.isCompleted) gone.complete();
       },
     );
-    await ad.show();
+    await _ad.show();
     await gone.future;
   }
 
-  void dispose() {
-    _ad?.dispose();
+  @override
+  void dispose() => _ad.dispose();
+}
+
+class _UnityAd extends _ReadyAd {
+  _UnityAd(this._unity);
+
+  final UnityDirectAds _unity;
+
+  @override
+  Future<void> show() async {
+    // The channel answers only after the ad is closed.
+    final error = await _unity.show();
+    if (error != null) debugPrint('[ADS] Unity direct: $error'); // TEMP
   }
+
+  // Nothing to release: a loaded Unity placement is held by the SDK itself.
+  @override
+  void dispose() {}
 }
 
 final interstitialAdServiceProvider = Provider<InterstitialAdService>(
