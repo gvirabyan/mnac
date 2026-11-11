@@ -11,6 +11,7 @@ import '../../core/constants/app_sizes.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/utils/date_utils.dart';
 import '../../domain/entities/milestone.dart';
+import 'milestone_text.dart';
 import '../home/home_controller.dart';
 import '../share/share_card_screen.dart';
 import '../shared/state/soldiers_controller.dart';
@@ -103,6 +104,7 @@ class _MilestoneCelebrationState extends ConsumerState<_MilestoneCelebration> {
           '${widget.milestone.value} ${AppStrings.milestoneUnitDays}',
         MilestoneKind.daysRemaining =>
           '${AppStrings.milestoneUnitLeft} ${widget.milestone.value}',
+        MilestoneKind.custom => AppStrings.customMilestoneBadge,
       };
 
   @override
@@ -182,7 +184,7 @@ class _MilestoneCelebrationState extends ConsumerState<_MilestoneCelebration> {
                   ),
                   const SizedBox(height: AppSizes.sm),
                   Text(
-                    AppStrings.milestoneTitle(widget.milestone.id),
+                    widget.milestone.displayTitle,
                     textAlign: TextAlign.center,
                     style: theme.textTheme.headlineSmall?.copyWith(
                       color: accent,
@@ -191,7 +193,7 @@ class _MilestoneCelebrationState extends ConsumerState<_MilestoneCelebration> {
                   ),
                   const SizedBox(height: AppSizes.sm),
                   Text(
-                    AppStrings.milestoneMessage(widget.milestone.id),
+                    widget.milestone.displayMessage,
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,

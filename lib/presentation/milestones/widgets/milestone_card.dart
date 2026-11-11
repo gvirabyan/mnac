@@ -5,12 +5,16 @@ import '../../../core/l10n/app_strings.dart';
 import '../../../core/utils/date_utils.dart';
 import '../../../domain/entities/milestone.dart';
 import '../../shared/widgets/glass_card.dart';
+import '../milestone_text.dart';
 
 /// A single milestone card; styled differently for locked vs. unlocked state.
 class MilestoneCard extends StatelessWidget {
-  const MilestoneCard({super.key, required this.milestone});
+  const MilestoneCard({super.key, required this.milestone, this.onTap});
 
   final Milestone milestone;
+
+  /// Set for the user's own achievements, which open their editor.
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -19,14 +23,16 @@ class MilestoneCard extends StatelessWidget {
     final unlocked = milestone.unlocked;
     // Percentages read as "50%"; the day-based kinds show the count with a
     // unit underneath, so "100 days served" and "100 days left" cannot be
-    // mistaken for one another at a glance.
+    // mistaken for one another at a glance. The user's own carry a flag.
     final (badge, unit) = switch (milestone.kind) {
       MilestoneKind.percent => ('${milestone.value}%', null),
       MilestoneKind.daysServed =>
         ('${milestone.value}', AppStrings.milestoneUnitDays),
       MilestoneKind.daysRemaining =>
         ('${milestone.value}', AppStrings.milestoneUnitLeft),
+      MilestoneKind.custom => (null, null),
     };
+    final badgeColor = unlocked ? accent : theme.colorScheme.outline;
 
     // Bottom line: the day it opened, or the day it opens and how far off.
     final date = AppDateUtils.formatLong(milestone.estimatedDate);
@@ -40,6 +46,7 @@ class MilestoneCard extends StatelessWidget {
     // Tighter than a default GlassCard so the extra date line still leaves
     // the card about as tall as it was without it.
     return GlassCard(
+      onTap: onTap,
       padding: const EdgeInsets.symmetric(
         horizontal: AppSizes.md,
         vertical: AppSizes.sm,
@@ -62,12 +69,15 @@ class MilestoneCard extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(
-                      badge,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        color: unlocked ? accent : theme.colorScheme.outline,
+                    if (badge == null)
+                      Icon(Icons.flag_rounded, size: 22, color: badgeColor)
+                    else
+                      Text(
+                        badge,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          color: badgeColor,
+                        ),
                       ),
-                    ),
                     if (unit != null)
                       Text(
                         unit,
@@ -85,10 +95,18 @@ class MilestoneCard extends StatelessWidget {
               const SizedBox(width: AppSizes.sm),
               Expanded(
                 child: Text(
-                  AppStrings.milestoneTitle(milestone.id),
+                  milestone.displayTitle,
                   style: theme.textTheme.titleMedium,
                 ),
               ),
+              if (onTap != null) ...[
+                Icon(
+                  Icons.edit_outlined,
+                  size: 18,
+                  color: theme.colorScheme.outline,
+                ),
+                const SizedBox(width: AppSizes.xs),
+              ],
               Icon(
                 unlocked ? Icons.verified_rounded : Icons.lock_outline_rounded,
                 size: 20,

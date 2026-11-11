@@ -29,6 +29,21 @@ class ComputeMilestones {
         ),
       );
     }
+    for (final custom in progress.customMilestones) {
+      final unlocked = _isCustomUnlocked(custom, progress);
+      milestones.add(
+        Milestone(
+          id: custom.milestoneId,
+          kind: MilestoneKind.custom,
+          value: 0,
+          title: custom.title,
+          unlocked: unlocked,
+          estimatedDate: _dayOf(custom.date),
+          justUnlocked:
+              unlocked && !alreadyUnlocked.contains(custom.milestoneId),
+        ),
+      );
+    }
 
     // Ordered by calendar day rather than by instant, then by kind. Two
     // milestones that land on the same day are a near-certainty (half of a
@@ -36,8 +51,8 @@ class ComputeMilestones {
     // would order those on the minutes that a percentage happens to round to
     // — or on a daylight-saving shift. Dart's sort is not stable either, so
     // the tie is settled explicitly: days served, then days left, then the
-    // percentage, which leaves the headline entry last and makes it the one
-    // the celebration picks.
+    // percentage, then the user's own, which leaves the one they added
+    // themselves last and makes it the one the celebration picks.
     milestones.sort((a, b) {
       final byDay = _dayOf(a.estimatedDate).compareTo(_dayOf(b.estimatedDate));
       return byDay != 0
@@ -52,6 +67,8 @@ class ComputeMilestones {
         for (final def in MilestoneCatalog.all)
           if (_applies(def, progress.totalDays) && _isUnlocked(def, progress))
             def.id,
+        for (final custom in progress.customMilestones)
+          if (_isCustomUnlocked(custom, progress)) custom.milestoneId,
       };
 
   static DateTime _dayOf(DateTime d) => DateTime(d.year, d.month, d.day);
@@ -60,7 +77,16 @@ class ComputeMilestones {
         MilestoneKind.daysServed => 0,
         MilestoneKind.daysRemaining => 1,
         MilestoneKind.percent => 2,
+        MilestoneKind.custom => 3,
       };
+
+  /// Opens at the start of its day. Not tied to the service having begun:
+  /// the user picked the day, and it is theirs to put where they like.
+  static bool _isCustomUnlocked(
+    CustomMilestone custom,
+    ServiceProgress progress,
+  ) =>
+      !progress.now.isBefore(_dayOf(custom.date));
 
   /// Whether a milestone can occur at all within a service of [totalDays].
   ///
@@ -69,7 +95,6 @@ class ComputeMilestones {
   /// 100%.
   static bool _applies(MilestoneDefinition def, int totalDays) =>
       def.kind == MilestoneKind.percent || def.value < totalDays;
-
   /// Reached once its date has come. One rule for every kind, so a card
   /// never shows as opened on a day still ahead, and the notification and
   /// the day's celebration land on the day it actually opened. Guarded on
@@ -94,5 +119,9 @@ class ComputeMilestones {
         // "100 days left" shows from the moment less than 101 remain.
         MilestoneKind.daysRemaining =>
           progress.end.subtract(Duration(days: def.value + 1)),
+        // The catalogue holds none: the user's own carry their date
+        // themselves and never come through here.
+        MilestoneKind.custom =>
+          throw ArgumentError.value(def.id, 'def', 'not a catalogue kind'),
       };
 }

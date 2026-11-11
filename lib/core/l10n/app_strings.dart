@@ -298,6 +298,50 @@ abstract final class AppStrings {
   static String get milestoneUnitDays => _t('օր', 'дней', 'days');
   static String get milestoneUnitLeft => _t('մնաց', 'осталось', 'left');
 
+  // The user's own achievements.
+  static String get customMilestoneAdd => _t(
+        'Ավելացնել նվաճում',
+        'Добавить достижение',
+        'Add an achievement',
+      );
+  static String get customMilestoneAddTitle => _t(
+        'Իմ նվաճումը',
+        'Своё достижение',
+        'Your own achievement',
+      );
+  static String get customMilestoneEditTitle => _t(
+        'Խմբագրել նվաճումը',
+        'Изменить достижение',
+        'Edit the achievement',
+      );
+  static String get customMilestoneNameHint => _t(
+        'Օրինակ՝ Արձակուրդ',
+        'Например: Отпуск',
+        'For example: Leave',
+      );
+  static String get customMilestoneDate => _t('Օրը', 'Дата', 'Date');
+  static String get customMilestoneNameRequired => _t(
+        'Գրեք նվաճման անունը',
+        'Введите название достижения',
+        'Enter a name for the achievement',
+      );
+
+  /// Chip in the celebration dialog that marks an achievement as the user's.
+  static String get customMilestoneBadge =>
+      _t('Իմ նվաճումը', 'Своё', 'Your own');
+
+  /// Line under the title of an achievement the user added themselves.
+  static String get customMilestoneMessage => _t(
+        'Այդ օրը եկավ։',
+        'Этот день настал!',
+        'This day has come!',
+      );
+  static String get customMilestoneDeleteTitle => _t(
+        'Ջնջե՞լ նվաճումը',
+        'Удалить достижение?',
+        'Delete this achievement?',
+      );
+
   // Milestone titles, keyed by catalogue id (see MilestoneCatalog).
   static String milestoneTitle(String id) => switch (id) {
         'day30' => _t('Առաջին ամիսը', 'Первый месяц', 'The first month'),

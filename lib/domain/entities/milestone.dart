@@ -8,6 +8,48 @@ enum MilestoneKind {
 
   /// Whole days left until discharge.
   daysRemaining,
+
+  /// One the user added: their own title on a date they picked.
+  custom,
+}
+
+/// An achievement the user added themselves, e.g. "Leave" on a given day.
+/// Kept on the soldier it belongs to.
+class CustomMilestone {
+  const CustomMilestone({
+    required this.id,
+    required this.title,
+    required this.date,
+  });
+
+  /// Stable across edits; the milestone built from it is [milestoneId].
+  final String id;
+  final String title;
+
+  /// The day it opens; only the date part counts.
+  final DateTime date;
+
+  /// The id of the [Milestone] made from this, as persisted once
+  /// celebrated. Prefixed so it can never clash with a catalogue id.
+  String get milestoneId => '$customIdPrefix$id';
+
+  static const String customIdPrefix = 'custom:';
+
+  CustomMilestone copyWith({String? title, DateTime? date}) => CustomMilestone(
+        id: id,
+        title: title ?? this.title,
+        date: date ?? this.date,
+      );
+
+  @override
+  bool operator ==(Object other) =>
+      other is CustomMilestone &&
+      other.id == id &&
+      other.title == title &&
+      other.date == date;
+
+  @override
+  int get hashCode => Object.hash(id, title, date);
 }
 
 /// One entry in the milestone catalogue: what it counts and at which value it
@@ -71,14 +113,21 @@ class Milestone {
     required this.unlocked,
     required this.estimatedDate,
     required this.justUnlocked,
+    this.title,
   });
 
-  /// The catalogue id, e.g. `pct50`, `day100`, `left30`.
+  /// The catalogue id, e.g. `pct50`, `day100`, `left30`, or
+  /// [CustomMilestone.milestoneId] for one the user added.
   final String id;
+
+  /// The user's own title for a [MilestoneKind.custom] one; null for the
+  /// catalogue, whose titles come from the translations by [id].
+  final String? title;
 
   final MilestoneKind kind;
 
-  /// Percent for [MilestoneKind.percent], otherwise a number of days.
+  /// Percent for [MilestoneKind.percent], a number of days for the day-based
+  /// kinds, 0 for [MilestoneKind.custom].
   final int value;
 
   /// Whether the current progress has reached this milestone.

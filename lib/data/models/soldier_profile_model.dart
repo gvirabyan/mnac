@@ -1,4 +1,5 @@
 import '../../core/utils/app_files.dart';
+import '../../domain/entities/milestone.dart';
 import '../../domain/entities/soldier_profile.dart';
 
 /// Data-layer representation of [SoldierProfile] with JSON (de)serialization.
@@ -11,6 +12,7 @@ class SoldierProfileModel {
     this.name,
     this.unit,
     this.photoPath,
+    this.customMilestones = const [],
   });
 
   final String id;
@@ -20,6 +22,7 @@ class SoldierProfileModel {
   final int serviceDurationDays;
   final String? photoPath;
   final DateTime createdAt;
+  final List<CustomMilestone> customMilestones;
 
   factory SoldierProfileModel.fromEntity(SoldierProfile e) =>
       SoldierProfileModel(
@@ -30,6 +33,7 @@ class SoldierProfileModel {
         serviceDurationDays: e.serviceDurationDays,
         photoPath: e.photoPath,
         createdAt: e.createdAt,
+        customMilestones: e.customMilestones,
       );
 
   SoldierProfile toEntity() => SoldierProfile(
@@ -40,6 +44,7 @@ class SoldierProfileModel {
         serviceDurationDays: serviceDurationDays,
         photoPath: photoPath,
         createdAt: createdAt,
+        customMilestones: customMilestones,
       );
 
   Map<String, dynamic> toJson() => {
@@ -50,6 +55,14 @@ class SoldierProfileModel {
         'serviceDurationDays': serviceDurationDays,
         'photoPath': photoPath,
         'createdAt': createdAt.toIso8601String(),
+        'customMilestones': [
+          for (final m in customMilestones)
+            {
+              'id': m.id,
+              'title': m.title,
+              'date': m.date.toIso8601String(),
+            },
+        ],
       };
 
   factory SoldierProfileModel.fromJson(Map<String, dynamic> json) =>
@@ -61,5 +74,14 @@ class SoldierProfileModel {
         serviceDurationDays: (json['serviceDurationDays'] as num).toInt(),
         photoPath: AppFiles.relocate(json['photoPath'] as String?),
         createdAt: DateTime.parse(json['createdAt'] as String),
+        // Absent from anything saved before custom achievements existed.
+        customMilestones: [
+          for (final m in (json['customMilestones'] as List? ?? const []))
+            CustomMilestone(
+              id: (m as Map)['id'] as String,
+              title: m['title'] as String,
+              date: DateTime.parse(m['date'] as String),
+            ),
+        ],
       );
 }

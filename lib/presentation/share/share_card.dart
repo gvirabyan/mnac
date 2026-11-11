@@ -9,6 +9,7 @@ import '../../core/l10n/app_strings.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/date_utils.dart';
 import '../../domain/entities/milestone.dart';
+import '../milestones/milestone_text.dart';
 import '../../domain/entities/service_progress.dart';
 import '../../domain/entities/soldier_profile.dart';
 
@@ -138,7 +139,7 @@ class ShareCard extends StatelessWidget {
                     fit: BoxFit.scaleDown,
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      AppStrings.milestoneTitle(milestone.id),
+                      milestone.displayTitle,
                       style: theme.textTheme.displayLarge?.copyWith(
                         fontSize: 40,
                         color: onDark,
@@ -149,7 +150,7 @@ class ShareCard extends StatelessWidget {
                   ),
                   const SizedBox(height: AppSizes.sm),
                   Text(
-                    AppStrings.milestoneMessage(milestone.id),
+                    milestone.displayMessage,
                     style: theme.textTheme.bodyLarge?.copyWith(
                       fontSize: 16,
                       color: onDark.withValues(alpha: 0.85),

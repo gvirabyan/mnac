@@ -1,4 +1,5 @@
 import '../../core/utils/duration_breakdown.dart';
+import 'milestone.dart';
 
 /// A computed snapshot of service progress at a given instant.
 ///
@@ -16,6 +17,7 @@ class ServiceProgress {
     required this.elapsed,
     required this.weeksServed,
     required this.monthsServed,
+    this.customMilestones = const [],
   });
 
   final DateTime start;
@@ -37,6 +39,11 @@ class ServiceProgress {
 
   final int weeksServed;
   final int monthsServed;
+
+  /// The soldier's own achievements, carried along so that everything that
+  /// computes milestones from a progress snapshot (list, calendar,
+  /// notifications, celebration) includes them without being told twice.
+  final List<CustomMilestone> customMilestones;
 
   /// Whether service has begun (now is at/after start).
   bool get hasStarted => !now.isBefore(start);

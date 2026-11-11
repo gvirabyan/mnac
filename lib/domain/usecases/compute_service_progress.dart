@@ -43,6 +43,7 @@ class ComputeServiceProgress {
       elapsed: DurationBreakdown.between(start, cappedNow),
       weeksServed: daysServed ~/ 7,
       monthsServed: _wholeMonthsBetween(start, cappedNow),
+      customMilestones: profile.customMilestones,
     );
   }
 

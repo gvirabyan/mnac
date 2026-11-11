@@ -1,3 +1,5 @@
+import 'milestone.dart';
+
 /// A soldier's service record — the single profile the app is built around.
 ///
 /// Pure domain entity: no Flutter, no storage concerns.
@@ -10,6 +12,7 @@ class SoldierProfile {
     this.name,
     this.unit,
     this.photoPath,
+    this.customMilestones = const [],
   });
 
   final String id;
@@ -21,6 +24,9 @@ class SoldierProfile {
   /// Absolute path to a profile photo copied into app storage, if any.
   final String? photoPath;
   final DateTime createdAt;
+
+  /// Achievements the user added for this soldier, in the order added.
+  final List<CustomMilestone> customMilestones;
 
   /// The estimated discharge ("զորացրում") date.
   DateTime get dischargeDate =>
@@ -34,6 +40,7 @@ class SoldierProfile {
     int? serviceDurationDays,
     String? photoPath,
     DateTime? createdAt,
+    List<CustomMilestone>? customMilestones,
     bool clearName = false,
     bool clearUnit = false,
     bool clearPhoto = false,
@@ -46,6 +53,7 @@ class SoldierProfile {
       serviceDurationDays: serviceDurationDays ?? this.serviceDurationDays,
       photoPath: clearPhoto ? null : (photoPath ?? this.photoPath),
       createdAt: createdAt ?? this.createdAt,
+      customMilestones: customMilestones ?? this.customMilestones,
     );
   }
 
@@ -58,7 +66,16 @@ class SoldierProfile {
       other.serviceStart == serviceStart &&
       other.serviceDurationDays == serviceDurationDays &&
       other.photoPath == photoPath &&
-      other.createdAt == createdAt;
+      other.createdAt == createdAt &&
+      _sameList(other.customMilestones, customMilestones);
+
+  static bool _sameList(List<CustomMilestone> a, List<CustomMilestone> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
 
   @override
   int get hashCode => Object.hash(
@@ -69,5 +86,6 @@ class SoldierProfile {
         serviceDurationDays,
         photoPath,
         createdAt,
+        Object.hashAll(customMilestones),
       );
 }

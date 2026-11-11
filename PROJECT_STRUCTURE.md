@@ -16,6 +16,7 @@
 | Light/dark ThemeData | `lib/core/theme/app_theme.dart` |
 | Spacing / radius / durations | `lib/core/constants/app_sizes.dart`, `app_durations.dart` |
 | Service length / milestone thresholds | `lib/core/constants/service_constants.dart` |
+| User's own achievements (title + date) | `presentation/milestones/custom_milestone_editor.dart`, `CustomMilestone` in `domain/entities/milestone.dart` |
 | Countdown / progress math | `lib/domain/usecases/compute_service_progress.dart`, `compute_milestones.dart` |
 | Storage keys / persistence | `lib/data/datasources/local_prefs_data_source.dart` |
 | Wire a new repo/usecase/service (DI) | `lib/core/di/providers.dart` |
@@ -93,7 +94,7 @@ lib/
 │   │   ├── soldier_form_screen.dart          # create/edit: photo + required name + start date + end date (auto-fills +18mo on start pick); no unit/presets
 │   │   └── widgets/photo_picker_tile.dart
 │   ├── statistics/               # statistics_screen + widgets/ (stat_tile, served_remaining_bar)
-│   ├── milestones/               # milestones_screen, milestones_controller, milestone_celebration (confetti+haptics), widgets/milestone_card
+│   ├── milestones/               # milestones_screen (+ FAB to add own achievement), milestones_controller, milestone_celebration (confetti+haptics), custom_milestone_editor (add/edit/delete user's own: title + date, stored on SoldierProfile.customMilestones, carried into ServiceProgress so list/calendar/notifs/celebration include them), milestone_text (displayTitle/displayMessage), widgets/milestone_card
 │   ├── calendar/                 # calendar_screen + widgets/ (service_calendar grid, calendar_legend)
 │   ├── settings/
 │   │   ├── settings_screen.dart  # APP-LEVEL only: personalization, _NotificationsGroup, backup/restore/reset, about/feedback (no per-soldier items — soldiers managed from home switcher)

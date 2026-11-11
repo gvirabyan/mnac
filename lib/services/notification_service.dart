@@ -9,6 +9,7 @@ import '../core/l10n/app_strings.dart';
 import '../domain/entities/app_settings.dart';
 import '../domain/entities/soldier_profile.dart';
 import '../domain/usecases/compute_milestones.dart';
+import '../presentation/milestones/milestone_text.dart';
 import '../domain/usecases/compute_service_progress.dart';
 
 /// Schedules local, offline notifications:
@@ -236,8 +237,7 @@ class NotificationService {
       await _plugin.zonedSchedule(
         id: _milestoneBase + idx,
         title: AppStrings.milestoneReached,
-        body: '${AppStrings.milestoneTitle(m.id)} · '
-            '${AppStrings.milestoneMessage(m.id)}',
+        body: '${m.displayTitle} · ${m.displayMessage}',
         scheduledDate: when,
         notificationDetails: _details,
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,

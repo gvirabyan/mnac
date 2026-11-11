@@ -4,6 +4,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../core/constants/app_sizes.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../domain/entities/milestone.dart';
+import '../milestones/milestone_text.dart';
 import '../../domain/entities/service_progress.dart';
 import '../../domain/entities/soldier_profile.dart';
 import '../../services/story_share_service.dart';
@@ -49,7 +50,7 @@ class _ShareCardScreenState extends State<ShareCardScreen> {
     return milestone == null
         ? AppStrings.shareText(days)
         : AppStrings.milestoneShareText(
-            AppStrings.milestoneTitle(milestone.id),
+            milestone.displayTitle,
             days,
           );
   }
