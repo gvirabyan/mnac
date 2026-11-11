@@ -9,8 +9,9 @@ enum AppThemeMode {
   const AppThemeMode(this.id);
   final String id;
 
+  /// Unknown or missing ids fall back to [dark], the app's default look.
   static AppThemeMode fromId(String? id) =>
-      AppThemeMode.values.firstWhere((m) => m.id == id, orElse: () => system);
+      AppThemeMode.values.firstWhere((m) => m.id == id, orElse: () => dark);
 }
 
 /// Controls how much motion the UI uses, honoring the user's preference.
@@ -32,7 +33,7 @@ enum AnimationLevel {
 /// values in the presentation layer, keeping the domain free of UI types.
 class AppSettings {
   const AppSettings({
-    this.themeMode = AppThemeMode.system,
+    this.themeMode = AppThemeMode.dark,
     this.language = AppLanguage.hy,
     this.accentColorId = 'apricot',
     this.fontScaleId = 'medium',

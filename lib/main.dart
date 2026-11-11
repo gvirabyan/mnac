@@ -13,12 +13,16 @@ import 'core/utils/app_files.dart';
 import 'data/datasources/local_prefs_data_source.dart';
 import 'data/repositories/settings_repository_impl.dart';
 import 'data/repositories/soldiers_repository_impl.dart';
+import 'domain/entities/app_settings.dart';
 import 'firebase_options.dart';
 import 'presentation/home/home_controller.dart';
 import 'presentation/shared/state/announcements_provider.dart';
 import 'services/interstitial_ad_service.dart';
 import 'services/notification_service.dart';
 import 'services/push_service.dart';
+
+/// Set once everyone already on the app has been moved onto the dark theme.
+const String _darkThemeAppliedKey = 'dark_theme_default_applied';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,6 +45,18 @@ Future<void> main() async {
     settings = settings.copyWith(
       language: AppLanguage.fromLocales(PlatformDispatcher.instance.locales),
     );
+  }
+  // Dark became the default look, and everyone who already had the
+  // app is moved onto it once, whatever they had picked before; any choice
+  // made after that sticks. A fresh install already starts dark, and is not
+  // saved here so as not to pass for a returning user before the language
+  // has been chosen.
+  if (!(prefs.getBool(_darkThemeAppliedKey) ?? false)) {
+    if (!isFreshInstall && settings.themeMode != AppThemeMode.dark) {
+      settings = settings.copyWith(themeMode: AppThemeMode.dark);
+      await settingsRepo.save(settings);
+    }
+    await prefs.setBool(_darkThemeAppliedKey, true);
   }
   final soldiersRepo = SoldiersRepositoryImpl(dataSource);
   final soldiers = await soldiersRepo.loadAll();

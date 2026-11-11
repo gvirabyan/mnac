@@ -80,7 +80,7 @@ void main() {
     final restored =
         AppSettingsModel.fromJson(const <String, dynamic>{}).settings;
     expect(restored.accentColorId, 'apricot');
-    expect(restored.themeMode, AppThemeMode.system);
+    expect(restored.themeMode, AppThemeMode.dark);
     expect(restored.unlockedMilestones, isEmpty);
   });
 }
