@@ -11,7 +11,9 @@ import '../core/l10n/app_strings.dart';
 
 /// Loads and shows full-screen interstitial ads on app open.
 ///
-/// Shows on every launch, including the first. The ad is preloaded ahead of
+/// Shows on every launch, except on Android for the first
+/// [_androidAdFreeLaunches] launches after install, so a newcomer gets to
+/// know the app before any ad covers it. The ad is preloaded ahead of
 /// time via [preload] so [maybeShowOnLaunch] can show it immediately,
 /// instead of stalling on a network load.
 ///
@@ -21,9 +23,21 @@ import '../core/l10n/app_strings.dart';
 /// so a language switch during the launch delay is respected either way. iOS
 /// shows ads in every language.
 class InterstitialAdService {
-  InterstitialAdService(this._prefs);
+  InterstitialAdService(this._prefs)
+      : _launchNumber = (_prefs.getInt(_launchCountKey) ?? 0) + 1 {
+    // Counted here, once per process, rather than when the ad is due: the
+    // preload, which runs first, needs to know which launch this is too.
+    _prefs.setInt(_launchCountKey, _launchNumber);
+    // The count older versions kept. Left alone it would carry people who
+    // update straight past the ad-free start, so counting begins afresh.
+    _prefs.remove(_oldLaunchCountKey);
+  }
 
   final SharedPreferences _prefs;
+
+  /// Which app launch this is, 1 being the first after install or after the
+  /// update that brought in the ad-free start.
+  final int _launchNumber;
 
   /// Started with the service in `main`, so [_minDelay] counts from launch
   /// rather than from whenever [maybeShowOnLaunch] is reached.
@@ -39,8 +53,20 @@ class InterstitialAdService {
     _personalised = personalised;
   }
 
-  static const _launchCountKey = 'interstitial_launch_count';
+  static const _launchCountKey = 'ad_launch_count';
+  static const _oldLaunchCountKey = 'interstitial_launch_count';
   static const _showEveryNLaunches = 1;
+
+  /// How many launches pass with no ad on Android, after install and, for
+  /// people who already had the app, after updating to the version that
+  /// brought this in.
+  static const _androidAdFreeLaunches = 5;
+
+  /// True while this launch is one of the ad-free first ones on Android.
+  /// Nothing is even requested then: a fetched ad left unshown only drags
+  /// down the show rate in AdMob.
+  bool get _inAdFreeStart =>
+      Platform.isAndroid && _launchNumber <= _androidAdFreeLaunches;
 
   /// Floor on how soon after launch an ad may cover the app. Deliberately not
   /// as early as the ad could be shown: landing an interstitial on someone a
@@ -102,6 +128,11 @@ class InterstitialAdService {
       debugPrint('[ADS] no request: Android app is in Armenian'); // TEMP
       return;
     }
+    if (_inAdFreeStart) {
+      debugPrint('[ADS] no request: launch $_launchNumber of the first '
+          '$_androidAdFreeLaunches ad-free ones'); // TEMP
+      return;
+    }
     if (_loading || _ad != null) return;
     _loading = true;
     _loadSettled = Completer<void>();
@@ -159,14 +190,13 @@ class InterstitialAdService {
     return n.contains('facebook') || n.contains('meta');
   }
 
-  /// Bumps the launch counter and, if this launch lands on the cadence and a
+  /// If this launch lands on the cadence, is past the ad-free start, and a
   /// preloaded ad is ready, shows it. Best-effort: never throws — a missing
   /// or unready ad just means no ad this launch. When an ad is shown, the
   /// future completes only after it is closed.
   Future<void> maybeShowOnLaunch() async {
-    final count = (_prefs.getInt(_launchCountKey) ?? 0) + 1;
-    await _prefs.setInt(_launchCountKey, count);
-    if (count % _showEveryNLaunches != 0) return;
+    if (_inAdFreeStart) return;
+    if (_launchNumber % _showEveryNLaunches != 0) return;
 
     // Only what is left of it: time spent on the day's milestone dialog,
     // shown first, already counts.
