@@ -18,18 +18,21 @@ import 'share_card.dart';
 ///
 /// Takes a [ServiceProgress] snapshot captured at open time so the preview does
 /// not tick (and stays stable while being captured). Pass a [milestone] to
-/// preview and share the achievement card instead of the plain countdown.
+/// preview and share the achievement card instead of the plain countdown,
+/// and a [quote] to put the day's text on the card.
 class ShareCardScreen extends StatefulWidget {
   const ShareCardScreen({
     super.key,
     required this.profile,
     required this.progress,
     this.milestone,
+    this.quote,
   });
 
   final SoldierProfile profile;
   final ServiceProgress progress;
   final Milestone? milestone;
+  final String? quote;
 
   @override
   State<ShareCardScreen> createState() => _ShareCardScreenState();
@@ -126,6 +129,7 @@ class _ShareCardScreenState extends State<ShareCardScreen> {
                           profile: widget.profile,
                           progress: widget.progress,
                           milestone: widget.milestone,
+                          quote: widget.quote,
                         ),
                       ),
                     ),

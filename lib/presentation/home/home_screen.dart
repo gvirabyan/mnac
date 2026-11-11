@@ -193,7 +193,13 @@ class _ShareButton extends ConsumerWidget {
         if (soldier == null || progress == null) return;
         Navigator.of(context).push(
           appPageRoute(
-            ShareCardScreen(profile: soldier, progress: progress),
+            ShareCardScreen(
+              profile: soldier,
+              progress: progress,
+              // The same text Home is showing right now; null while the
+              // quotes are still loading, and the card simply goes without.
+              quote: ref.read(quoteOfTheDayProvider),
+            ),
           ),
         );
       },

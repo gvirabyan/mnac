@@ -24,29 +24,29 @@ class MilestonesScreen extends ConsumerWidget {
 
     return GradientScaffold(
       appBar: AppBar(title: Text(AppStrings.milestonesTitle)),
-      floatingActionButton: soldier == null
-          ? null
-          : FloatingActionButton.extended(
-              onPressed: () => showCustomMilestoneEditor(context, ref),
-              icon: const Icon(Icons.add_rounded),
-              label: Text(AppStrings.customMilestoneAdd),
-            ),
       body: milestones.isEmpty
           ? const AppLoading()
           : ListView.separated(
-              // Room at the bottom for the button, so the last card can
-              // scroll out from under it.
               padding: const EdgeInsets.fromLTRB(
                 AppSizes.screenPadding,
                 AppSizes.md,
                 AppSizes.screenPadding,
-                AppSizes.xxl + 72,
+                AppSizes.xxl,
               ),
-              itemCount: milestones.length,
+              // The add card heads the list, so it is the first thing seen
+              // and never sits over a card the way a floating button would.
+              itemCount: milestones.length + 1,
               separatorBuilder: (_, _) =>
                   const SizedBox(height: AppSizes.md),
               itemBuilder: (context, index) {
-                final milestone = milestones[index];
+                if (index == 0) {
+                  return _AddCustomCard(
+                    onTap: soldier == null
+                        ? null
+                        : () => showCustomMilestoneEditor(context, ref),
+                  );
+                }
+                final milestone = milestones[index - 1];
                 final custom = milestone.kind == MilestoneKind.custom
                     ? soldier?.customMilestones
                         .where((c) => c.milestoneId == milestone.id)
@@ -64,6 +64,75 @@ class MilestonesScreen extends ConsumerWidget {
                 );
               },
             ),
+    );
+  }
+}
+
+/// Invites the user to add an achievement of their own: an accent-outlined
+/// card, set apart from the milestones below it by its border and plus.
+class _AddCustomCard extends StatelessWidget {
+  const _AddCustomCard({required this.onTap});
+
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final accent = theme.colorScheme.primary;
+    final radius = BorderRadius.circular(AppSizes.radiusLg);
+
+    return Material(
+      color: accent.withValues(alpha: 0.08),
+      shape: RoundedRectangleBorder(
+        borderRadius: radius,
+        side: BorderSide(color: accent.withValues(alpha: 0.45), width: 1.2),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(AppSizes.md),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: accent,
+                ),
+                child: Icon(
+                  Icons.add_rounded,
+                  color: theme.colorScheme.onPrimary,
+                ),
+              ),
+              const SizedBox(width: AppSizes.sm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      AppStrings.customMilestoneAdd,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: accent,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      AppStrings.customMilestoneAddHint,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded, color: accent),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

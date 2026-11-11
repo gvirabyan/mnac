@@ -304,6 +304,27 @@ abstract final class AppStrings {
         'Добавить достижение',
         'Add an achievement',
       );
+  /// Line under the add card: what people tend to add.
+  static String get customMilestoneAddHint => _t(
+        'Արձակուրդ, երդում, հանդիպում ընտանիքի հետ…',
+        'Отпуск, присяга, встреча с семьёй…',
+        'Leave, the oath, seeing family…',
+      );
+
+  /// One-tap names offered in the editor, filled into the title field.
+  static List<String> get customMilestoneSuggestions => [
+        _t('Արձակուրդ', 'Отпуск', 'Leave'),
+        _t('Երդում', 'Присяга', 'The oath'),
+        _t('Ծննդյան օր', 'День рождения', 'Birthday'),
+        _t('Հանդիպում ընտանիքի հետ', 'Встреча с семьёй', 'Seeing family'),
+      ];
+
+  /// Which day of the service the picked date is, shown under it.
+  static String customMilestoneServiceDay(int day) => _t(
+        'Ծառայության $day-րդ օրը',
+        '$day-й день службы',
+        'Day $day of service',
+      );
   static String get customMilestoneAddTitle => _t(
         'Իմ նվաճումը',
         'Своё достижение',

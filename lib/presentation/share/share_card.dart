@@ -17,6 +17,9 @@ import '../../domain/entities/soldier_profile.dart';
 /// to be captured to an image and posted straight to Instagram/WhatsApp
 /// stories.
 ///
+/// Pass a [quote] to print the day's text under the countdown, as Home shows
+/// it.
+///
 /// Pass a [milestone] to make the card about that achievement instead: the
 /// hero slot carries the milestone rather than the remaining-days number, over
 /// the same photo background, so sharing a milestone needs no second card.
@@ -31,10 +34,14 @@ class ShareCard extends StatelessWidget {
     required this.profile,
     required this.progress,
     this.milestone,
+    this.quote,
   });
 
   final SoldierProfile profile;
   final ServiceProgress progress;
+
+  /// The day's text from Home, printed under the hero when set.
+  final String? quote;
 
   /// When set, the card celebrates this milestone instead of the countdown.
   final Milestone? milestone;
@@ -217,6 +224,10 @@ class ShareCard extends StatelessWidget {
                     ),
                   ),
                 ],
+                if (quote != null) ...[
+                  const SizedBox(height: AppSizes.lg),
+                  _Quote(text: quote!),
+                ],
                 const Spacer(flex: 2),
                 _ProgressBar(value: progress.percent),
                 const SizedBox(height: AppSizes.md),
@@ -242,6 +253,48 @@ class ShareCard extends StatelessWidget {
                 // reshared story is recognisably from this app.
                 const _Footer(),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The day's text, set off by an apricot rule like a pull quote. The longest
+/// in the bundle runs about 80 characters, three lines here; the cap is only
+/// a guard against a future longer one pushing the footer off the canvas.
+class _Quote extends StatelessWidget {
+  const _Quote({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            width: 3,
+            decoration: BoxDecoration(
+              color: AppColors.apricot,
+              borderRadius: BorderRadius.circular(AppSizes.radiusPill),
+            ),
+          ),
+          const SizedBox(width: AppSizes.sm),
+          Expanded(
+            child: Text(
+              text,
+              maxLines: 4,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodyLarge?.copyWith(
+                fontSize: 16,
+                color: AppColors.offWhite.withValues(alpha: 0.9),
+                fontStyle: FontStyle.italic,
+                height: 1.35,
+              ),
             ),
           ),
         ],

@@ -21,9 +21,11 @@ Future<void> showCustomMilestoneEditor(
   final soldier = ref.read(activeSoldierProvider);
   if (soldier == null) return;
 
-  final result = await showDialog<_EditorResult>(
+  final result = await showModalBottomSheet<_EditorResult>(
     context: context,
-    builder: (_) => _CustomMilestoneDialog(soldier: soldier, existing: existing),
+    showDragHandle: true,
+    isScrollControlled: true,
+    builder: (_) => _CustomMilestoneSheet(soldier: soldier, existing: existing),
   );
   if (result == null) return;
 
@@ -65,29 +67,30 @@ Future<void> showCustomMilestoneEditor(
   );
 }
 
-/// What the dialog closed with: the achievement to save, or null to delete.
+/// What the sheet closed with: the achievement to save, or null to delete.
 class _EditorResult {
   const _EditorResult(this.milestone);
   final CustomMilestone? milestone;
 }
 
-class _CustomMilestoneDialog extends StatefulWidget {
-  const _CustomMilestoneDialog({required this.soldier, this.existing});
+class _CustomMilestoneSheet extends StatefulWidget {
+  const _CustomMilestoneSheet({required this.soldier, this.existing});
 
   final SoldierProfile soldier;
   final CustomMilestone? existing;
 
   @override
-  State<_CustomMilestoneDialog> createState() => _CustomMilestoneDialogState();
+  State<_CustomMilestoneSheet> createState() => _CustomMilestoneSheetState();
 }
 
-class _CustomMilestoneDialogState extends State<_CustomMilestoneDialog> {
+class _CustomMilestoneSheetState extends State<_CustomMilestoneSheet> {
   static const _uuid = Uuid();
   static const _maxTitleLength = 40;
 
   late final TextEditingController _title =
       TextEditingController(text: widget.existing?.title ?? '');
-  late DateTime _date = widget.existing?.date ?? _clampToService(DateTime.now());
+  late DateTime _date =
+      widget.existing?.date ?? _clampToService(DateTime.now());
   String? _error;
 
   DateTime get _first => AppDateUtils.dateOnly(widget.soldier.serviceStart);
@@ -102,9 +105,25 @@ class _CustomMilestoneDialogState extends State<_CustomMilestoneDialog> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    // Rebuilt on every keystroke so the chips can show which one is picked.
+    _title.addListener(_onTitleChanged);
+  }
+
+  void _onTitleChanged() => setState(() => _error = null);
+
+  @override
   void dispose() {
     _title.dispose();
     super.dispose();
+  }
+
+  void _useSuggestion(String text) {
+    _title.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
   }
 
   Future<void> _pickDate() async {
@@ -155,60 +174,172 @@ class _CustomMilestoneDialogState extends State<_CustomMilestoneDialog> {
     }
   }
 
+  /// Under the date: which day of the service it is, and how far off.
+  String get _dateDetail {
+    final serviceDay = AppDateUtils.daysBetween(_first, _date) + 1;
+    final today = AppDateUtils.dateOnly(DateTime.now());
+    final parts = [
+      AppStrings.customMilestoneServiceDay(serviceDay),
+      if (!_date.isBefore(today))
+        AppStrings.milestoneInDays(AppDateUtils.daysBetween(today, _date)),
+    ];
+    return parts.join(' · ');
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final accent = theme.colorScheme.primary;
     final isEdit = widget.existing != null;
+    final fieldRadius = BorderRadius.circular(AppSizes.radiusSm);
+    final typed = _title.text.trim();
 
-    return AlertDialog(
-      title: Text(
-        isEdit
-            ? AppStrings.customMilestoneEditTitle
-            : AppStrings.customMilestoneAddTitle,
+    return Padding(
+      // Lifts the sheet above the keyboard.
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.viewInsetsOf(context).bottom,
       ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          TextField(
-            controller: _title,
-            autofocus: !isEdit,
-            maxLength: _maxTitleLength,
-            textCapitalization: TextCapitalization.sentences,
-            textInputAction: TextInputAction.done,
-            onChanged: (_) {
-              if (_error != null) setState(() => _error = null);
-            },
-            decoration: InputDecoration(
-              hintText: AppStrings.customMilestoneNameHint,
-              errorText: _error,
-            ),
-          ),
-          const SizedBox(height: AppSizes.sm),
-          Text(AppStrings.customMilestoneDate, style: theme.textTheme.labelLarge),
-          const SizedBox(height: AppSizes.xs),
-          OutlinedButton.icon(
-            onPressed: _pickDate,
-            icon: const Icon(Icons.event_rounded, size: 18),
-            label: Text(AppDateUtils.formatLong(_date)),
-          ),
-        ],
-      ),
-      actions: [
-        if (isEdit)
-          TextButton(
-            onPressed: _delete,
-            style: TextButton.styleFrom(
-              foregroundColor: theme.colorScheme.error,
-            ),
-            child: Text(AppStrings.delete),
-          ),
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(AppStrings.cancel),
+      child: SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(
+          AppSizes.screenPadding,
+          0,
+          AppSizes.screenPadding,
+          AppSizes.lg + MediaQuery.paddingOf(context).bottom,
         ),
-        FilledButton(onPressed: _save, child: Text(AppStrings.save)),
-      ],
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: accent.withValues(alpha: 0.16),
+                  ),
+                  child: Icon(Icons.flag_rounded, color: accent),
+                ),
+                const SizedBox(width: AppSizes.sm),
+                Expanded(
+                  child: Text(
+                    isEdit
+                        ? AppStrings.customMilestoneEditTitle
+                        : AppStrings.customMilestoneAddTitle,
+                    style: theme.textTheme.titleLarge,
+                  ),
+                ),
+                if (isEdit)
+                  IconButton(
+                    tooltip: AppStrings.delete,
+                    onPressed: _delete,
+                    icon: Icon(
+                      Icons.delete_outline_rounded,
+                      color: theme.colorScheme.error,
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: AppSizes.lg),
+            TextField(
+              controller: _title,
+              autofocus: !isEdit,
+              maxLength: _maxTitleLength,
+              textCapitalization: TextCapitalization.sentences,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => _save(),
+              style: theme.textTheme.titleMedium,
+              decoration: InputDecoration(
+                hintText: AppStrings.customMilestoneNameHint,
+                errorText: _error,
+                filled: true,
+                fillColor: theme.colorScheme.surfaceContainerHighest
+                    .withValues(alpha: 0.5),
+                prefixIcon: const Icon(Icons.edit_outlined),
+                border: OutlineInputBorder(
+                  borderRadius: fieldRadius,
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: fieldRadius,
+                  borderSide: BorderSide(color: accent, width: 1.5),
+                ),
+              ),
+            ),
+            Wrap(
+              spacing: AppSizes.xs,
+              runSpacing: AppSizes.xs,
+              children: [
+                for (final s in AppStrings.customMilestoneSuggestions)
+                  ChoiceChip(
+                    label: Text(s),
+                    selected: typed == s,
+                    onSelected: (_) => _useSuggestion(s),
+                  ),
+              ],
+            ),
+            const SizedBox(height: AppSizes.lg),
+            Text(
+              AppStrings.customMilestoneDate,
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: AppSizes.xs),
+            Material(
+              color: theme.colorScheme.surfaceContainerHighest
+                  .withValues(alpha: 0.5),
+              borderRadius: fieldRadius,
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(
+                onTap: _pickDate,
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSizes.md),
+                  child: Row(
+                    children: [
+                      Icon(Icons.event_rounded, color: accent),
+                      const SizedBox(width: AppSizes.sm),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              AppDateUtils.formatLong(_date),
+                              style: theme.textTheme.titleMedium,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              _dateDetail,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(
+                        Icons.chevron_right_rounded,
+                        color: theme.colorScheme.outline,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSizes.xl),
+            FilledButton.icon(
+              onPressed: _save,
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(52),
+                shape: RoundedRectangleBorder(borderRadius: fieldRadius),
+              ),
+              icon: const Icon(Icons.check_rounded),
+              label: Text(AppStrings.save),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
