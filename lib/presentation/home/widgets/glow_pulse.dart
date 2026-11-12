@@ -125,3 +125,45 @@ class GlowHalo extends StatelessWidget {
     );
   }
 }
+
+/// Rebuilds [builder] on every beat of [GlowPulse] with a soft accent glow
+/// [Shadow] for that moment, for texts to add under their letters (next to
+/// the readability shadow Home texts already carry).
+class GlowShadow extends StatelessWidget {
+  const GlowShadow({
+    super.key,
+    required this.builder,
+    this.low = 0.10,
+    this.high = 0.35,
+    this.blur = 12,
+  });
+
+  final Widget Function(BuildContext context, Shadow glow) builder;
+
+  /// Glow opacity at the faintest and brightest point of the beat.
+  final double low;
+  final double high;
+  final double blur;
+
+  /// [style] with [glow] added to the shadows it already has.
+  static TextStyle? withGlow(TextStyle? style, Shadow glow) =>
+      style?.copyWith(shadows: [...?style.shadows, glow]);
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = Theme.of(context).colorScheme.primary;
+    final beat = GlowPulse.of(context);
+    return RepaintBoundary(
+      child: AnimatedBuilder(
+        animation: beat,
+        builder: (context, _) => builder(
+          context,
+          Shadow(
+            color: accent.withValues(alpha: low + (high - low) * beat.value),
+            blurRadius: blur,
+          ),
+        ),
+      ),
+    );
+  }
+}

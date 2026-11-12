@@ -30,7 +30,7 @@ class QuoteBanner extends ConsumerWidget {
       transitionBuilder: (child, animation) =>
           FadeTransition(opacity: animation, child: child),
       // A thin neutral frame that hugs the text, over a faint shade that
-      // keeps it readable on any photo, with a soft white glow around it
+      // keeps it readable on any photo, with a faint gold glow around it
       // that breathes with the other glows on Home.
       child: Center(
         key: ValueKey(quote),
@@ -52,8 +52,8 @@ class QuoteBanner extends ConsumerWidget {
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.white.withValues(
-                  alpha: 0.04 + 0.12 * GlowPulse.of(context).value,
+                color: theme.colorScheme.primary.withValues(
+                  alpha: 0.03 + 0.08 * GlowPulse.of(context).value,
                 ),
                 blurRadius: 24,
                 spreadRadius: -4,

@@ -4,6 +4,7 @@ import '../../../core/constants/app_sizes.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/utils/duration_breakdown.dart';
 import '../../shared/widgets/animated_counter.dart';
+import 'glow_pulse.dart';
 
 /// A single value+label unit cell in a breakdown page.
 class UnitValue {
@@ -82,30 +83,41 @@ class _Cell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    // Each number and label carries its own soft gold glow, breathing with
+    // the other glows on Home, instead of one light around the whole card.
     return Expanded(
-      child: Column(
-        children: [
-          AnimatedCounter(
-            value: value,
-            animate: animate,
-            minDigits: pad ? 2 : 1,
-            // A light weight keeps the numbers calm next to the ring.
-            style: theme.textTheme.headlineSmall?.copyWith(
-              // A little under the headline size (24 -> 21 at the default
-              // font scale), keeping the user's font scale.
-              fontSize: (theme.textTheme.headlineSmall?.fontSize ?? 24) * 0.875,
-              fontWeight: FontWeight.w300,
-              fontFeatures: const [FontFeature.tabularFigures()],
+      child: GlowShadow(
+        builder: (context, glow) => Column(
+          children: [
+            AnimatedCounter(
+              value: value,
+              animate: animate,
+              minDigits: pad ? 2 : 1,
+              // A light weight keeps the numbers calm next to the ring.
+              style: GlowShadow.withGlow(
+                theme.textTheme.headlineSmall?.copyWith(
+                  // A little under the headline size (24 -> 21 at the
+                  // default font scale), keeping the user's font scale.
+                  fontSize:
+                      (theme.textTheme.headlineSmall?.fontSize ?? 24) * 0.875,
+                  fontWeight: FontWeight.w300,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+                glow,
+              ),
             ),
-          ),
-          const SizedBox(height: AppSizes.xxs),
-          Text(
-            label,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
+            const SizedBox(height: AppSizes.xxs),
+            Text(
+              label,
+              style: GlowShadow.withGlow(
+                theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+                glow,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

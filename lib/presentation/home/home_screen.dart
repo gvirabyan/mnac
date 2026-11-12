@@ -109,7 +109,7 @@ class HomeScreen extends ConsumerWidget {
                         : ListView(
                             padding: const EdgeInsets.fromLTRB(
                               AppSizes.screenPadding,
-                              AppSizes.md,
+                              AppSizes.xs,
                               AppSizes.screenPadding,
                               AppSizes.xxl,
                             ),
@@ -637,23 +637,13 @@ class _BreakdownCard extends ConsumerWidget {
     }
 
     // A quiet surface instead of the frosted glass card: no shadow or blur,
-    // just a faint fill and a hairline, so the numbers carry the card.
-    final beat = GlowPulse.of(context);
+    // just a faint fill and a hairline, so the numbers carry the card. The
+    // glow is on each number and label inside, not around the card.
     return RepaintBoundary(
-      // A soft white light around the card, like the day's text, breathing
-      // with the other glows on Home. Only the card is rebuilt per frame;
-      // the carousel is passed through as is.
-      child: AnimatedBuilder(
-        animation: beat,
-        builder: (context, carousel) => QuietCard(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSizes.lg,
-            vertical: AppSizes.md,
-          ),
-          glow: Colors.white.withValues(
-            alpha: 0.04 + 0.12 * beat.value,
-          ),
-          child: carousel!,
+      child: QuietCard(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSizes.lg,
+          vertical: AppSizes.md,
         ),
         child: BreakdownCarousel(
           animateCounters: animate,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/l10n/app_strings.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/date_utils.dart';
 import '../../../domain/entities/milestone.dart';
 import '../../shared/widgets/glass_card.dart';
@@ -19,7 +20,11 @@ class MilestoneCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    // A reached achievement: its badge in the accent, the opened-on line in
+    // plain white ink, and the tick in green.
     final accent = theme.colorScheme.primary;
+    final ink = theme.colorScheme.onSurface;
+    const done = AppColors.success;
     final unlocked = milestone.unlocked;
     // Percentages read as "50%"; the day-based kinds show the count with a
     // unit underneath, so "100 days served" and "100 days left" cannot be
@@ -110,7 +115,7 @@ class MilestoneCard extends StatelessWidget {
               Icon(
                 unlocked ? Icons.verified_rounded : Icons.lock_outline_rounded,
                 size: 20,
-                color: unlocked ? accent : theme.colorScheme.outline,
+                color: unlocked ? done : theme.colorScheme.outline,
               ),
             ],
           ),
@@ -125,7 +130,7 @@ class MilestoneCard extends StatelessWidget {
               Icon(
                 unlocked ? Icons.event_available_rounded : Icons.event_rounded,
                 size: 14,
-                color: unlocked ? accent : theme.colorScheme.outline,
+                color: unlocked ? ink : theme.colorScheme.outline,
               ),
               const SizedBox(width: AppSizes.xxs),
               // One line, whatever the screen width: shrinks rather than
@@ -138,7 +143,7 @@ class MilestoneCard extends StatelessWidget {
                     dateLine,
                     maxLines: 1,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: unlocked ? accent : null,
+                      color: unlocked ? ink : null,
                     ),
                   ),
                 ),

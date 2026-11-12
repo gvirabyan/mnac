@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/utils/duration_breakdown.dart';
+import 'glow_pulse.dart';
 import 'unit_breakdown_row.dart';
 
 /// A horizontally swipeable card showing the time breakdown as two pages —
@@ -160,11 +161,16 @@ class _Page extends StatelessWidget {
     final theme = Theme.of(context);
     return Column(
       children: [
-        Text(
-          title,
-          // The page title is the one accent in the card.
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.primary,
+        GlowShadow(
+          builder: (context, glow) => Text(
+            title,
+            // The page title is the one accent in the card.
+            style: GlowShadow.withGlow(
+              theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.primary,
+              ),
+              glow,
+            ),
           ),
         ),
         const SizedBox(height: AppSizes.md),
