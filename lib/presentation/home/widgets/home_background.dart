@@ -48,22 +48,47 @@ class HomeBackground extends StatelessWidget {
           opacity: scrimVisible ? 1.0 : 0.0,
           duration: const Duration(milliseconds: 280),
           curve: Curves.easeOut,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: isDark
-                    ? [
-                        Colors.black.withValues(alpha: 0.20),
-                        Colors.black.withValues(alpha: 0.48),
-                      ]
-                    : [
-                        Colors.white.withValues(alpha: 0.12),
-                        Colors.white.withValues(alpha: 0.45),
-                      ],
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: isDark
+                        ? [
+                            Colors.black.withValues(alpha: 0.20),
+                            Colors.black.withValues(alpha: 0.48),
+                          ]
+                        : [
+                            Colors.white.withValues(alpha: 0.12),
+                            Colors.white.withValues(alpha: 0.45),
+                          ],
+                  ),
+                ),
               ),
-            ),
+              // A soft, edgeless shade behind the ring and the day's text,
+              // so they stay readable over bright parts of any photo while
+              // the photo still shows around them.
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: RadialGradient(
+                    center: const Alignment(0, -0.4),
+                    radius: 0.85,
+                    colors: isDark
+                        ? [
+                            Colors.black.withValues(alpha: 0.45),
+                            Colors.black.withValues(alpha: 0.0),
+                          ]
+                        : [
+                            Colors.white.withValues(alpha: 0.55),
+                            Colors.white.withValues(alpha: 0.0),
+                          ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ],

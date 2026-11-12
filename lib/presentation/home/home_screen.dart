@@ -90,7 +90,8 @@ class HomeScreen extends ConsumerWidget {
                   curve: Curves.easeOut,
                   builder: (context, value, child) =>
                       Opacity(opacity: value, child: child),
-                  child: SafeArea(
+                  child: _ReadableOverPhoto(
+                   child: SafeArea(
                     child: profile == null
                         ? EmptyState(
                             icon: Icons.military_tech_outlined,
@@ -137,6 +138,12 @@ class HomeScreen extends ConsumerWidget {
                       const SizedBox(height: AppSizes.md),
                       Center(
                         child: TextButton.icon(
+                          // Neutral, so the ring stays the one gold thing.
+                          style: TextButton.styleFrom(
+                            foregroundColor: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant,
+                          ),
                           onPressed: () => Navigator.of(context).push(
                             appPageRoute(const MilestonesScreen()),
                           ),
@@ -146,6 +153,7 @@ class HomeScreen extends ConsumerWidget {
                       ),
                             ],
                           ),
+                   ),
                   ),
                 ),
               ),
@@ -153,6 +161,57 @@ class HomeScreen extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Gives every text on Home a faint, static shadow (dark in the dark theme,
+/// light in the light one) that lifts the letters off the background photo.
+/// Barely visible as such; it only stops bright patches from eating the text.
+class _ReadableOverPhoto extends StatelessWidget {
+  const _ReadableOverPhoto({required this.child});
+
+  final Widget child;
+
+  static TextStyle? _lift(TextStyle? style, List<Shadow> shadows) =>
+      style?.copyWith(shadows: shadows);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final shadows = [
+      Shadow(
+        color: isDark
+            ? Colors.black.withValues(alpha: 0.55)
+            : Colors.white.withValues(alpha: 0.7),
+        blurRadius: 8,
+        offset: const Offset(0, 1),
+      ),
+    ];
+    final t = theme.textTheme;
+    return Theme(
+      data: theme.copyWith(
+        textTheme: t.copyWith(
+          displayLarge: _lift(t.displayLarge, shadows),
+          displayMedium: _lift(t.displayMedium, shadows),
+          displaySmall: _lift(t.displaySmall, shadows),
+          headlineLarge: _lift(t.headlineLarge, shadows),
+          headlineMedium: _lift(t.headlineMedium, shadows),
+          headlineSmall: _lift(t.headlineSmall, shadows),
+          titleLarge: _lift(t.titleLarge, shadows),
+          titleMedium: _lift(t.titleMedium, shadows),
+          titleSmall: _lift(t.titleSmall, shadows),
+          bodyLarge: _lift(t.bodyLarge, shadows),
+          bodyMedium: _lift(t.bodyMedium, shadows),
+          bodySmall: _lift(t.bodySmall, shadows),
+          labelLarge: _lift(t.labelLarge, shadows),
+          labelMedium: _lift(t.labelMedium, shadows),
+          labelSmall: _lift(t.labelSmall, shadows),
+        ),
+        iconTheme: theme.iconTheme.copyWith(shadows: shadows),
+      ),
+      child: child,
     );
   }
 }
@@ -293,10 +352,10 @@ class _TopBar extends StatelessWidget {
   /// Width of one action button at the default Material size.
   static const double _regularActionWidth = 48;
 
-  /// Compact action button: 22px icon with 7px padding on each side (36px
+  /// Compact action button: 20px icon with 8px padding on each side (36px
   /// wide instead of 48).
-  static const double _compactIconSize = 22;
-  static const double _compactPadding = 7;
+  static const double _compactIconSize = 20;
+  static const double _compactPadding = 8;
 
   @override
   Widget build(BuildContext context) {
@@ -412,7 +471,7 @@ class _Greeting extends StatelessWidget {
                 child: hasPhoto
                     ? null
                     : Icon(Icons.person_rounded,
-                        color: theme.colorScheme.primary),
+                        color: theme.colorScheme.onSurfaceVariant),
               ),
             ),
             SizedBox(width: compact ? AppSizes.sm : AppSizes.md),
@@ -436,7 +495,7 @@ class _Greeting extends StatelessWidget {
                   ? Icons.unfold_more_rounded
                   : Icons.expand_more_rounded,
               size: _chevronSize,
-              color: theme.colorScheme.primary,
+              color: theme.colorScheme.onSurfaceVariant,
             ),
           ],
         ),
@@ -499,14 +558,16 @@ class _CountdownHero extends ConsumerWidget {
                 progress.isComplete
                     ? AppStrings.homeCompleted
                     : AppStrings.homeUntilHome,
-                style: theme.textTheme.labelMedium,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
               if (!progress.isComplete && progress.hasStarted) ...[
                 const SizedBox(height: AppSizes.xxs),
                 Text(
                   AppStrings.homeDaysPassed(progress.daysServed),
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.primary.withValues(alpha: 0.8),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
                     fontFeatures: tabular,
                   ),
                 ),
@@ -553,7 +614,7 @@ class _BreakdownCard extends ConsumerWidget {
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: ink.withValues(alpha: 0.03),
-          borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+          borderRadius: BorderRadius.circular(AppSizes.radiusCard),
           border: Border.all(color: ink.withValues(alpha: 0.06)),
         ),
         child: Padding(

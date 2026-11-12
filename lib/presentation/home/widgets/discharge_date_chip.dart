@@ -4,7 +4,9 @@ import '../../../core/constants/app_sizes.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/utils/date_utils.dart';
 
-/// A pill showing the estimated discharge date.
+/// A quiet line with the estimated discharge date: a flag and the date in the
+/// secondary text colour, with no fill, so it reads as information rather
+/// than a badge.
 class DischargeDateChip extends StatelessWidget {
   const DischargeDateChip({super.key, required this.dischargeDate});
 
@@ -13,22 +15,16 @@ class DischargeDateChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSizes.md,
-        vertical: AppSizes.xs,
-      ),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.primary.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(AppSizes.radiusPill),
-      ),
+    final muted = theme.colorScheme.onSurfaceVariant;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSizes.xs),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            Icons.flag_rounded,
+            Icons.flag_outlined,
             size: AppSizes.iconSm,
-            color: theme.colorScheme.primary,
+            color: muted,
           ),
           const SizedBox(width: AppSizes.xs),
           Flexible(
@@ -37,9 +33,7 @@ class DischargeDateChip extends StatelessWidget {
                 AppStrings.homeDischargeDate,
                 AppDateUtils.formatLong(dischargeDate),
               ),
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: theme.colorScheme.primary,
-              ),
+              style: theme.textTheme.bodySmall?.copyWith(color: muted),
             ),
           ),
         ],

@@ -20,6 +20,7 @@ abstract final class AppSizes {
 
   // Corner radii — soft, rounded, premium.
   static const double radiusSm = 12;
+  static const double radiusCard = 16;
   static const double radiusMd = 20;
   static const double radiusLg = 28;
   static const double radiusXl = 36;

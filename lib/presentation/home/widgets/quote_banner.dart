@@ -30,10 +30,11 @@ class QuoteBanner extends ConsumerWidget {
         '«$quote»',
         key: ValueKey(quote),
         textAlign: TextAlign.center,
-        style: theme.textTheme.titleMedium?.copyWith(
-          fontStyle: FontStyle.italic,
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
-          height: 1.4,
+        // Upright and regular: italics render poorly in Armenian, and the
+        // text reads as a quiet line rather than a slogan.
+        style: theme.textTheme.bodyLarge?.copyWith(
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.85),
+          height: 1.45,
         ),
       ),
     );

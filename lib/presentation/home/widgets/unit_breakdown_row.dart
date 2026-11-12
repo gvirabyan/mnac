@@ -98,10 +98,8 @@ class _Cell extends StatelessWidget {
           const SizedBox(height: AppSizes.xxs),
           Text(
             label,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
-              fontWeight: FontWeight.w400,
-              letterSpacing: 0.4,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
         ],
