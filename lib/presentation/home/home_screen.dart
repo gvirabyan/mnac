@@ -116,6 +116,12 @@ class HomeScreen extends ConsumerWidget {
                               ),
                               const SizedBox(height: AppSizes.xl),
                       _CountdownHero(animate: animate),
+                      // Right under the ring, with tighter gaps than the rest
+                      // of the list, so the day's text shows without
+                      // scrolling; at the bottom of the list it sat below
+                      // the fold.
+                      const SizedBox(height: AppSizes.md),
+                      QuoteBanner(animate: animate),
                       const SizedBox(height: AppSizes.xl),
                       FadeSlideIn(
                         enabled: decorate,
@@ -138,8 +144,6 @@ class HomeScreen extends ConsumerWidget {
                           label: Text(AppStrings.milestonesTitle),
                         ),
                       ),
-                      const SizedBox(height: AppSizes.xl),
-                      QuoteBanner(animate: animate),
                             ],
                           ),
                   ),
@@ -542,9 +546,19 @@ class _BreakdownCard extends ConsumerWidget {
       );
     }
 
+    // A quiet surface instead of the frosted glass card: no shadow or blur,
+    // just a faint fill and a hairline, so the numbers carry the card.
+    final ink = theme.colorScheme.onSurface;
     return RepaintBoundary(
-      child: GlassCard(
-        child: BreakdownCarousel(
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: ink.withValues(alpha: 0.03),
+          borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+          border: Border.all(color: ink.withValues(alpha: 0.06)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(AppSizes.lg),
+          child: BreakdownCarousel(
           animateCounters: animate,
           autoScroll: animate,
           pages: [
@@ -587,6 +601,7 @@ class _BreakdownCard extends ConsumerWidget {
               ),
             ]),
           ],
+          ),
         ),
       ),
     );

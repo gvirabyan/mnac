@@ -163,8 +163,9 @@ class _Page extends StatelessWidget {
         Text(
           title,
           style: theme.textTheme.labelMedium?.copyWith(
-            color: theme.colorScheme.primary,
-            letterSpacing: 1.5,
+            color: theme.colorScheme.primary.withValues(alpha: 0.85),
+            fontWeight: FontWeight.w400,
+            letterSpacing: 2,
           ),
         ),
         const SizedBox(height: AppSizes.md),
@@ -193,8 +194,8 @@ class _Dots extends StatelessWidget {
             height: 6,
             decoration: BoxDecoration(
               color: i == index
-                  ? theme.colorScheme.primary
-                  : theme.colorScheme.outline,
+                  ? theme.colorScheme.primary.withValues(alpha: 0.8)
+                  : theme.colorScheme.outline.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(AppSizes.radiusPill),
             ),
           ),

@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_sizes.dart';
 
-/// A premium circular progress ring with a sweeping accent gradient and a
-/// custom center child. The arc animates smoothly toward [percent].
+/// The home progress ring: a slim arc that fades in from its start and is
+/// brightest at today, with a soft glow, over a quiet track tinted with the
+/// same accent. Shows [child] in the middle. The arc animates toward
+/// [percent].
 class CircularCountdown extends StatelessWidget {
   const CircularCountdown({
     super.key,
@@ -70,33 +72,61 @@ class _RingPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final center = size.center(Offset.zero);
-    final radius = (size.shortestSide - stroke) / 2;
+    // Room is left for the soft glow, which reaches past the stroke.
+    final radius = (size.shortestSide - stroke) / 2 - 4;
     final rect = Rect.fromCircle(center: center, radius: radius);
 
-    final trackPaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = stroke
-      ..strokeCap = StrokeCap.round
-      ..color = track;
-    canvas.drawCircle(center, radius, trackPaint);
+    // Track: a quiet ring in the same hue as the arc, so the two belong
+    // together instead of grey against colour.
+    canvas.drawCircle(
+      center,
+      radius,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = stroke
+        ..color = Color.alphaBlend(accent.withValues(alpha: 0.10), track)
+            .withValues(alpha: 0.55),
+    );
 
     if (progress <= 0) return;
 
     const startAngle = -math.pi / 2;
     final sweepAngle = 2 * math.pi * progress;
+    // The round cap pokes out before the start; the gradient starts there
+    // too, so the cap takes the faint tail colour rather than the bright one.
+    final capAngle = (stroke / 2) / radius;
+    final shader = SweepGradient(
+      colors: [accent.withValues(alpha: 0.18), accent],
+      stops: [0, ((sweepAngle + capAngle) / (2 * math.pi)).clamp(0.0, 1.0)],
+      transform: GradientRotation(startAngle - capAngle),
+    ).createShader(rect);
 
-    final progressPaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = stroke
-      ..strokeCap = StrokeCap.round
-      ..shader = SweepGradient(
-        startAngle: startAngle,
-        endAngle: startAngle + 2 * math.pi,
-        colors: [accent.withValues(alpha: 0.7), accent],
-        transform: const GradientRotation(-math.pi / 2),
-      ).createShader(rect);
+    // A soft glow under the arc.
+    canvas.drawArc(
+      rect,
+      startAngle,
+      sweepAngle,
+      false,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = stroke
+        ..strokeCap = StrokeCap.round
+        ..shader = shader
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
+    );
 
-    canvas.drawArc(rect, startAngle, sweepAngle, false, progressPaint);
+    // The arc: fades in from the start and is brightest at today.
+    canvas.drawArc(
+      rect,
+      startAngle,
+      sweepAngle,
+      false,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = stroke
+        ..strokeCap = StrokeCap.round
+        ..shader = shader,
+    );
   }
 
   @override

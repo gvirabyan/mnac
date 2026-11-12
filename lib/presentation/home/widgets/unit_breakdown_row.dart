@@ -89,14 +89,20 @@ class _Cell extends StatelessWidget {
             value: value,
             animate: animate,
             minDigits: pad ? 2 : 1,
+            // A light weight keeps the numbers calm next to the ring.
             style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w300,
               fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),
           const SizedBox(height: AppSizes.xxs),
           Text(
             label,
-            style: theme.textTheme.labelSmall,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+              fontWeight: FontWeight.w400,
+              letterSpacing: 0.4,
+            ),
           ),
         ],
       ),

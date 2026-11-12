@@ -31,8 +31,8 @@ abstract final class AppSizes {
   static const double elevationHigh = 16;
 
   // Hero countdown sizing.
-  static const double countdownRingSize = 280;
-  static const double countdownRingStroke = 14;
+  static const double countdownRingSize = 240;
+  static const double countdownRingStroke = 8;
 
   // Icon sizing.
   static const double iconSm = 18;
