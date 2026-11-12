@@ -32,6 +32,7 @@ import 'widgets/breakdown_carousel.dart';
 import 'widgets/circular_countdown.dart';
 import 'widgets/unit_breakdown_row.dart';
 import 'widgets/discharge_date_chip.dart';
+import 'widgets/glow_pulse.dart';
 import 'widgets/home_background.dart';
 import 'widgets/quote_banner.dart';
 
@@ -91,7 +92,9 @@ class HomeScreen extends ConsumerWidget {
                   curve: Curves.easeOut,
                   builder: (context, value, child) =>
                       Opacity(opacity: value, child: child),
-                  child: _ReadableOverPhoto(
+                  child: GlowPulse(
+                   enabled: animate,
+                   child: _ReadableOverPhoto(
                    child: SafeArea(
                     child: profile == null
                         ? EmptyState(
@@ -132,28 +135,35 @@ class HomeScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: AppSizes.lg),
                       Center(
-                        child: DischargeDateChip(
-                          dischargeDate: profile.dischargeDate,
+                        child: GlowHalo(
+                          child: DischargeDateChip(
+                            dischargeDate: profile.dischargeDate,
+                          ),
                         ),
                       ),
                       const SizedBox(height: AppSizes.md),
                       Center(
-                        child: TextButton.icon(
-                          // Neutral, so the ring stays the one gold thing.
+                        child: GlowHalo(
+                         child: TextButton.icon(
+                          // Muted text with the icon in the accent, like the
+                          // date above.
                           style: TextButton.styleFrom(
                             foregroundColor: Theme.of(context)
                                 .colorScheme
                                 .onSurfaceVariant,
+                            iconColor: Theme.of(context).colorScheme.primary,
                           ),
                           onPressed: () => Navigator.of(context).push(
                             appPageRoute(const MilestonesScreen()),
                           ),
                           icon: const Icon(Icons.emoji_events_outlined),
                           label: Text(AppStrings.milestonesTitle),
+                         ),
                         ),
                       ),
                             ],
                           ),
+                   ),
                    ),
                   ),
                 ),
@@ -538,11 +548,29 @@ class _CountdownHero extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.baseline,
                 textBaseline: TextBaseline.alphabetic,
                 children: [
-                  Text(
-                    intPart,
-                    style: theme.textTheme.displaySmall?.copyWith(
-                      color: theme.colorScheme.primary,
-                      fontFeatures: tabular,
+                  // A faint glow in the accent, echoing the ring's, over the
+                  // readability shadow every Home text has; it breathes
+                  // with the other glows on Home.
+                  RepaintBoundary(
+                    child: AnimatedBuilder(
+                      animation: GlowPulse.of(context),
+                      builder: (context, _) => Text(
+                        intPart,
+                        style: theme.textTheme.displaySmall?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontFeatures: tabular,
+                          shadows: [
+                            ...?theme.textTheme.displaySmall?.shadows,
+                            Shadow(
+                              color: theme.colorScheme.primary.withValues(
+                                alpha:
+                                    0.15 + 0.30 * GlowPulse.of(context).value,
+                              ),
+                              blurRadius: 18,
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                   Text(
@@ -610,10 +638,24 @@ class _BreakdownCard extends ConsumerWidget {
 
     // A quiet surface instead of the frosted glass card: no shadow or blur,
     // just a faint fill and a hairline, so the numbers carry the card.
+    final beat = GlowPulse.of(context);
     return RepaintBoundary(
-      child: QuietCard(
-          padding: const EdgeInsets.all(AppSizes.lg),
-          child: BreakdownCarousel(
+      // A soft white light around the card, like the day's text, breathing
+      // with the other glows on Home. Only the card is rebuilt per frame;
+      // the carousel is passed through as is.
+      child: AnimatedBuilder(
+        animation: beat,
+        builder: (context, carousel) => QuietCard(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSizes.lg,
+            vertical: AppSizes.md,
+          ),
+          glow: Colors.white.withValues(
+            alpha: 0.04 + 0.12 * beat.value,
+          ),
+          child: carousel!,
+        ),
+        child: BreakdownCarousel(
           animateCounters: animate,
           autoScroll: animate,
           pages: [

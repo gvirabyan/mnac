@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/constants/app_durations.dart';
+import '../../../core/constants/app_sizes.dart';
 import '../home_controller.dart';
+import 'glow_pulse.dart';
 
 /// Shows the motivational Armenian "quote of the day".
 ///
@@ -17,6 +19,7 @@ class QuoteBanner extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final quote = ref.watch(quoteOfTheDayProvider);
     if (quote == null) {
       return const SizedBox.shrink();
@@ -26,15 +29,50 @@ class QuoteBanner extends ConsumerWidget {
       duration: animate ? AppDurations.medium : Duration.zero,
       transitionBuilder: (child, animation) =>
           FadeTransition(opacity: animation, child: child),
-      child: Text(
-        '«$quote»',
+      // A thin neutral frame that hugs the text, over a faint shade that
+      // keeps it readable on any photo, with a soft white glow around it
+      // that breathes with the other glows on Home.
+      child: Center(
         key: ValueKey(quote),
-        textAlign: TextAlign.center,
-        // Upright and regular: italics render poorly in Armenian, and the
-        // text reads as a quiet line rather than a slogan.
-        style: theme.textTheme.bodyLarge?.copyWith(
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.85),
-          height: 1.45,
+        child: RepaintBoundary(
+         child: AnimatedBuilder(
+          animation: GlowPulse.of(context),
+          builder: (context, text) => Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSizes.md,
+            vertical: AppSizes.sm,
+          ),
+          decoration: BoxDecoration(
+            color: isDark
+                ? Colors.black.withValues(alpha: 0.18)
+                : Colors.white.withValues(alpha: 0.35),
+            borderRadius: BorderRadius.circular(AppSizes.radiusCard),
+            border: Border.all(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.12),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.white.withValues(
+                  alpha: 0.04 + 0.12 * GlowPulse.of(context).value,
+                ),
+                blurRadius: 24,
+                spreadRadius: -4,
+              ),
+            ],
+          ),
+          child: text,
+          ),
+          child: Text(
+            '«$quote»',
+            textAlign: TextAlign.center,
+            // Upright and regular: italics render poorly in Armenian, and
+            // the text reads as a quiet line rather than a slogan.
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.85),
+              height: 1.45,
+            ),
+          ),
+         ),
         ),
       ),
     );

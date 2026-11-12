@@ -4,9 +4,9 @@ import '../../../core/constants/app_sizes.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/utils/date_utils.dart';
 
-/// A quiet line with the estimated discharge date: a flag and the date in the
-/// secondary text colour, with no fill, so it reads as information rather
-/// than a badge.
+/// A quiet line with the estimated discharge date: a flag in the accent and
+/// the date in the secondary text colour, with no fill, so it reads as
+/// information rather than a badge.
 class DischargeDateChip extends StatelessWidget {
   const DischargeDateChip({super.key, required this.dischargeDate});
 
@@ -24,7 +24,7 @@ class DischargeDateChip extends StatelessWidget {
           Icon(
             Icons.flag_outlined,
             size: AppSizes.iconSm,
-            color: muted,
+            color: theme.colorScheme.primary,
           ),
           const SizedBox(width: AppSizes.xs),
           Flexible(

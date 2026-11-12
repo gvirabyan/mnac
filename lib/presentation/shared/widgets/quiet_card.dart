@@ -11,16 +11,20 @@ class QuietCard extends StatelessWidget {
     required this.child,
     this.padding = const EdgeInsets.all(AppSizes.md),
     this.onTap,
+    this.glow,
   });
 
   final Widget child;
   final EdgeInsetsGeometry padding;
   final VoidCallback? onTap;
 
+  /// When set, a soft wide shadow in this colour sits under the card.
+  final Color? glow;
+
   @override
   Widget build(BuildContext context) {
     final ink = Theme.of(context).colorScheme.onSurface;
-    return Material(
+    final card = Material(
       color: ink.withValues(alpha: 0.03),
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
@@ -31,6 +35,21 @@ class QuietCard extends StatelessWidget {
         onTap: onTap,
         child: Padding(padding: padding, child: child),
       ),
+    );
+    if (glow == null) return card;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppSizes.radiusCard),
+        boxShadow: [
+          BoxShadow(
+            color: glow!,
+            blurRadius: 32,
+            spreadRadius: -8,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: card,
     );
   }
 }

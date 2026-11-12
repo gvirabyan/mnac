@@ -91,6 +91,9 @@ class _Cell extends StatelessWidget {
             minDigits: pad ? 2 : 1,
             // A light weight keeps the numbers calm next to the ring.
             style: theme.textTheme.headlineSmall?.copyWith(
+              // A little under the headline size (24 -> 21 at the default
+              // font scale), keeping the user's font scale.
+              fontSize: (theme.textTheme.headlineSmall?.fontSize ?? 24) * 0.875,
               fontWeight: FontWeight.w300,
               fontFeatures: const [FontFeature.tabularFigures()],
             ),

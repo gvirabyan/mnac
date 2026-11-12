@@ -117,7 +117,7 @@ class _BreakdownCarouselState extends State<BreakdownCarousel> {
     return Column(
       children: [
         SizedBox(
-          height: 168,
+          height: 148,
           child: PageView.builder(
             controller: _controller,
             onPageChanged: _onPageChanged,
@@ -137,7 +137,7 @@ class _BreakdownCarouselState extends State<BreakdownCarousel> {
             },
           ),
         ),
-        const SizedBox(height: AppSizes.md),
+        const SizedBox(height: AppSizes.sm),
         _Dots(count: widget.pages.length, index: _page),
       ],
     );
@@ -162,8 +162,9 @@ class _Page extends StatelessWidget {
       children: [
         Text(
           title,
+          // The page title is the one accent in the card.
           style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
+            color: theme.colorScheme.primary,
           ),
         ),
         const SizedBox(height: AppSizes.md),
