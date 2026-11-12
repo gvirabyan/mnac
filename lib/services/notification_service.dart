@@ -6,6 +6,7 @@ import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
 import '../core/l10n/app_strings.dart';
+import '../core/utils/daily_quote.dart';
 import '../domain/entities/app_settings.dart';
 import '../domain/entities/soldier_profile.dart';
 import '../domain/usecases/compute_milestones.dart';
@@ -166,6 +167,7 @@ class NotificationService {
     required SoldierProfile? soldier,
     required AppSettings settings,
     required List<String> quotes,
+    required int quoteSeed,
   }) async {
     try {
       await _cancelRange(_dailyBase, _dailyWindow);
@@ -174,7 +176,7 @@ class NotificationService {
       if (!settings.notificationsEnabled || soldier == null) return;
 
       if (settings.dailyReminderEnabled) {
-        await _scheduleDaily(soldier, settings, quotes);
+        await _scheduleDaily(soldier, settings, quotes, quoteSeed);
       }
       if (settings.milestoneNotificationsEnabled) {
         await _scheduleMilestones(soldier);
@@ -188,6 +190,7 @@ class NotificationService {
     SoldierProfile soldier,
     AppSettings settings,
     List<String> quotes,
+    int quoteSeed,
   ) async {
     final now = tz.TZDateTime.now(tz.local);
     final hour = settings.dailyReminderMinutes ~/ 60;
@@ -206,7 +209,13 @@ class NotificationService {
       );
       if (progress.isComplete) continue;
 
-      final quote = quotes.isEmpty ? '' : quotes[offset % quotes.length];
+      // The same quote Home shows on that day.
+      final quote = DailyQuote.pick(
+            quotes,
+            DailyQuote.dayOrdinal(day),
+            quoteSeed,
+          ) ??
+          '';
       final body = quote.isEmpty
           ? AppStrings.daysLeftBody(progress.daysRemaining)
           : '${AppStrings.daysLeftBody(progress.daysRemaining)} · $quote';

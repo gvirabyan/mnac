@@ -146,7 +146,12 @@ class _MainShellState extends ConsumerState<MainShell>
     final quotes = ref.read(quotesProvider).value ?? const <String>[];
     await ref
         .read(notificationServiceProvider)
-        .sync(soldier: soldier, settings: settings, quotes: quotes);
+        .sync(
+          soldier: soldier,
+          settings: settings,
+          quotes: quotes,
+          quoteSeed: ref.read(quoteSeedProvider),
+        );
     final soldiers = ref.read(soldiersControllerProvider).soldiers;
     // The widget always shows list index 0 (Android's "next" button pages
     // from there); reorder so the active soldier — the one whose photo is

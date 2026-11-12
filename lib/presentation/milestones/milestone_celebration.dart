@@ -115,24 +115,6 @@ class _MilestoneCelebrationState extends ConsumerState<_MilestoneCelebration> {
     return Stack(
       alignment: Alignment.topCenter,
       children: [
-        Align(
-          alignment: Alignment.topCenter,
-          child: ConfettiWidget(
-            confettiController: _confetti,
-            blastDirection: math.pi / 2,
-            emissionFrequency: 0.05,
-            numberOfParticles: 20,
-            maxBlastForce: 24,
-            minBlastForce: 8,
-            gravity: 0.25,
-            colors: const [
-              Color(0xFFF2A900),
-              Color(0xFFD90012),
-              Color(0xFF0033A0),
-              Colors.white,
-            ],
-          ),
-        ),
         Center(
           child: Dialog(
             backgroundColor: theme.colorScheme.surface,
@@ -231,6 +213,28 @@ class _MilestoneCelebrationState extends ConsumerState<_MilestoneCelebration> {
                   ),
                 ],
               ),
+            ),
+          ),
+        ),
+        // Last in the stack, so the confetti falls over the dialog rather
+        // than behind it; it ignores touches so the buttons still work.
+        IgnorePointer(
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: ConfettiWidget(
+              confettiController: _confetti,
+              blastDirection: math.pi / 2,
+              emissionFrequency: 0.05,
+              numberOfParticles: 20,
+              maxBlastForce: 24,
+              minBlastForce: 8,
+              gravity: 0.25,
+              colors: const [
+                Color(0xFFF2A900),
+                Color(0xFFD90012),
+                Color(0xFF0033A0),
+                Colors.white,
+              ],
             ),
           ),
         ),
