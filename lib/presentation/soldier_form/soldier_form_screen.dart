@@ -20,8 +20,8 @@ import 'widgets/photo_picker_tile.dart';
 ///
 /// Captures a profile photo (optional) and the service period as two dates —
 /// start and discharge. Picking a start date auto-fills the discharge date to
-/// 1.5 years (Armenia's current service length); the discharge date can then be
-/// changed freely.
+/// 1.5 years and one day (Armenia's current service length); the discharge
+/// date can then be changed freely.
 class SoldierFormScreen extends ConsumerStatefulWidget {
   const SoldierFormScreen({super.key, this.existing});
 
@@ -53,12 +53,27 @@ class _SoldierFormScreenState extends ConsumerState<SoldierFormScreen> {
       _photoPath = existing.photoPath;
     } else {
       _startDate = DateTime.now();
-      _endDate = AppDateUtils.addMonths(
-        _startDate,
-        ServiceConstants.defaultServiceMonths,
-      );
+      _endDate = _defaultDischarge(_startDate);
       _photoPath = null;
     }
+  }
+
+  /// The default discharge date: 1.5 years and one day after [start], on the
+  /// calendar (so a daylight-saving change can't shift it by an hour into
+  /// another day), keeping [start]'s time of day.
+  static DateTime _defaultDischarge(DateTime start) {
+    final d = AppDateUtils.addMonths(
+      start,
+      ServiceConstants.defaultServiceMonths,
+    );
+    return DateTime(
+      d.year,
+      d.month,
+      d.day + ServiceConstants.defaultServiceExtraDays,
+      d.hour,
+      d.minute,
+      d.second,
+    );
   }
 
   @override
@@ -79,11 +94,9 @@ class _SoldierFormScreenState extends ConsumerState<SoldierFormScreen> {
     if (picked != null) {
       setState(() {
         _startDate = picked;
-        // Auto-fill discharge to +1.5 years (still editable below).
-        _endDate = AppDateUtils.addMonths(
-          picked,
-          ServiceConstants.defaultServiceMonths,
-        );
+        // Auto-fill discharge to +1.5 years and a day (still editable
+        // below).
+        _endDate = _defaultDischarge(picked);
       });
     }
   }
