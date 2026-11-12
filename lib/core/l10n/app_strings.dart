@@ -221,6 +221,10 @@ abstract final class AppStrings {
   static String get statsMilestonesPeek =>
       _t('Նվաճումներ', 'Достижения', 'Achievements');
 
+  /// Caption over the next achievement still ahead.
+  static String get statsNextMilestone =>
+      _t('Հաջորդ նվաճումը', 'Следующее достижение', 'Next achievement');
+
   // Push history (announcements).
   static String get announcementsTitle =>
       _t('Ծանուցումներ', 'Уведомления', 'Notifications');

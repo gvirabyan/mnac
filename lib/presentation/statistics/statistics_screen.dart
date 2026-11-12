@@ -5,15 +5,16 @@ import '../../app/router/app_router.dart';
 import '../../core/constants/app_sizes.dart';
 import '../../core/di/providers.dart';
 import '../../core/l10n/app_strings.dart';
+import '../../core/utils/date_utils.dart';
+import '../milestones/milestone_text.dart';
 import '../milestones/milestones_screen.dart';
 import '../../domain/entities/app_settings.dart';
 import '../../domain/entities/service_progress.dart';
 import '../home/home_controller.dart';
 import '../shared/state/settings_controller.dart';
 import '../shared/widgets/empty_state.dart';
-import '../shared/widgets/glass_card.dart';
 import '../shared/widgets/gradient_scaffold.dart';
-import '../shared/widgets/section_header.dart';
+import '../shared/widgets/quiet_card.dart';
 import 'widgets/served_remaining_bar.dart';
 import 'widgets/stat_tile.dart';
 
@@ -51,14 +52,10 @@ class StatisticsScreen extends ConsumerWidget {
                 AppSizes.xxl + MediaQuery.paddingOf(context).bottom,
               ),
               children: [
-                _StatGrid(progress: progress),
-                const SizedBox(height: AppSizes.xl),
-                SectionHeader(title: AppStrings.statsProgress),
-                const SizedBox(height: AppSizes.md),
                 _ProgressCard(progress: progress, animate: animate),
-                const SizedBox(height: AppSizes.xl),
-                SectionHeader(title: AppStrings.statsMilestonesPeek),
-                const SizedBox(height: AppSizes.md),
+                const SizedBox(height: AppSizes.lg),
+                _StatGrid(progress: progress),
+                const SizedBox(height: AppSizes.lg),
                 _MilestonePeek(progress: progress, ref: ref),
               ],
             ),
@@ -66,57 +63,54 @@ class StatisticsScreen extends ConsumerWidget {
   }
 }
 
+/// The four counts as a short list, a label on the left and the number on
+/// the right, parted by hairlines.
 class _StatGrid extends StatelessWidget {
   const _StatGrid({required this.progress});
   final ServiceProgress progress;
 
   @override
   Widget build(BuildContext context) {
-    final tiles = [
+    final hairline =
+        Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06);
+    final rows = [
       StatTile(
-        icon: Icons.military_tech_outlined,
         value: '${progress.daysServed}',
         label: AppStrings.statsDaysServed,
       ),
       StatTile(
-        icon: Icons.hourglass_bottom_rounded,
         value: '${progress.daysRemaining}',
         label: AppStrings.statsDaysRemaining,
       ),
       StatTile(
-        icon: Icons.date_range_rounded,
         value: '${progress.weeksServed}',
         label: AppStrings.statsWeeksServed,
       ),
       StatTile(
-        icon: Icons.calendar_month_rounded,
         value: '${progress.monthsServed}',
         label: AppStrings.statsMonthsServed,
       ),
     ];
 
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(child: tiles[0]),
-            const SizedBox(width: AppSizes.md),
-            Expanded(child: tiles[1]),
+    return QuietCard(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSizes.lg,
+        vertical: AppSizes.xs,
+      ),
+      child: Column(
+        children: [
+          for (var i = 0; i < rows.length; i++) ...[
+            if (i > 0) Divider(height: 1, thickness: 1, color: hairline),
+            rows[i],
           ],
-        ),
-        const SizedBox(height: AppSizes.md),
-        Row(
-          children: [
-            Expanded(child: tiles[2]),
-            const SizedBox(width: AppSizes.md),
-            Expanded(child: tiles[3]),
-          ],
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
 
+/// The percentage, the one gold figure on the screen, over a slim bar that
+/// runs from the start date to the discharge date.
 class _ProgressCard extends StatelessWidget {
   const _ProgressCard({required this.progress, required this.animate});
   final ServiceProgress progress;
@@ -125,20 +119,30 @@ class _ProgressCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return GlassCard(
+    return QuietCard(
+      padding: const EdgeInsets.all(AppSizes.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
+            AppStrings.statsProgress,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: AppSizes.xxs),
+          Text(
             '${progress.percentInt}%',
-            style: theme.textTheme.displaySmall
-                ?.copyWith(color: theme.colorScheme.primary),
+            style: theme.textTheme.displaySmall?.copyWith(
+              color: theme.colorScheme.primary,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
           ),
           const SizedBox(height: AppSizes.md),
           ServedRemainingBar(
             percent: progress.percent,
-            daysServed: progress.daysServed,
-            daysRemaining: progress.daysRemaining,
+            start: progress.start,
+            end: progress.end,
             animate: animate,
           ),
         ],
@@ -147,6 +151,8 @@ class _ProgressCard extends StatelessWidget {
   }
 }
 
+/// Achievements: a caption with the count, a thin bar of how many are open,
+/// and the next one ahead with when it comes.
 class _MilestonePeek extends StatelessWidget {
   const _MilestonePeek({required this.progress, required this.ref});
   final ServiceProgress progress;
@@ -155,6 +161,8 @@ class _MilestonePeek extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final muted = theme.colorScheme.onSurfaceVariant;
+    final accent = theme.colorScheme.primary;
     // Counted off the resolved list rather than the catalogue: the day-based
     // milestones that fall past the discharge date are not offered at all for
     // a shorter term, and must not be counted as forever-locked.
@@ -162,29 +170,76 @@ class _MilestonePeek extends StatelessWidget {
     final unlocked = milestones.where((m) => m.unlocked).length;
     final total = milestones.length;
 
-    return GlassCard(
+    final ahead = milestones.where((m) => !m.unlocked).toList()
+      ..sort((a, b) => a.estimatedDate.compareTo(b.estimatedDate));
+    final next = ahead.isEmpty ? null : ahead.first;
+
+    final caption = theme.textTheme.bodySmall?.copyWith(
+      color: muted,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
+
+    return QuietCard(
+      padding: const EdgeInsets.all(AppSizes.lg),
       onTap: () => Navigator.of(context).push(
         appPageRoute(const MilestonesScreen()),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.emoji_events_outlined,
-              color: theme.colorScheme.primary, size: AppSizes.iconLg),
-          const SizedBox(width: AppSizes.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(AppStrings.milestonesTitle,
-                    style: theme.textTheme.titleMedium),
-                const SizedBox(height: AppSizes.xxs),
-                Text('$unlocked / $total',
-                    style: theme.textTheme.bodySmall),
-              ],
+          Row(
+            children: [
+              Icon(Icons.emoji_events_outlined,
+                  size: AppSizes.iconSm, color: accent),
+              const SizedBox(width: AppSizes.xs),
+              Expanded(
+                child: Text(AppStrings.milestonesTitle, style: caption),
+              ),
+              Text('$unlocked / $total', style: caption),
+              const SizedBox(width: AppSizes.xxs),
+              Icon(Icons.chevron_right_rounded,
+                  size: AppSizes.iconSm, color: muted),
+            ],
+          ),
+          const SizedBox(height: AppSizes.sm),
+          // How many are open, in the accent like the service bar above.
+          ClipRRect(
+            borderRadius: BorderRadius.circular(AppSizes.radiusPill),
+            child: LinearProgressIndicator(
+              value: total == 0 ? 0 : unlocked / total,
+              minHeight: 4,
+              backgroundColor: accent.withValues(alpha: 0.15),
+              valueColor: AlwaysStoppedAnimation(accent),
             ),
           ),
-          Icon(Icons.chevron_right_rounded,
-              color: theme.colorScheme.outline),
+          if (next != null) ...[
+            const SizedBox(height: AppSizes.md),
+            Text(AppStrings.statsNextMilestone, style: caption),
+            const SizedBox(height: AppSizes.xxs),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Expanded(
+                  child: Text(
+                    next.displayTitle,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppSizes.md),
+                Text(
+                  AppStrings.milestoneInDays(
+                    AppDateUtils.daysBetween(progress.now, next.estimatedDate),
+                  ),
+                  style: caption?.copyWith(color: accent),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );

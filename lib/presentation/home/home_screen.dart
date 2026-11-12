@@ -23,6 +23,7 @@ import '../shared/state/settings_controller.dart';
 import '../shared/state/soldiers_controller.dart';
 import '../shared/widgets/empty_state.dart';
 import '../shared/widgets/glass_card.dart';
+import '../shared/widgets/quiet_card.dart';
 import '../share/share_card_screen.dart';
 import '../soldier_form/soldier_form_screen.dart';
 import '../soldiers/soldier_switcher_sheet.dart';
@@ -609,15 +610,8 @@ class _BreakdownCard extends ConsumerWidget {
 
     // A quiet surface instead of the frosted glass card: no shadow or blur,
     // just a faint fill and a hairline, so the numbers carry the card.
-    final ink = theme.colorScheme.onSurface;
     return RepaintBoundary(
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: ink.withValues(alpha: 0.03),
-          borderRadius: BorderRadius.circular(AppSizes.radiusCard),
-          border: Border.all(color: ink.withValues(alpha: 0.06)),
-        ),
-        child: Padding(
+      child: QuietCard(
           padding: const EdgeInsets.all(AppSizes.lg),
           child: BreakdownCarousel(
           animateCounters: animate,
@@ -663,7 +657,6 @@ class _BreakdownCard extends ConsumerWidget {
             ]),
           ],
           ),
-        ),
       ),
     );
   }

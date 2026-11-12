@@ -1,39 +1,44 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_sizes.dart';
-import '../../shared/widgets/glass_card.dart';
 
-/// A compact statistic tile: an icon, a large value, and a label.
+/// One line of the statistics list: a muted label on the left and its
+/// number, in the accent, on the right. It has no card of its own; the list
+/// around it provides the surface.
 class StatTile extends StatelessWidget {
   const StatTile({
     super.key,
-    required this.icon,
     required this.value,
     required this.label,
   });
 
-  final IconData icon;
   final String value;
   final String label;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return GlassCard(
-      padding: const EdgeInsets.all(AppSizes.md),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSizes.sm),
+      child: Row(
         children: [
-          Icon(icon, color: theme.colorScheme.primary, size: AppSizes.iconMd),
-          const SizedBox(height: AppSizes.sm),
+          Expanded(
+            child: Text(
+              label,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          const SizedBox(width: AppSizes.md),
           Text(
             value,
-            style: theme.textTheme.headlineSmall?.copyWith(
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: theme.colorScheme.primary,
+              fontWeight: FontWeight.w500,
               fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),
-          const SizedBox(height: AppSizes.xxs),
-          Text(label, style: theme.textTheme.bodySmall),
         ],
       ),
     );
