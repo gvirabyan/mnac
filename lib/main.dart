@@ -76,7 +76,8 @@ Future<void> main() async {
   // Neither the consent prompts nor the ad SDK they gate are touched here:
   // anything shown before `runApp` lands on top of the splash screen. They
   // run from RootGate once the splash is done.
-  final interstitialAds = InterstitialAdService(prefs);
+  final interstitialAds =
+      InterstitialAdService(prefs, isFreshInstall: isFreshInstall);
 
   // Preload motivational quotes so the home quote shows on the very first frame
   // (returning a non-Future from overrideWith makes the value available

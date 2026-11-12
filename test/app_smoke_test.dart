@@ -43,7 +43,7 @@ void main() {
           announcementsRepositoryProvider.overrideWithValue(_NoAnnouncements()),
           // Holds no ad, so the launch check just bumps a counter.
           interstitialAdServiceProvider.overrideWithValue(
-            InterstitialAdService(prefs),
+            InterstitialAdService(prefs, isFreshInstall: false),
           ),
         ],
         // The shell directly: the full app opens on the splash, whose

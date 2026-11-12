@@ -11,25 +11,33 @@ import '../core/l10n/app_strings.dart';
 
 /// Loads and shows full-screen interstitial ads on app open.
 ///
-/// Shows on every launch, except on Android for the first
-/// [_androidAdFreeLaunches] launches after install, so a newcomer gets to
-/// know the app before any ad covers it. The ad is preloaded ahead of
-/// time via [preload] so [maybeShowOnLaunch] can show it immediately,
-/// instead of stalling on a network load.
+/// Shows on every launch after an ad-free start (see [_adFreeLaunches]):
+/// - Android in Armenian: the first [_androidArmenianAdFreeLaunches]
+///   launches, for everyone, people who update included.
+/// - Everywhere else: the first [_newcomerAdFreeLaunches] launches, only for
+///   people who install fresh; people who update see ads straight away.
 ///
-/// On Android, never while the app is in Armenian: Google's publisher policies
-/// forbid ads on screens whose content is in an unsupported language, and
-/// Armenian is one. Checked both before the request and again before showing,
-/// so a language switch during the launch delay is respected either way. iOS
-/// shows ads in every language.
+/// The ad is preloaded ahead of time via [preload] so [maybeShowOnLaunch]
+/// can show it immediately, instead of stalling on a network load.
+///
+/// Note: Google's publisher policies do not support Armenian as a content
+/// language, so serving AdMob ads on the Android app's Armenian screens goes
+/// against them and risks the AdMob account. This was a deliberate choice
+/// by the app's owner (Nov 2026); until then the Armenian Android app showed
+/// no ads at all.
 class InterstitialAdService {
-  InterstitialAdService(this._prefs)
-      : _launchNumber = (_prefs.getInt(_launchCountKey) ?? 0) + 1 {
+  InterstitialAdService(this._prefs, {required bool isFreshInstall})
+      : _launchNumber = (_prefs.getInt(_launchCountKey) ?? 0) + 1,
+        _isNewcomer = _prefs.getBool(_newcomerKey) ?? isFreshInstall {
     // Counted here, once per process, rather than when the ad is due: the
     // preload, which runs first, needs to know which launch this is too.
     _prefs.setInt(_launchCountKey, _launchNumber);
+    // Decided once, on the first launch of the version that brought this in,
+    // and kept: a newcomer stays one even after the settings are saved.
+    _prefs.setBool(_newcomerKey, _isNewcomer);
     // The count older versions kept. Left alone it would carry people who
-    // update straight past the ad-free start, so counting begins afresh.
+    // update straight past the Armenian ad-free start, so counting begins
+    // afresh.
     _prefs.remove(_oldLaunchCountKey);
   }
 
@@ -38,6 +46,10 @@ class InterstitialAdService {
   /// Which app launch this is, 1 being the first after install or after the
   /// update that brought in the ad-free start.
   final int _launchNumber;
+
+  /// Whether this install is a fresh one (as opposed to an update of a
+  /// version from before the ad-free start).
+  final bool _isNewcomer;
 
   /// Started with the service in `main`, so [_minDelay] counts from launch
   /// rather than from whenever [maybeShowOnLaunch] is reached.
@@ -55,18 +67,30 @@ class InterstitialAdService {
 
   static const _launchCountKey = 'ad_launch_count';
   static const _oldLaunchCountKey = 'interstitial_launch_count';
+  static const _newcomerKey = 'ad_is_newcomer';
   static const _showEveryNLaunches = 1;
 
-  /// How many launches pass with no ad on Android, after install and, for
-  /// people who already had the app, after updating to the version that
-  /// brought this in.
-  static const _androidAdFreeLaunches = 5;
+  /// Launches with no ad on Android while the app is in Armenian, for
+  /// everyone: after install and, for people who already had the app, after
+  /// updating to the version that brought this in.
+  static const _androidArmenianAdFreeLaunches = 5;
 
-  /// True while this launch is one of the ad-free first ones on Android.
-  /// Nothing is even requested then: a fetched ad left unshown only drags
-  /// down the show rate in AdMob.
-  bool get _inAdFreeStart =>
-      Platform.isAndroid && _launchNumber <= _androidAdFreeLaunches;
+  /// Launches with no ad everywhere else, for fresh installs only.
+  static const _newcomerAdFreeLaunches = 2;
+
+  /// How many first launches go without an ad, for this platform, language
+  /// and install. Read at each check, so a language switch counts at once.
+  int get _adFreeLaunches {
+    if (Platform.isAndroid && AppStrings.language == AppLanguage.hy) {
+      return _androidArmenianAdFreeLaunches;
+    }
+    return _isNewcomer ? _newcomerAdFreeLaunches : 0;
+  }
+
+  /// True while this launch is one of the ad-free first ones. Nothing is even
+  /// requested then: a fetched ad left unshown only drags down the show rate
+  /// in AdMob.
+  bool get _inAdFreeStart => _launchNumber <= _adFreeLaunches;
 
   /// Floor on how soon after launch an ad may cover the app. Deliberately not
   /// as early as the ad could be shown: landing an interstitial on someone a
@@ -91,19 +115,11 @@ class InterstitialAdService {
   static String get _adUnitId =>
       Platform.isIOS ? _iosAdUnitId : _androidAdUnitId;
 
-  /// False on Android while the app is in Armenian; nothing ad-related may
-  /// run then, the SDK's own start-up included. Always true on iOS.
-  static bool get adsAllowed =>
-      Platform.isIOS || AppStrings.language != AppLanguage.hy;
-
   /// Opens Google's Ad Inspector, which shows each mediation network's
   /// setup and how it answered the latest requests. Completes once it is
   /// closed: null when all went well, otherwise why it would not open — it
   /// only opens on a device registered as a test device in the AdMob console.
   static Future<String?> openAdInspector() {
-    if (!adsAllowed) {
-      return Future.value('Ads are off: the Android app is in Armenian');
-    }
     final closed = Completer<String?>();
     MobileAds.instance.openAdInspector((error) {
       closed.complete(
@@ -124,13 +140,9 @@ class InterstitialAdService {
   /// [maybeShowOnLaunch] needs it. Safe to call repeatedly (no-op while a
   /// load is in flight or an ad is already cached).
   void preload() {
-    if (!adsAllowed) {
-      debugPrint('[ADS] no request: Android app is in Armenian'); // TEMP
-      return;
-    }
     if (_inAdFreeStart) {
       debugPrint('[ADS] no request: launch $_launchNumber of the first '
-          '$_androidAdFreeLaunches ad-free ones'); // TEMP
+          '$_adFreeLaunches ad-free ones'); // TEMP
       return;
     }
     if (_loading || _ad != null) return;
@@ -215,7 +227,9 @@ class InterstitialAdService {
       return;
     }
     _ad = null;
-    if (!adsAllowed) {
+    // Checked again: a switch to Armenian on Android during the launch delay
+    // can put this launch back inside the longer ad-free start.
+    if (_inAdFreeStart) {
       ad.dispose();
       return;
     }

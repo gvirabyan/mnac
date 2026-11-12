@@ -58,23 +58,20 @@ Future<void> runStartupSequence(WidgetRef ref) async {
     await const AdConsentService().apply(personalised: personalised);
   }
 
-  // On Android in Armenian the ad SDK is not even started, so no network —
-  // mediated ones included — is ever asked for an ad. A switch to Russian or
-  // English brings ads from the next launch on. iOS always starts it.
-  if (InterstitialAdService.adsAllowed) {
-    final adsStatus = await MobileAds.instance.initialize();
-    // TEMP: mediation check — remove.
-    adsStatus.adapterStatuses.forEach((name, status) {
-      debugPrint('[ADS] adapter $name: ${status.state.name} '
-          '${status.description} (${status.latency}ms)');
-    });
-    final metaStarted = adsStatus.adapterStatuses.entries.any((e) =>
-        InterstitialAdService.isMetaAdapter(e.key) &&
-        e.value.state == AdapterInitializationState.ready);
-    debugPrint('[ADS] Meta adapter: ${metaStarted ? 'ready' : 'NOT ready'}');
-    interstitialAds.setPersonalisedAds(personalised: personalised);
-    interstitialAds.preload();
-  }
+  // The ad SDK starts in every language on both platforms; which launches
+  // get an ad is up to [InterstitialAdService].
+  final adsStatus = await MobileAds.instance.initialize();
+  // TEMP: mediation check — remove.
+  adsStatus.adapterStatuses.forEach((name, status) {
+    debugPrint('[ADS] adapter $name: ${status.state.name} '
+        '${status.description} (${status.latency}ms)');
+  });
+  final metaStarted = adsStatus.adapterStatuses.entries.any((e) =>
+      InterstitialAdService.isMetaAdapter(e.key) &&
+      e.value.state == AdapterInitializationState.ready);
+  debugPrint('[ADS] Meta adapter: ${metaStarted ? 'ready' : 'NOT ready'}');
+  interstitialAds.setPersonalisedAds(personalised: personalised);
+  interstitialAds.preload();
 
   await push.ensureSubscribed();
 }
