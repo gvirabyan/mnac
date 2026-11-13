@@ -74,13 +74,12 @@
 	</array>
 	<!-- SKAdNetwork IDs for every network that can buy this app's inventory:
 	     AdMob and its mediation partners, plus the demand sources bidding
-	     through Unity Ads and InMobi. Required for install attribution on iOS 14.5+ —
+	     through Unity Ads. Required for install attribution on iOS 14.5+ —
 	     a buyer whose ID is missing here cannot attribute its installs and
 	     bids lower or not at all.
 	     Sources, all worth re-checking every few months:
 	       https://developers.google.com/admob/ios/3p-skadnetworks
 	       https://skan.mz.unity3d.com/v3/partner/skadnetworks.plist.json
-	       https://www.inmobi.com/skadnetworkids.json
 	     Unity's dashboard flags any of its own that are missing. -->
 	<key>SKAdNetworkItems</key>
 	<array>
