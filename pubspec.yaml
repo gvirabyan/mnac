@@ -58,11 +58,6 @@ dependencies:
   # adapter on both platforms; the Game ID / Placement ID live in the AdMob
   # console (mediation group), not in this app.
   gma_mediation_unity: ^1.9.0
-  # AdMob mediation adapter for InMobi, same arrangement as Unity: the SDK
-  # comes with it, the account / placement IDs live in the AdMob console.
-  # Unlike Unity, InMobi raises no consent dialog of its own, so it needs
-  # nothing in AdConsentService.
-  gma_mediation_inmobi: ^2.3.3
   # AdMob mediation adapter for Meta Audience Network, same arrangement again:
   # the SDK comes with it, the placement IDs live in the AdMob console (Meta
   # serves through bidding only). Meta reads the ATT answer itself, so it

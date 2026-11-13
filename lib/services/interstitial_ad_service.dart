@@ -158,7 +158,7 @@ class InterstitialAdService {
           _loading = false;
           // Which network actually filled the request. With mediation on this
           // is the only way to tell an AdMob-served ad from a Unity- or
-          // InMobi-served one — each adapter's class name carries its network.
+          // Meta-served one — each adapter's class name carries its network.
           final adapter =
               ad.responseInfo?.mediationAdapterClassName ?? 'unknown adapter';
           debugPrint('[ADS] loaded by $adapter'); // TEMP
