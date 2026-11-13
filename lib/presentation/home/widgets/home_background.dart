@@ -51,23 +51,21 @@ class HomeBackground extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: isDark
-                        ? [
-                            Colors.black.withValues(alpha: 0.20),
-                            Colors.black.withValues(alpha: 0.48),
-                          ]
-                        : [
-                            Colors.white.withValues(alpha: 0.12),
-                            Colors.white.withValues(alpha: 0.45),
-                          ],
+              // Dark theme only, like the shade below: in the light theme the
+              // photo shows clean, with no white haze over it.
+              if (isDark)
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black.withValues(alpha: 0.20),
+                        Colors.black.withValues(alpha: 0.48),
+                      ],
+                    ),
                   ),
                 ),
-              ),
               // A soft, edgeless shade behind the ring and the day's text,
               // so they stay readable over bright parts of any photo while
               // the photo still shows around them. Dark theme only: a white
