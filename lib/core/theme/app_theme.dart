@@ -13,9 +13,6 @@ abstract final class AppTheme {
     required Color accent,
     double fontScale = 1.0,
   }) {
-    // The default gold is too pale on the light surface; use its deeper
-    // shade there. Other accents are dark enough as they are.
-    if (accent == AppColors.apricot) accent = AppColors.apricotDeep;
     final colorScheme = ColorScheme(
       brightness: Brightness.light,
       primary: accent,

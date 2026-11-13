@@ -176,8 +176,9 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
-/// Gives every text on Home a faint, static shadow (dark in the dark theme,
-/// light in the light one) that lifts the letters off the background photo.
+/// Gives every text on Home a faint, static dark shadow that lifts the
+/// letters off the background photo, in the dark theme only: a white halo
+/// around dark letters in the light theme only blurs them.
 /// Barely visible as such; it only stops bright patches from eating the text.
 class _ReadableOverPhoto extends StatelessWidget {
   const _ReadableOverPhoto({required this.child});
@@ -190,12 +191,10 @@ class _ReadableOverPhoto extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    if (theme.brightness != Brightness.dark) return child;
     final shadows = [
       Shadow(
-        color: isDark
-            ? Colors.black.withValues(alpha: 0.55)
-            : Colors.white.withValues(alpha: 0.7),
+        color: Colors.black.withValues(alpha: 0.55),
         blurRadius: 8,
         offset: const Offset(0, 1),
       ),

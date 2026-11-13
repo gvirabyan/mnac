@@ -25,9 +25,6 @@ abstract final class AppColors {
 
   // Armenian flag accents.
   static const Color apricot = Color(0xFFF2A900); // primary accent (gold/apricot)
-  // The same gold, deepened for the light theme: bright gold on the beige
-  // surface reads at about 2:1; this one at about 4.5:1.
-  static const Color apricotDeep = Color(0xFF9C6B00);
   static const Color flagRed = Color(0xFFD90012);
   static const Color flagBlue = Color(0xFF0033A0);
 
