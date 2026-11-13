@@ -15,6 +15,7 @@ import '../../services/notification_service.dart';
 import '../../services/push_service.dart';
 import '../shared/state/settings_controller.dart';
 import '../shared/state/soldiers_controller.dart';
+import '../shared/state/theme_providers.dart' show kDarkOnly;
 import '../shared/widgets/glass_card.dart';
 import '../shared/widgets/gradient_scaffold.dart';
 import '../shared/widgets/instagram_glyph.dart';
@@ -122,8 +123,12 @@ class SettingsScreen extends ConsumerWidget {
         children: [
           const _LanguageGroup(),
           const SizedBox(height: AppSizes.lg),
-          const _ThemeGroup(),
-          const SizedBox(height: AppSizes.lg),
+          // The theme picker is hidden while the app is dark-only (see
+          // [kDarkOnly]); it comes back as soon as that is turned off.
+          if (!kDarkOnly) ...[
+            const _ThemeGroup(),
+            const SizedBox(height: AppSizes.lg),
+          ],
           const _NotificationsGroup(),
           const SizedBox(height: AppSizes.lg),
           _Group(children: [

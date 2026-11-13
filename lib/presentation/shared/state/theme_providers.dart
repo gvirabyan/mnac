@@ -37,8 +37,14 @@ final darkThemeProvider = Provider<ThemeData>((ref) {
   );
 });
 
+/// Temporarily, the app is dark only: the light theme is not finished, so
+/// it is off and its picker in settings is hidden. Each person's saved
+/// choice is left untouched, so turning this back to false restores it.
+const kDarkOnly = true;
+
 /// Maps the domain theme mode onto Flutter's [ThemeMode].
 final themeModeProvider = Provider<ThemeMode>((ref) {
+  if (kDarkOnly) return ThemeMode.dark;
   final mode = ref.watch(
     settingsControllerProvider.select((s) => s.themeMode),
   );
