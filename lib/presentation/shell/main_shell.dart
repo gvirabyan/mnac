@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/di/providers.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../domain/entities/milestone.dart';
+import '../../services/app_update_service.dart';
 import '../../services/home_widget_service.dart';
 import '../../services/interstitial_ad_service.dart';
 import '../../services/notification_service.dart';
@@ -22,6 +23,7 @@ import '../shared/state/settings_controller.dart';
 import '../shared/state/soldiers_controller.dart';
 import '../statistics/statistics_screen.dart';
 import 'glass_nav_bar.dart';
+import 'update_dialog.dart';
 
 /// The main navigation shell: four tabs (Home / Statistics / Calendar /
 /// Settings) hosted in an [IndexedStack] to preserve each tab's state.
@@ -48,6 +50,10 @@ class _MainShellState extends ConsumerState<MainShell>
   /// so the celebration is not chased straight off the screen by an ad.
   static const _adDelayAfterMilestone = Duration(seconds: 10);
 
+  /// How long the launch ad holds off after "later" on the update dialog,
+  /// so one does not replace the other on screen at once.
+  static const _adDelayAfterUpdateLater = Duration(seconds: 5);
+
   static const _screens = [
     HomeScreen(),
     StatisticsScreen(),
@@ -63,27 +69,60 @@ class _MainShellState extends ConsumerState<MainShell>
       _syncBackground();
       // Cold-start only — deliberately not repeated on resume, so the ad
       // cadence tracks app opens rather than every foreground/background flip.
-      // One thing on screen at a time: the day's milestone first, the ad
-      // a while after it is closed, and the rating ask once the ad is.
+      // One thing on screen at a time: the day's milestone first, then the
+      // update offer, the ad a while after them, and the rating ask once
+      // the ad is closed. "Update" leaves the app for the store, so it is
+      // followed by nothing.
       final rating = ref.read(rateAppServiceProvider);
       final ads = ref.read(interstitialAdServiceProvider);
       final launchRecorded = rating.recordLaunch();
+      // Asked of the store right away, answered by the time it is needed.
+      final updateCheck = ref.read(appUpdateServiceProvider).check();
       _maybeShowTodaysMilestone().whenComplete(() async {
         if (_celebratedThisLaunch) {
           await Future<void>.delayed(_adDelayAfterMilestone);
-          // Someone who has left the app by then is not followed by the ad:
-          // shown in the background it would greet them on their return.
-          if (!mounted ||
-              WidgetsBinding.instance.lifecycleState !=
-                  AppLifecycleState.resumed) {
-            return;
-          }
+          if (!_stillHere) return;
+        }
+        final update = await _maybeOfferUpdate(updateCheck);
+        if (update == UpdateChoice.update) return;
+        if (update == UpdateChoice.later) {
+          await Future<void>.delayed(_adDelayAfterUpdateLater);
+          if (!_stillHere) return;
         }
         await ads.maybeShowOnLaunch();
         await launchRecorded;
-        await _maybeAskForRating();
+        // Two dialogs in one launch are enough.
+        if (update == null) await _maybeAskForRating();
       });
     });
+  }
+
+  /// Whether the user is still in the app. Someone who has left is not
+  /// followed by the ad: shown in the background it would greet them on
+  /// their return.
+  bool get _stillHere =>
+      mounted &&
+      WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
+
+  /// Shows the update dialog when the store has a newer version, and acts
+  /// on the answer. Null when there was nothing to offer. A required update
+  /// never returns: its dialog stays until the app is updated.
+  Future<UpdateChoice?> _maybeOfferUpdate(Future<AppUpdate?> check) async {
+    final update = await check;
+    if (update == null || !mounted) return null;
+    final service = ref.read(appUpdateServiceProvider);
+    final choice = await showUpdateDialog(
+      context,
+      update: update,
+      onUpdate: service.startUpdate,
+    );
+    switch (choice) {
+      case UpdateChoice.later:
+        await service.snooze(update);
+      case UpdateChoice.update:
+        await service.startUpdate();
+    }
+    return choice;
   }
 
   @override

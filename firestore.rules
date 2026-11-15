@@ -44,6 +44,13 @@ service cloud.firestore {
       return v == null || (v is string && v.size() <= 500 && v.matches(pattern));
     }
 
+    // The update dialog's settings (min_version, message_<language>), set
+    // by the owner in the console.
+    match /app_config/update {
+      allow read: if true;
+      allow write: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

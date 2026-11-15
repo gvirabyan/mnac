@@ -646,6 +646,30 @@ abstract final class AppStrings {
   static String get rateNow => _t('Գնահատել', 'Оценить', 'Rate');
   static String get rateLater => _t('Ոչ հիմա', 'Не сейчас', 'Not now');
 
+  // App update dialog.
+  static String get updateTitle => _t(
+        'Հասանելի է նոր տարբերակ',
+        'Доступна новая версия',
+        'A new version is available',
+      );
+  static String get updateBody => _t(
+        'Թարմացրու հավելվածը՝ նոր հնարավորություններն ու ուղղումները ստանալու համար։',
+        'Обнови приложение, чтобы получить новые функции и исправления.',
+        'Update the app to get the new features and fixes.',
+      );
+  static String get updateRequiredTitle => _t(
+        'Անհրաժեշտ է թարմացնել',
+        'Нужно обновить приложение',
+        'Update required',
+      );
+  static String get updateRequiredBody => _t(
+        'Այս տարբերակն այլևս չի աջակցվում։ Թարմացրու հավելվածը՝ շարունակելու համար։',
+        'Эта версия больше не поддерживается. Обнови приложение, чтобы продолжить.',
+        'This version is no longer supported. Update the app to continue.',
+      );
+  static String get updateNow => _t('Թարմացնել', 'Обновить', 'Update');
+  static String get updateLater => _t('Ավելի ուշ', 'Позже', 'Later');
+
   /// Name and description of the Android channel the local reminders use.
   static String get notifChannelName =>
       _t('Հիշեցումներ', 'Напоминания', 'Reminders');

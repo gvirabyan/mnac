@@ -81,6 +81,9 @@ dependencies:
   # Plays the 30-second iTunes previews of the song of the day. Ships a
   # Package.swift, so it works with the app's SPM-only iOS build.
   just_audio: ^0.10.6
+  # Google Play's in-app updates (Android only), behind the update dialog;
+  # 5.x needs Flutter 3.44.
+  in_app_update: ^4.2.5
 
 dev_dependencies:
   flutter_test:
