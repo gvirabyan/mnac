@@ -11,6 +11,39 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Song of the day (iTunes or Deezer), one document per day
+    // ("yyyy-mm-dd"), the same for everyone. The owner sets it from the
+    // debug build of the app (which has no sign-in, so any client may
+    // write), from tool/set_song.js or the console. A write must be an
+    // iTunes or Deezer song in the app's shape, so the worst a stranger can
+    // do is set some other such song; nothing can be deleted from a client.
+    match /song_days/{day} {
+      allow read: if true;
+      allow create, update: if isSongDay(day, request.resource.data);
+      allow delete: if false;
+    }
+
+    function isSongDay(day, d) {
+      return d.keys().hasOnly(['day', 'source', 'trackId', 'title', 'artist',
+                               'artworkUrl', 'previewUrl', 'storeUrl',
+                               'setAt'])
+        && d.keys().hasAll(['day', 'trackId', 'title', 'artist', 'setAt'])
+        && d.day == day
+        && d.get('source', 'appleMusic') in ['appleMusic', 'deezer']
+        && day.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}')
+        && d.trackId is string && d.trackId.matches('[0-9]{1,20}')
+        && d.title is string && d.title.size() > 0 && d.title.size() <= 200
+        && d.artist is string && d.artist.size() > 0 && d.artist.size() <= 200
+        && isUrlOrNull(d.get('artworkUrl', null), 'https://[a-z0-9-]+[.](mzstatic[.]com|dzcdn[.]net)/.*')
+        && isUrlOrNull(d.get('previewUrl', null), 'https://[a-z0-9-]+[.](itunes[.]apple[.]com|dzcdn[.]net)/.*')
+        && isUrlOrNull(d.get('storeUrl', null), 'https://((music|itunes)[.]apple[.]com|www[.]deezer[.]com)/.*')
+        && d.setAt == request.time;
+    }
+
+    function isUrlOrNull(v, pattern) {
+      return v == null || (v is string && v.size() <= 500 && v.matches(pattern));
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

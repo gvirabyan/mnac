@@ -35,6 +35,7 @@ import 'widgets/discharge_date_chip.dart';
 import 'widgets/glow_pulse.dart';
 import 'widgets/home_background.dart';
 import 'widgets/quote_banner.dart';
+import 'widgets/song_of_the_day_strip.dart';
 
 /// Home tab: opens straight here (no onboarding). When there is no soldier yet
 /// it invites the user to add one; otherwise it shows the live countdown over a
@@ -119,7 +120,8 @@ class HomeScreen extends ConsumerWidget {
                                 soldierCount: soldierCount,
                                 onTap: () => showSoldierSwitcher(context),
                               ),
-                              const SizedBox(height: AppSizes.xl),
+                              // Also the gap to the countdown.
+                              const SongOfTheDayStrip(),
                       _CountdownHero(animate: animate),
                       // Right under the ring, with tighter gaps than the rest
                       // of the list, so the day's text shows without

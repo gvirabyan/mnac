@@ -78,6 +78,9 @@ dependencies:
   http: ^1.6.0
   http_parser: ^4.1.2
   in_app_review: ^2.0.12
+  # Plays the 30-second iTunes previews of the song of the day. Ships a
+  # Package.swift, so it works with the app's SPM-only iOS build.
+  just_audio: ^0.10.6
 
 dev_dependencies:
   flutter_test:

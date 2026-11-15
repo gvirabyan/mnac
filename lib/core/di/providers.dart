@@ -1,16 +1,21 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../data/datasources/deezer_api.dart';
+import '../../data/datasources/itunes_search_api.dart';
 import '../../data/datasources/local_prefs_data_source.dart';
 import '../../domain/entities/app_settings.dart';
 import '../../domain/entities/soldier_profile.dart';
 import '../../data/repositories/announcements_repository_impl.dart';
 import '../../data/repositories/backup_repository_impl.dart';
 import '../../data/repositories/settings_repository_impl.dart';
+import '../../data/repositories/song_catalog_repository_impl.dart';
+import '../../data/repositories/song_of_the_day_repository_impl.dart';
 import '../../data/repositories/soldiers_repository_impl.dart';
 import '../../domain/repositories/announcements_repository.dart';
 import '../../domain/repositories/backup_repository.dart';
 import '../../domain/repositories/settings_repository.dart';
+import '../../domain/repositories/song_repository.dart';
 import '../../domain/repositories/soldiers_repository.dart';
 import '../../domain/usecases/backup_data.dart';
 import '../../domain/usecases/compute_milestones.dart';
@@ -67,6 +72,19 @@ final backupRepositoryProvider = Provider<BackupRepository>(
 /// Overridden in tests.
 final announcementsRepositoryProvider = Provider<AnnouncementsRepository>(
   (ref) => AnnouncementsRepositoryImpl(ref.watch(localPrefsDataSourceProvider)),
+);
+
+/// Song search in iTunes and Deezer (the debug build's song picker), and
+/// fresh preview links for playing. One instance for the app, so its cache
+/// of answers outlives the screen. Overridden in tests.
+final songCatalogRepositoryProvider = Provider<SongCatalogRepository>(
+  (ref) => SongCatalogRepositoryImpl(ItunesSearchApi(), DeezerApi()),
+);
+
+/// The song of the day for everyone, read from Firestore. Overridden in
+/// tests.
+final songOfTheDayRepositoryProvider = Provider<SongOfTheDayRepository>(
+  (ref) => SongOfTheDayRepositoryImpl(),
 );
 
 // Use cases (stateless, const).

@@ -731,6 +731,52 @@ abstract final class AppStrings {
   //     'միայն նկարը ստեղծելու համար։'
   static String get aboutVersionLabel => _t('Տարբերակ', 'Версия', 'Version');
 
+  // Song of the day.
+  static String get songOfTheDay =>
+      _t('Օրվա երգը', 'Песня дня', 'Song of the day');
+  static String get songNotChosen => _t(
+        'Օրվա երգը դեռ ընտրված չէ',
+        'Песня дня ещё не выбрана',
+        'No song of the day yet',
+      );
+  static String get songSearchHint =>
+      _t('Երգ կամ կատարող', 'Песня или исполнитель', 'Song or artist');
+  static String get songSearchPrompt => _t(
+        'Գտիր երգը, որը կդառնա այսօրվա երգը բոլորի համար։ Կարող ես գրել նաև հայերեն։',
+        'Найди песню, которая станет песней дня для всех. Можно писать и по-армянски.',
+        "Find the song that will be today's song for everyone. Armenian letters work too.",
+      );
+  static String get songNothingFound =>
+      _t('Ոչինչ չգտնվեց', 'Ничего не найдено', 'Nothing found');
+  static String get songSearchFailed => _t(
+        'Չհաջողվեց կապվել։ Ստուգիր ինտերնետը։',
+        'Не удалось связаться. Проверь интернет.',
+        "Couldn't connect. Check your internet.",
+      );
+  static String get songSaveFailed => _t(
+        'Չհաջողվեց պահպանել երգը',
+        'Не удалось сохранить песню',
+        "Couldn't save the song",
+      );
+  static String get songPlayFailed => _t(
+        'Չհաջողվեց միացնել երգը',
+        'Не удалось включить песню',
+        "Couldn't play the song",
+      );
+  static String get songOpenInAppleMusic =>
+      _t('Բացել Apple Music-ում', 'Открыть в Apple Music', 'Open in Apple Music');
+  static String get songOpenInDeezer =>
+      _t('Բացել Deezer-ում', 'Открыть в Deezer', 'Open in Deezer');
+  static String get songPlay => _t('Միացնել', 'Слушать', 'Play');
+  static String get songPause => _t('Դադար', 'Пауза', 'Pause');
+  static String get songPick => _t('Ընտրել', 'Выбрать', 'Choose');
+  static String get songRetry => _t('Կրկին', 'Ещё раз', 'Try again');
+  static String get songPreviewNote => _t(
+        '30 վայրկյանանոց հատվածներ Apple Music-ից և Deezer-ից',
+        '30-секундные отрывки из Apple Music и Deezer',
+        '30-second previews from Apple Music and Deezer',
+      );
+
   // Common.
   static String get save => _t('Պահպանել', 'Сохранить', 'Save');
   static String get cancel => _t('Չեղարկել', 'Отмена', 'Cancel');
