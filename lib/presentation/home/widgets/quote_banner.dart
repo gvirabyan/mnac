@@ -67,7 +67,7 @@ class QuoteBanner extends ConsumerWidget {
             textAlign: TextAlign.center,
             // Upright and regular: italics render poorly in Armenian, and
             // the text reads as a quiet line rather than a slogan.
-            style: theme.textTheme.bodyLarge?.copyWith(
+            style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurface.withValues(alpha: 0.85),
               height: 1.45,
             ),

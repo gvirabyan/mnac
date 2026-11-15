@@ -1,4 +1,3 @@
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -129,7 +128,7 @@ class HomeScreen extends ConsumerWidget {
                       // the fold.
                       const SizedBox(height: AppSizes.md),
                       QuoteBanner(animate: animate),
-                      const SizedBox(height: AppSizes.xl),
+                      const SizedBox(height: AppSizes.md),
                       FadeSlideIn(
                         enabled: decorate,
                         delay: const Duration(milliseconds: 100),
@@ -385,7 +384,6 @@ class _TopBar extends StatelessWidget {
                 profile: profile,
                 soldierCount: soldierCount,
                 onTap: onTap,
-                compact: compact,
               ),
             ),
             ..._actions,
@@ -415,24 +413,17 @@ class _Greeting extends StatelessWidget {
     required this.profile,
     required this.soldierCount,
     required this.onTap,
-    this.compact = false,
   });
 
   final SoldierProfile profile;
   final int soldierCount;
   final VoidCallback onTap;
 
-  /// Smaller avatar and gap, to leave a long name more room.
-  final bool compact;
-
-  static const double _avatarRadius = 26;
-  static const double _compactAvatarRadius = 21;
   static const double _chevronSize = 24;
 
-  /// Horizontal space the greeting takes besides the name itself at the
-  /// regular size: avatar, the gap after it, and the chevron.
-  static const double reservedWidth =
-      _avatarRadius * 2 + AppSizes.md + _chevronSize;
+  /// Horizontal space the greeting takes besides the name itself: the
+  /// chevron. The name stands alone, with no avatar.
+  static const double reservedWidth = _chevronSize;
 
   static String _nameOf(SoldierProfile profile) =>
       profile.name ?? AppStrings.appName;
@@ -462,8 +453,6 @@ class _Greeting extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final hasPhoto =
-        profile.photoPath != null && File(profile.photoPath!).existsSync();
     final greeting = _nameOf(profile);
 
     return InkWell(
@@ -473,20 +462,6 @@ class _Greeting extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: AppSizes.xxs),
         child: Row(
           children: [
-            Hero(
-              tag: 'profile-photo',
-              child: CircleAvatar(
-                radius: compact ? _compactAvatarRadius : _avatarRadius,
-                backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                backgroundImage:
-                    hasPhoto ? FileImage(File(profile.photoPath!)) : null,
-                child: hasPhoto
-                    ? null
-                    : Icon(Icons.person_rounded,
-                        color: theme.colorScheme.onSurfaceVariant),
-              ),
-            ),
-            SizedBox(width: compact ? AppSizes.sm : AppSizes.md),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

@@ -7,6 +7,7 @@ import '../../../core/constants/app_durations.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../domain/entities/song.dart';
+import '../../shared/widgets/marquee_text.dart';
 import '../../song/song_of_the_day_controller.dart';
 import '../../song/song_of_the_day_screen.dart';
 import '../../song/song_player_controller.dart';
@@ -37,10 +38,8 @@ class SongOfTheDayStrip extends ConsumerWidget {
       child: song == null && !kDebugMode
           ? const SizedBox(width: double.infinity, height: AppSizes.xl)
           : Padding(
-              padding: const EdgeInsets.only(
-                top: AppSizes.xs,
-                bottom: AppSizes.lg,
-              ),
+              // Right under the top row, as part of it.
+              padding: const EdgeInsets.only(bottom: AppSizes.lg),
               child: _Bar(song: song),
             ),
     );
@@ -107,22 +106,31 @@ class _Bar extends ConsumerWidget {
                       ),
                     ),
                   const SizedBox(width: AppSizes.xxs),
-                  Expanded(
-                    // One line, Telegram-style: the label in the accent,
-                    // then the title, then the artist, which the ellipsis
-                    // takes first.
-                    child: Text.rich(
-                      TextSpan(children: [
-                        if (song == null)
-                          TextSpan(
-                            text: AppStrings.songNotChosen,
-                            style: TextStyle(color: scheme.onSurfaceVariant),
-                          )
-                        else ...[
-                          TextSpan(
-                            text: '${AppStrings.songOfTheDay}  ·  ',
-                            style: TextStyle(color: scheme.primary),
-                          ),
+                  if (song == null)
+                    Expanded(
+                      child: Text(
+                        AppStrings.songNotChosen,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    )
+                  else ...[
+                    // One line, Telegram-style: the label stays put in the
+                    // accent; the title and artist after it run as a ticker
+                    // when they don't fit.
+                    Text(
+                      '${AppStrings.songOfTheDay}  ·  ',
+                      maxLines: 1,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: scheme.primary,
+                      ),
+                    ),
+                    Expanded(
+                      child: MarqueeText(
+                        TextSpan(children: [
                           TextSpan(
                             text: song.title,
                             style: const TextStyle(
@@ -133,13 +141,11 @@ class _Bar extends ConsumerWidget {
                             text: '  ·  ${song.artist}',
                             style: TextStyle(color: scheme.onSurfaceVariant),
                           ),
-                        ],
-                      ]),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodyMedium,
+                        ]),
+                        style: theme.textTheme.bodyMedium,
+                      ),
                     ),
-                  ),
+                  ],
                   if (song?.storeUrl != null)
                     IconButton(
                       tooltip: openInStoreLabel(song!),
