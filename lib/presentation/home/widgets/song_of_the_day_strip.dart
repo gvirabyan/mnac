@@ -5,8 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/router/app_router.dart';
 import '../../../core/constants/app_durations.dart';
 import '../../../core/constants/app_sizes.dart';
+import '../../../core/l10n/app_language.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../domain/entities/song.dart';
+import '../../shared/state/settings_controller.dart';
 import '../../shared/widgets/marquee_text.dart';
 import '../../song/song_of_the_day_controller.dart';
 import '../../song/song_of_the_day_screen.dart';
@@ -22,6 +24,9 @@ import '../../song/widgets/song_play_button.dart';
 /// song is set (or it is still loading) it is just that gap, and the bar
 /// slides in when the song arrives.
 ///
+/// Armenian only: in Russian and English there is no bar, the song is not
+/// even fetched, and a preview playing when the language changes stops.
+///
 /// In the debug build (the owner's) the bar always shows and a tap opens
 /// [SongOfTheDayScreen] to set the song for everyone; `kDebugMode` is a
 /// constant, so release builds leave the picker out entirely.
@@ -30,12 +35,20 @@ class SongOfTheDayStrip extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final song = ref.watch(songOfTheDayProvider).value;
+    final armenian =
+        ref.watch(settingsControllerProvider.select((s) => s.language)) ==
+            AppLanguage.hy;
+    ref.listen(settingsControllerProvider.select((s) => s.language), (_, l) {
+      if (l != AppLanguage.hy && ref.read(songPlayerProvider).songId != null) {
+        ref.read(songPlayerProvider.notifier).stop();
+      }
+    });
+    final song = armenian ? ref.watch(songOfTheDayProvider).value : null;
     return AnimatedSize(
       duration: AppDurations.medium,
       curve: Curves.easeOutCubic,
       alignment: Alignment.topCenter,
-      child: song == null && !kDebugMode
+      child: !armenian || (song == null && !kDebugMode)
           ? const SizedBox(width: double.infinity, height: AppSizes.xl)
           : Padding(
               // Right under the top row, as part of it.
